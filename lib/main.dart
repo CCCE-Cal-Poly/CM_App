@@ -63,7 +63,7 @@ class MyApp extends StatelessWidget {
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const MaterialApp(
-              home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
+              home: Scaffold(appBar: GoldAppBar(), body: OnboardingScreen()),
               //home: AuthGate(),
             );
           }
