@@ -13,6 +13,7 @@ class ProfileScreen extends StatefulWidget {
 class ProfileScreenState extends State<ProfileScreen> {
   final String title = 'CM Home';
   static const calPolyGreen = Color(0xFF003831);
+  static const calPolyGold = Color(0xFFFFCC33);
   static const tanColor = Color(0xFFcecca0);
   //static const appBackgroundColor = Color(0xFFE4E3D3);
   final _firstNameController = TextEditingController();
@@ -127,7 +128,7 @@ class ProfileScreenState extends State<ProfileScreen> {
       ),
       const SizedBox(width: 16), // Adding some space between buttons
       ElevatedButton(
-        style: ElevatedButton.styleFrom(backgroundColor: calPolyGreen),
+        style: ElevatedButton.styleFrom(backgroundColor: calPolyGold),
         onPressed: () async {
           await FirebaseAuth.instance.signOut();
           Navigator.pushAndRemoveUntil(
@@ -136,7 +137,7 @@ class ProfileScreenState extends State<ProfileScreen> {
             (route) => false,
           );
         },
-        child: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+        child: const Text('Confirm', style: TextStyle(color: Colors.black)),
       ),
     ];
 
@@ -163,24 +164,27 @@ class ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Container createProfileAttributeContainer(TextFormField attributeField) {
+  Container createProfileAttributeContainer(TextFormField attributeField, Color color) {
     return Container(
         decoration: BoxDecoration(
+          color: color,
           borderRadius: BorderRadius.circular(10.0),
-          border: Border.all(color: Colors.grey),
+          border: Border.all(color: calPolyGreen),
         ),
         child: attributeField);
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       body: Stack(
         children: [
           // Top background
           Positioned.fill(
             top: 0,
-            child: Container(color: tanColor),
+            child: Container(color: calPolyGreen),
           ),
 
           // White background with rounded corners for text fields
@@ -190,42 +194,46 @@ class ProfileScreenState extends State<ProfileScreen> {
             right: 0,
             bottom: 0,
             child: Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFFFFFDED),
+              decoration: BoxDecoration(
+                color: calPolyGreen,
                 borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(32.0),
-                  topRight: Radius.circular(32.0),
+                  topLeft: Radius.circular(screenHeight * .2),
+                  topRight: Radius.circular(screenHeight * .2),
                 ),
               ),
-              padding: const EdgeInsets.all(20.0),
+              padding: EdgeInsets.all(screenHeight * .001),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(screenWidth * .08),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    const SizedBox(
-                        height: 120.0), // Adding space between the fields
+                    SizedBox(
+                        height: screenHeight * .075), // Adding space between the fields
+                    Align(alignment: Alignment.center,
+                    child: Text( 'My Profile', style: TextStyle(color: calPolyGold, fontSize: screenWidth * .06, fontFamily: 'Arial', fontWeight: FontWeight.bold), textAlign: TextAlign.center,)),
+                    SizedBox(
+                        height: screenHeight * .02),
+                    createProfileAttributeContainer((createProfileAttributeField(
+                        "First Name", _firstNameController)),Colors.white),
+                    SizedBox(
+                        height: screenHeight * .02), // Adding space between the fields
                     createProfileAttributeContainer(createProfileAttributeField(
-                        "First Name", _firstNameController)),
-                    const SizedBox(
-                        height: 24.0), // Adding space between the fields
+                        "Last Name", _lastNameController),Colors.white),
+                    SizedBox(
+                        height: screenHeight * .02), // Adding space between the fields
                     createProfileAttributeContainer(createProfileAttributeField(
-                        "Last Name", _lastNameController)),
-                    const SizedBox(
-                        height: 24.0), // Adding space between the fields
+                        "School Year", _schoolYearController),Colors.white),
+                    SizedBox(
+                        height: screenHeight * .02), // Adding space between the fields
                     createProfileAttributeContainer(createProfileAttributeField(
-                        "School Year", _schoolYearController)),
-                    const SizedBox(
-                        height: 24.0), // Adding space between the fields
-                    createProfileAttributeContainer(createProfileAttributeField(
-                        "Company", _companyController)),
+                        "Company", _companyController),Colors.white),
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      padding: EdgeInsets.symmetric(vertical: screenHeight * .013),
                       child:
                           editButtonBuild(), // Empty container when not in edit mode
                     ),
                     Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 15),
+                        margin: EdgeInsets.symmetric(horizontal: screenWidth * .04),
                         decoration: const BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
@@ -235,38 +243,47 @@ class ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                         )),
+                    SizedBox(
+                        height: screenHeight * .02), // Adding space between the fields
+                    createProfileAttributeContainer(createProfileAttributeField(
+                        "My Club Preferences", _schoolYearController), calPolyGold),
+                    SizedBox(
+                        height: screenHeight * .02), // Adding space between the fields
+                    createProfileAttributeContainer(createProfileAttributeField(
+                        "My Industry Preferences", _companyController),calPolyGold),
                   ],
                 ),
               ),
             ),
           ),
           // Circle for profile pic
-          Positioned(
-            top: 50, // Adjust as needed
-            left: (MediaQuery.of(context).size.width - 186) /
-                2, // Adjust as needed
+          Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+            padding: EdgeInsets.only(top: screenHeight * 0.055),
             child: Stack(
               children: [
                 Container(
-                  width: 186,
-                  height: 186,
+                  width: screenWidth * .45,
+                  height: screenHeight * .20,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border:
-                        Border.all(color: const Color(0xFFD9D9D9), width: 2),
+                        Border.all(color: const Color.fromARGB(255, 112, 135, 121), width: 2),
                     color:
-                        const Color(0xFFFFFDED), // Change to your desired color
+                        const Color.fromARGB(255, 112, 135, 121), // Change to your desired color
                   ),
+                  padding: EdgeInsets.symmetric(vertical: screenHeight * .035),
                   // You can put an Image or Icon widget inside the container for profile picture
-                  child: const Icon(Icons.person,
-                      size: 100, color: Color.fromARGB(255, 118, 118, 118)),
+                  child: Icon(Icons.person,
+                      size: screenHeight * .20, color: calPolyGreen),
                 ),
                 Positioned(
-                    bottom: 10, // Adjust as needed
-                    right: 10, // Adjust as needed
+                    bottom: screenHeight * .011, // Adjust as needed
+                    right: screenWidth *.022, // Adjust as needed
                     child: Container(
-                        decoration: const BoxDecoration(
-                            shape: BoxShape.circle, color: Color(0xFFD9D9D9)),
+                        decoration: BoxDecoration(
+                            color: calPolyGold, borderRadius: BorderRadius.circular(screenHeight * .008)),
                         child: Material(
                           borderRadius: BorderRadius.circular(100),
                           child: InkWell(
@@ -282,22 +299,23 @@ class ProfileScreenState extends State<ProfileScreen> {
                               // or show a dialog to edit the profile
                             },
                             child: Ink(
-                              width: 40,
-                              height: 40,
+                              width: screenWidth * .09,
+                              height: screenHeight * .04,
                               decoration: const BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Color(0xFFD9D9D9),
+                                color: calPolyGold,
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.edit,
-                                size: 24,
-                                color: Colors.white,
+                                size: screenHeight * .03,
+                                color: calPolyGreen,
                               ),
                             ),
                           ),
                         )))
               ],
             ),
+          ),
           ),
         ],
       ),
