@@ -1,3 +1,4 @@
+import 'package:ccce_application/common/theme/colors.dart';
 import 'package:flutter/material.dart';
 
 class Faculty implements Comparable<Faculty> {
@@ -7,10 +8,11 @@ class Faculty implements Comparable<Faculty> {
   dynamic email;
   dynamic phone;
   dynamic hours;
+  dynamic office;
   bool administration;
   bool emeritus;
   Faculty(this.fname, this.lname, this.title, this.email, this.phone,
-      this.hours, this.administration, this.emeritus);
+      this.hours, this.office, this.administration, this.emeritus);
 
   @override
   int compareTo(Faculty other) {
@@ -26,12 +28,12 @@ class FacultyItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFD5E3F4),
+          color: Colors.white,
           border: Border.all(color: Colors.black),
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: BorderRadius.zero,
           // boxShadow: [
           //   BoxShadow(
           //     color: Colors.black.withOpacity(0.3),
@@ -42,9 +44,9 @@ class FacultyItem extends StatelessWidget {
           //],
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 6.0),
+          padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 6.0),
           child: Padding(
-            padding: const EdgeInsets.only(left: 18.0, top: 8.0, bottom: 8.0),
+            padding: const EdgeInsets.only(left: 18.0, top: 4.0, bottom: 8.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -53,11 +55,11 @@ class FacultyItem extends StatelessWidget {
                   style: const TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.w600,
-                      fontSize: 18),
+                      fontSize: 14),
                 ),
                 Text(faculty.title,
-                    style: TextStyle(
-                        color: Colors.black, fontWeight: FontWeight.w500)),
+                    style: const TextStyle(
+                        color: AppColors.darkGoldText, fontWeight: FontWeight.w400, fontSize: 11)),
               ],
             ),
           ),
@@ -121,7 +123,7 @@ class FacultyPopUp extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               IconButton(
-                                icon: Icon(
+                                icon: const Icon(
                                   Icons.arrow_back,
                                   color: Colors.white,
                                 ),
