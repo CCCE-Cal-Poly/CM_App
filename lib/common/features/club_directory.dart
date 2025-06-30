@@ -1,9 +1,12 @@
+import 'package:ccce_application/common/theme/colors.dart';
+import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/club.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ClubDirectory extends StatefulWidget {
-  const ClubDirectory({Key? key}) : super(key: key);
+  final GlobalKey<ScaffoldState> scaffoldKey;
+  const ClubDirectory({super.key, required this.scaffoldKey});
 
   final String title = "Club Directory";
   @override
@@ -85,15 +88,15 @@ class _ClubDirectoryState extends State<ClubDirectory> {
           });
         },
         style: OutlinedButton.styleFrom(
-            padding: EdgeInsets.symmetric(horizontal: 10),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6), // Rounded corners
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero, // Rounded corners
             ),
-            textStyle: TextStyle(fontSize: 14),
-            side: BorderSide(
+            textStyle: const TextStyle(fontSize: 14),
+            side: const BorderSide(
                 color: Colors.black, width: 1), // Border color and width
             fixedSize: const Size(60, 30), // Set the button size
-            minimumSize: Size(80, 20), // Minimum size constraint
+            minimumSize: const Size(80, 20), // Minimum size constraint
             backgroundColor: _colorFlag ? Colors.transparent : Colors.black),
         child: Text(txt,
             style: TextStyle(
@@ -102,126 +105,157 @@ class _ClubDirectoryState extends State<ClubDirectory> {
     }
 
     return Scaffold(
-      backgroundColor: lighterTanColor,
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 16.0, top: 16.0, right: 16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    // Wrap TextField with shadow
-                    // decoration: BoxDecoration(
-                    //   color: tanColor, // Set background color (optional)
-                    //   borderRadius: BorderRadius.circular(
-                    //       10.0), // Rounded corners (optional)
-                    //   boxShadow: [
-                    //     // Add shadow
-                    //     BoxShadow(
-                    //       color: Colors.grey
-                    //           .withOpacity(0.3), // Shadow color with opacity
-                    //       spreadRadius: 2.0, // Adjust shadow spread (optional)
-                    //       blurRadius: 5.0, // Adjust shadow blur (optional)
-                    //       offset: const Offset(
-                    //           0.0, 4.0), // Shadow offset (optional)
-                    //     ),
-                    //   ],
-                    // ),
-                    child: TextField(
-                      //controller: _searchController,
-                      onChanged: (text) {
-                        setState(() {
-                          _isTextEntered = text.isNotEmpty;
-                          // Clear the previously filtered companies
-                          filteredClubs.clear();
-
-                          // Iterate through the original list of companies if text is entered
-                          if (_isTextEntered) {
-                            for (Club club in clubs) {
-                              // Check if the company name starts with the entered text substring
-                              if (club.name
-                                  .toLowerCase()
-                                  .startsWith(text.toLowerCase())) {
-                                // If it does, add the company to the filtered list
-                                filteredClubs.add(club);
-                              }
-                            }
-                          }
-                        });
-                      },
-                      decoration: InputDecoration(
-                        prefixIcon: Icon(Icons.search, color: Colors.grey),
-                        // contentPadding: EdgeInsets.all(2.0),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(
-                            color: Colors.black,
-                            width: 2.0,
-                          ),
-                        ),
-                        hintText: 'Club Directory',
-                        // border: OutlineInputBorder(
-                        //   borderRadius: BorderRadius.circular(10.0),
-                        // ),
-                        fillColor: Colors.white,
-                        filled: true,
-                        // Add Container with colored background for the button
-                      ),
-                    ),
-                  ),
-                )
-              ],
+      backgroundColor: AppColors.calPolyGreen,
+      body: Padding(
+        padding: const EdgeInsets.only(right: 20.0, left: 20.0, top: 20.0),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20.0),
+              child: CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+            const Row(children: [
+      Icon(Icons.hub, color: AppColors.welcomeLightYellow, size: 20),
+      SizedBox(width: 6),
+      Text(
+        "Club Directory",
+        style: TextStyle(
+          fontFamily: 'SansSerifProSemiBold',
+          fontSize: 21,
+          color: AppColors.welcomeLightYellow,
+        ),
+      ),
+    ],),
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0, top: 16.0, right: 16.0),
               child: Row(
                 children: [
-                  createButtonSorter('A-Z', sortAlphabetically,
-                      colorFlag: false),
-                  // Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
-                  // createButtonSorter('Sudents', () => {}),
-                  // Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
-                  // createButtonSorter('Alumni', () => {}),
-                  // Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
-                  // createButtonSorter('Industry', () => {}),
-                  // Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
-                  // createButtonSorter('Jobs', () => {}),
+                  Expanded(
+                    child: Container(
+                      // Wrap TextField with shadow
+                      // decoration: BoxDecoration(
+                      //   color: tanColor, // Set background color (optional)
+                      //   borderRadius: BorderRadius.circular(
+                      //       10.0), // Rounded corners (optional)
+                      //   boxShadow: [
+                      //     // Add shadow
+                      //     BoxShadow(
+                      //       color: Colors.grey
+                      //           .withOpacity(0.3), // Shadow color with opacity
+                      //       spreadRadius: 2.0, // Adjust shadow spread (optional)
+                      //       blurRadius: 5.0, // Adjust shadow blur (optional)
+                      //       offset: const Offset(
+                      //           0.0, 4.0), // Shadow offset (optional)
+                      //     ),
+                      //   ],
+                      // ),
+                      child: TextField(
+                        //controller: _searchController,
+                        onChanged: (text) {
+                          setState(() {
+                            _isTextEntered = text.isNotEmpty;
+                            // Clear the previously filtered companies
+                            filteredClubs.clear();
+        
+                            // Iterate through the original list of companies if text is entered
+                            if (_isTextEntered) {
+                              for (Club club in clubs) {
+                                // Check if the company name starts with the entered text substring
+                                if (club.name
+                                    .toLowerCase()
+                                    .startsWith(text.toLowerCase())) {
+                                  // If it does, add the company to the filtered list
+                                  filteredClubs.add(club);
+                                }
+                              }
+                            }
+                          });
+                        },
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.search, color: Colors.grey),
+                          // contentPadding: EdgeInsets.all(2.0),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.zero,
+                            borderSide: BorderSide(
+                              color: Colors.black,
+                              width: 2.0,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.zero,
+                              borderSide: BorderSide(
+                                color: Colors.black,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.zero,
+                            borderSide: BorderSide(
+                              color: Colors.black,
+                            ),
+                            ),
+                          hintText: 'Club Directory',
+                          // border: OutlineInputBorder(
+                          //   borderRadius: BorderRadius.circular(10.0),
+                          // ),
+                          fillColor: Colors.white,
+                          filled: true,
+                          // Add Container with colored background for the button
+                        ),
+                      ),
+                    ),
+                  )
                 ],
               ),
             ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              scrollDirection: Axis.vertical,
-              itemCount: _isTextEntered ? filteredClubs.length : clubs.length,
-              itemBuilder: (context, index) {
-                final List<Club> displayList =
-                    _isTextEntered ? filteredClubs : clubs;
-                return GestureDetector(
-                  onTap: () {
-                    Club clubData = displayList[index];
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return ClubPopUp(
-                          club: clubData,
-                          onClose: () =>
-                              Navigator.pop(context), // Close popup on tap
-                        );
-                      },
-                    );
-                  },
-                  child: ClubItem(
-                      displayList[index]), // Existing CompanyItem widget
-                );
-              },
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    createButtonSorter('A-Z', sortAlphabetically,
+                        colorFlag: false),
+                    // Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
+                    // createButtonSorter('Sudents', () => {}),
+                    // Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
+                    // createButtonSorter('Alumni', () => {}),
+                    // Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
+                    // createButtonSorter('Industry', () => {}),
+                    // Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
+                    // createButtonSorter('Jobs', () => {}),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ],
+            Expanded(
+              child: ListView.builder(
+                scrollDirection: Axis.vertical,
+                itemCount: _isTextEntered ? filteredClubs.length : clubs.length,
+                itemBuilder: (context, index) {
+                  final List<Club> displayList =
+                      _isTextEntered ? filteredClubs : clubs;
+                  return GestureDetector(
+                    onTap: () {
+                      Club clubData = displayList[index];
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return ClubPopUp(
+                            club: clubData,
+                            onClose: () =>
+                                Navigator.pop(context), // Close popup on tap
+                          );
+                        },
+                      );
+                    },
+                    child: ClubItem(
+                        displayList[index]), // Existing CompanyItem widget
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
