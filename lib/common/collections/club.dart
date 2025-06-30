@@ -22,15 +22,17 @@ class ClubItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFCECCA0),
+          color: Colors.white,
           border: Border.all(color: Colors.transparent),
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: BorderRadius.zero,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(
+                alpha: 0.2, // Adjust the alpha value for shadow intensity
+              ),
               spreadRadius: 1,
               blurRadius: 2,
               offset: const Offset(0, 2), // changes position of shadow
@@ -43,11 +45,11 @@ class ClubItem extends StatelessWidget {
             children: [
               ListTile(
                 leading: const Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: const Icon(Icons.person, color: Colors.black),
+                  padding: EdgeInsets.only(right: 8.0),
+                  child: Icon(Icons.person, color: Colors.black),
                 ),
                 title: Text(club.name + " (" + club.acronym + ")",
-                    style: TextStyle(color: Colors.black)),
+                    style: TextStyle(color: Colors.black, fontSize: 14.0)),
               ),
             ],
           ),
