@@ -30,8 +30,8 @@ class _MyRenderedPageState extends State<RenderedPage> {
       // Initialize _pageList here
       HomeScreen(scaffoldKey: _scaffoldKey),
       const MemberDirectory(),
-      const ClubDirectory(),
-      const FacultyDirectory(),
+      ClubDirectory(scaffoldKey: _scaffoldKey),
+      FacultyDirectory(scaffoldKey: _scaffoldKey),
       Container(),
       const ProfileScreen(),
     ];
