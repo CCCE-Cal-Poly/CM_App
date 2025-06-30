@@ -49,22 +49,28 @@ List<NotificationItem> mockNotifications = [
   NotificationItem(
     title: 'Jeong Woo',
     message: 'Remember to bring hard hats on February 23rd!',
-    dateTime: DateTime(2024, 2, 14, 9, 0),
+    dateTime: DateTime(2025, 7, 14, 9, 0),
+  ),
+  NotificationItem(
+    title: 'Jeong Woo',
+    message:
+        'Do not bring hard hats on February 23rd! Do not bring hard hats on February 23rd!Do not bring hard hats on February 23rd! Do not bring hard hats on February 23rd!',
+    dateTime: DateTime(2025, 7, 14, 8, 0),
   ),
   NotificationItem(
     title: 'HITT Info Session',
     message: 'Please submit all senior photos by this Friday!',
-    dateTime: DateTime(2024, 2, 14, 10, 0),
+    dateTime: DateTime(2025, 6, 14, 10, 0),
   ),
   NotificationItem(
     title: 'Emma Blair',
     message: 'Pick up keycards for Construction Management room.',
-    dateTime: DateTime(2024, 2, 13, 8, 0),
+    dateTime: DateTime(2025, 8, 13, 8, 0),
   ),
   NotificationItem(
     title: 'Jeong Woo',
     message: 'Bring graduation cords Tuesday.',
-    dateTime: DateTime(2024, 2, 13, 11, 0),
+    dateTime: DateTime(2025, 6, 13, 11, 0),
   ),
 ];
 
@@ -155,7 +161,7 @@ class CalendarScreenState extends State<HomeScreen> {
       Color boxColor = Colors.white;
       it = it + 1;
       eventContainers.add(Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 1),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
           child: Row(
             children: [
               Container(
@@ -165,11 +171,22 @@ class CalendarScreenState extends State<HomeScreen> {
                     color: boxColor, // Adjust background color
                   ),
                   child: Center(
-                    child: Text(
-                      "${DateFormat('hh:mm a').format(ev.startTime)}-${DateFormat('hh:mm a').format(ev.endTime)}",
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          fontFamily: "SansSerifPro", fontSize: 10),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          DateFormat('MMM d').format(ev.startTime),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontFamily: "SansSerifProSemiBold", fontSize: 11),
+                        ),
+                        Text(
+                          "${DateFormat('hh:mm a').format(ev.startTime)}-${DateFormat('hh:mm a').format(ev.endTime)}",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontFamily: "SansSerifPro", fontSize: 10),
+                        ),
+                      ],
                     ),
                   )),
               const SizedBox(width: 1),
@@ -209,7 +226,7 @@ class CalendarScreenState extends State<HomeScreen> {
       Color boxColor = Colors.white;
       it = it + 1;
       eventContainers.add(Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 1.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 3.0),
         child: Row(
           children: [
             Container(
@@ -396,7 +413,7 @@ class CalendarScreenState extends State<HomeScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             fontFamily: "SansSerifProItalic", fontSize: 14))))),
-        const SizedBox(height: 10.0),
+        const SizedBox(height: 3.0),
         ..._getNextEvents(_focusedDay),
         const SizedBox(height: 20.0),
       ];
@@ -435,19 +452,22 @@ class CalendarScreenState extends State<HomeScreen> {
         .where(
             (n) => !n.dateTime.isBefore(DateTime(now.year, now.month, now.day)))
         .toList();
+    // Only show past notifications within a month of the current date
+    final oneMonthAgo = DateTime(now.year, now.month - 1, now.day);
     List<NotificationItem> past = mockNotifications
-        .where(
-            (n) => n.dateTime.isBefore(DateTime(now.year, now.month, now.day)))
+        .where((n) =>
+            n.dateTime.isBefore(DateTime(now.year, now.month, now.day)) &&
+            n.dateTime.isAfter(oneMonthAgo))
         .toList();
     upcoming.sort((a, b) => a.dateTime.compareTo(b.dateTime));
     past.sort((a, b) => b.dateTime.compareTo(a.dateTime));
 
     Widget sectionHeader(String text, {bool italic = false}) => Padding(
-          padding: const EdgeInsets.only(left: 16, top: 24, bottom: 8),
+          padding: const EdgeInsets.only(left: 16, top: 12, bottom: 8),
           child: Text(
             text,
             style: TextStyle(
-              color: AppColors.tanText,
+              color: Colors.white,
               fontFamily: italic ? "SansSerifProItalic" : "SansSerifPro",
               fontSize: 24,
               fontStyle: italic ? FontStyle.italic : FontStyle.normal,
@@ -469,81 +489,99 @@ class CalendarScreenState extends State<HomeScreen> {
         );
 
     Widget notificationRow(NotificationItem n) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
-          child: Row(
-            children: [
-              Container(
-                height: 70,
-                width: 90,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border(
-                    right: BorderSide(color: Color(0xFFE4E2D4), width: 2),
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    DateFormat('h:mm a\nMMM d').format(n.dateTime),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: "SansSerifPro",
-                      fontSize: 12,
-                      color: Colors.black,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
+          child: SizedBox(
+            height: 65,
+            child: Row(
+              children: [
+                Container(
+                    height: 65,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white, // Match event display
                     ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 1),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.notifications_active,
-                          color: Color(0xFF003831), size: 22),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            DateFormat('MMM d').format(n.dateTime),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                fontFamily: "SansSerifProSemiBold",
+                                fontSize: 11,
+                                color: AppColors.darkGoldText),
+                          ),
+                          Text(
+                            DateFormat('hh:mm a').format(n.dateTime),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                fontFamily: "SansSerifPro",
+                                fontSize: 10,
+                                color: AppColors.darkGoldText),
+                          ),
+                        ],
+                      ),
+                    )),
+                const SizedBox(width: 1),
+                Expanded(
+                    child: Container(
+                        padding: const EdgeInsets.only(left: 12.0, top: 6.0),
+                        decoration: const BoxDecoration(
+                          color: Colors.white, // Match event display
+                        ),
+                        child: Center(
+                            child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              n.title,
-                              style: const TextStyle(
-                                fontFamily: "SansSerifProSemiBold",
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              n.message,
-                              style: const TextStyle(
-                                fontFamily: "SansSerifPro",
-                                fontSize: 12,
-                              ),
+                            Text(n.title,
+                                style: const TextStyle(
+                                    fontFamily: "SansSerifProSemiBold",
+                                    fontSize: 13)),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 2.0),
+                                  child: Icon(Icons.notifications,
+                                      size: 10, color: AppColors.darkGoldText),
+                                ),
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(left: 2.0),
+                                    child: SizedBox(
+                                      height:
+                                          32, // fits 2 lines, adjust as needed
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.vertical,
+                                        child: Text(
+                                          n.message,
+                                          style: const TextStyle(
+                                              fontFamily: "SansSerifPro",
+                                              fontSize: 10,
+                                              color: AppColors.darkGoldText),
+                                          softWrap: true,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+                        ))))
+              ],
+            ),
           ),
         );
 
-    List<Widget> buildSection(String sectionTitle, List<NotificationItem> items,
-        {bool italic = false}) {
-      if (items.isEmpty) return [];
+    List<Widget> buildSection(
+        String sectionTitle, List<NotificationItem> items) {
+      if (items.isEmpty) return [sectionHeader(sectionTitle, italic: true)];
       final grouped = groupNotifications(items);
       final sortedKeys = grouped.keys.toList()
         ..sort((a, b) => DateTime.parse(a).compareTo(DateTime.parse(b)));
-      return [sectionHeader(sectionTitle, italic: italic)] +
+      return [sectionHeader(sectionTitle, italic: true)] +
           [
             for (final dateKey in sortedKeys) ...[
               dateHeader(DateTime.parse(dateKey)),
@@ -553,23 +591,30 @@ class CalendarScreenState extends State<HomeScreen> {
     }
 
     return ListView(
-      padding: const EdgeInsets.only(top: 12, bottom: 24),
+      padding: const EdgeInsets.only(bottom: 24),
       children: [
+        const Divider(
+          color: Colors.white,
+          thickness: 1,
+          indent: 20,
+          endIndent: 60,
+        ),
         ...buildSection('Upcoming', upcoming),
-        ...buildSection('Past', past, italic: true),
+        const SizedBox(height: 12),
+        const Divider(
+          indent: 20,
+          endIndent: 60,
+          color: Colors.white,
+          thickness: 1, // You can adjust the thickness
+        ),
+        ...buildSection('Past', past),
       ],
     );
   }
 
   Widget buildAnnouncementDisplay(context) {
     return Expanded(
-      child: Container(
-          decoration: BoxDecoration(
-            color: calPolyGreen,
-            borderRadius: BorderRadius.circular(40.0),
-            // Adjust border radius
-          ),
-          child: buildAnnouncementList(context)),
+      child: buildAnnouncementList(context),
     );
     //child: Column(
     //  children: <Widget>[const Text("HI"), buildEventList()])));
@@ -598,7 +643,7 @@ class CalendarScreenState extends State<HomeScreen> {
 
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20.0),
+        padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20),
         child: Column(mainAxisSize: MainAxisSize.max, children: <Widget>[
           CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
           SizedBox(height: screenHeight * 0.04),
@@ -645,28 +690,32 @@ class CalendarScreenState extends State<HomeScreen> {
               )
             ],
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Padding(
-                  padding: const EdgeInsets.only(left: 16.0),
-                  child: Text(_name.isNotEmpty ? "Hi!" : "Hi! $_name",
-                      style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w300,
-                          color: Colors.white))),
-              Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: Text(dateFormatter(_focusedMonth, _focusedYear),
-                    style: const TextStyle(
-                      fontFamily: "SansSerifProSemiBold",
-                      fontSize: 20,
-                      color: AppColors.tanText,
-                    )),
-              ),
-            ],
-          ),
-          SizedBox(height: screenHeight * 0.04),
+          _screenBool
+              ? Container()
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Padding(
+                        padding: const EdgeInsets.only(left: 16.0),
+                        child: Text(_name.isNotEmpty ? "Hi!" : "Hi $_name!",
+                            style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w300,
+                                color: Colors.white))),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 16.0),
+                      child: Text(dateFormatter(_focusedMonth, _focusedYear),
+                          style: const TextStyle(
+                            fontFamily: "SansSerifProSemiBold",
+                            fontSize: 20,
+                            color: AppColors.tanText,
+                          )),
+                    ),
+                  ],
+                ),
+          SizedBox(
+              height:
+                  _screenBool ? (screenHeight * 0.02) : (screenHeight * 0.04)),
           _screenBool ? announcementDisplayWidget : calWidget,
           _screenBool ? Container() : eventDisplayWidget
         ]),

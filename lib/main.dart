@@ -38,38 +38,52 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  final prefs = await SharedPreferences.getInstance();
 
   // Request notification permissions when the app starts
   _requestNotificationPermissions();
 
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  MyApp({super.key});
-  late var _tosCheck;
+  const MyApp({super.key});
 
-  Future<void> _loadTOS() async {
+  Future<bool> _isTOSAccepted() async {
     final prefs = await SharedPreferences.getInstance();
-    _tosCheck = prefs.getBool('TOS') ?? false;
+    return prefs.getBool('TOS') ?? false;
   }
 
   @override
   Widget build(BuildContext context) {
-    _loadTOS();
-    return StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const MaterialApp(
-              home: Scaffold(appBar: GoldAppBar(), body: OnboardingScreen()),
-              //home: AuthGate(),
-            );
-          }
-
+    return FutureBuilder<bool>(
+      future: _isTOSAccepted(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
           return const MaterialApp(
-              home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()));
-        });
+            home: Scaffold(body: Center(child: CircularProgressIndicator())),
+          );
+        }
+        final tosAccepted = snapshot.data!;
+        if (!tosAccepted) {
+          return const MaterialApp(
+            home: Scaffold(
+                appBar: GoldAppBar(),
+                body: OnboardingScreen()), // Show TOS/Onboarding screen
+          );
+        }
+        return StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const MaterialApp(
+                home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
+              );
+            }
+            return const MaterialApp(
+                home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()));
+          },
+        );
+      },
+    );
   }
 }
