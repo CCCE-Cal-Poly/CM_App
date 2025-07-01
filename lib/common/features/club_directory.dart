@@ -34,7 +34,7 @@ class _ClubDirectoryState extends State<ClubDirectory> {
           clubData[key] = value.toString();
         });
         Club newClub = Club(clubData['Name'], clubData['About'],
-            clubData['Email'], clubData['Acronym'], clubData['Instagram']);
+            clubData['Email'], clubData['Acronym'], clubData['Instagram'], clubData['Logo']);
         clubs.add(newClub);
       });
     } catch (e) {
@@ -50,8 +50,6 @@ class _ClubDirectoryState extends State<ClubDirectory> {
 
   static List<Club> clubs = [];
   static List<Club> filteredClubs = [];
-  static const tanColor = Color(0xFFcecca0);
-  static const lighterTanColor = Color(0xFFfffded);
   @override
   void initState() {
     super.initState();
@@ -114,10 +112,11 @@ class _ClubDirectoryState extends State<ClubDirectory> {
               padding: const EdgeInsets.only(bottom: 20.0),
               child: CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
             ),
-            const Row(children: [
-      Icon(Icons.hub, color: AppColors.welcomeLightYellow, size: 20),
-      SizedBox(width: 6),
-      Text(
+            const Row(crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+        Icon(Icons.hub, color: AppColors.welcomeLightYellow, size: 20),
+        SizedBox(width: 6),
+        Text(
         "Club Directory",
         style: TextStyle(
           fontFamily: 'SansSerifProSemiBold',
@@ -131,25 +130,7 @@ class _ClubDirectoryState extends State<ClubDirectory> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Container(
-                      // Wrap TextField with shadow
-                      // decoration: BoxDecoration(
-                      //   color: tanColor, // Set background color (optional)
-                      //   borderRadius: BorderRadius.circular(
-                      //       10.0), // Rounded corners (optional)
-                      //   boxShadow: [
-                      //     // Add shadow
-                      //     BoxShadow(
-                      //       color: Colors.grey
-                      //           .withOpacity(0.3), // Shadow color with opacity
-                      //       spreadRadius: 2.0, // Adjust shadow spread (optional)
-                      //       blurRadius: 5.0, // Adjust shadow blur (optional)
-                      //       offset: const Offset(
-                      //           0.0, 4.0), // Shadow offset (optional)
-                      //     ),
-                      //   ],
-                      // ),
-                      child: TextField(
+                    child: TextField(
                         //controller: _searchController,
                         onChanged: (text) {
                           setState(() {
@@ -202,7 +183,6 @@ class _ClubDirectoryState extends State<ClubDirectory> {
                           // Add Container with colored background for the button
                         ),
                       ),
-                    ),
                   )
                 ],
               ),
