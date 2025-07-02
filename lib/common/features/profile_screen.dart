@@ -1,10 +1,15 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/features/sign_in.dart';
+import 'package:ccce_application/common/theme/theme.dart';
+import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
+import 'package:ccce_application/common/widgets/debug_outline.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  final GlobalKey<ScaffoldState> scaffoldKey;
+  const ProfileScreen({super.key, required this.scaffoldKey});
 
   @override
   ProfileScreenState createState() => ProfileScreenState();
@@ -164,7 +169,8 @@ class ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Container createProfileAttributeContainer(TextFormField attributeField, Color color) {
+  Container createProfileAttributeContainer(
+      TextFormField attributeField, Color color) {
     return Container(
         decoration: BoxDecoration(
           color: color,
@@ -179,146 +185,87 @@ class ProfileScreenState extends State<ProfileScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
-      body: Stack(
-        children: [
-          // Top background
-          Positioned.fill(
-            top: 0,
-            child: Container(color: calPolyGreen),
-          ),
-
-          // White background with rounded corners for text fields
-          Positioned(
-            top: MediaQuery.of(context).size.height / 6, // Adjust as needed
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                color: calPolyGreen,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(screenHeight * .2),
-                  topRight: Radius.circular(screenHeight * .2),
-                ),
-              ),
-              padding: EdgeInsets.all(screenHeight * .001),
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(screenWidth * .08),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    SizedBox(
-                        height: screenHeight * .075), // Adding space between the fields
-                    Align(alignment: Alignment.center,
-                    child: Text( 'My Profile', style: TextStyle(color: calPolyGold, fontSize: screenWidth * .06, fontFamily: 'Arial', fontWeight: FontWeight.bold), textAlign: TextAlign.center,)),
-                    SizedBox(
-                        height: screenHeight * .02),
-                    createProfileAttributeContainer((createProfileAttributeField(
-                        "First Name", _firstNameController)),Colors.white),
-                    SizedBox(
-                        height: screenHeight * .02), // Adding space between the fields
-                    createProfileAttributeContainer(createProfileAttributeField(
-                        "Last Name", _lastNameController),Colors.white),
-                    SizedBox(
-                        height: screenHeight * .02), // Adding space between the fields
-                    createProfileAttributeContainer(createProfileAttributeField(
-                        "School Year", _schoolYearController),Colors.white),
-                    SizedBox(
-                        height: screenHeight * .02), // Adding space between the fields
-                    createProfileAttributeContainer(createProfileAttributeField(
-                        "Company", _companyController),Colors.white),
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: screenHeight * .013),
-                      child:
-                          editButtonBuild(), // Empty container when not in edit mode
+        backgroundColor: AppColors.calPolyGreen,
+        body: Padding(
+            padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20),
+            child: Column(
+                mainAxisSize: MainAxisSize.max,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
+                  SizedBox(height: screenHeight * 0.04),
+                  Padding(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "My Profile",
+                          style: TextStyle(
+                            color: AppColors.tanText,
+                            fontFamily: "AppFonts.sansProSemiBold",
+                            fontSize: 24,
+                          ),
+                        ),
+                        SizedBox(height: screenHeight * 0.02),
+                        Divider(
+                          color: Colors.white,
+                          indent: screenWidth * 0.06,
+                          endIndent: screenWidth * 0.06,
+                        ),
+                        SizedBox(height: screenHeight * 0.02),
+                        SizedBox(
+                          height: screenHeight * 0.07,
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: (screenHeight * 0.07) / 2,
+                                backgroundImage: AssetImage(
+                                    'assets/icons/default_profile.png'),
+                              ),
+                              const SizedBox(width: 8.0),
+                              Expanded(
+                                child: SizedBox(
+                                  height: screenHeight * 0.07,
+                                  child: const Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Flexible(
+                                        child: AutoSizeText(
+                                          "Clark Johnson Cleary Cleary",
+                                          maxLines: 2,
+                                          minFontSize: 7,
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontFamily:
+                                                  AppFonts.sansProSemiBold,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 16),
+                                        ),
+                                      ),
+                                      AutoSizeText(
+                                          "lamkinlamkinlamkinlamkin@gmail.com",
+                                          maxLines: 1,
+                                          minFontSize: 7,
+                                          style: TextStyle(
+                                              color: AppColors.tanText,
+                                              fontSize: 12,
+                                              decoration:
+                                                  TextDecoration.underline,
+                                              decorationColor:
+                                                  AppColors.tanText))
+                                    ],
+                                  ),
+                                ),
+                              )
+                            ],
+                          ),
+                        )
+                      ],
                     ),
-                    Container(
-                        margin: EdgeInsets.symmetric(horizontal: screenWidth * .04),
-                        decoration: const BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              // Apply border to the bottom
-                              color: Color(0xFFD9D9D9),
-                              width: 1.0, // Adjust line thickness
-                            ),
-                          ),
-                        )),
-                    SizedBox(
-                        height: screenHeight * .02), // Adding space between the fields
-                    createProfileAttributeContainer(createProfileAttributeField(
-                        "My Club Preferences", _schoolYearController), calPolyGold),
-                    SizedBox(
-                        height: screenHeight * .02), // Adding space between the fields
-                    createProfileAttributeContainer(createProfileAttributeField(
-                        "My Industry Preferences", _companyController),calPolyGold),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // Circle for profile pic
-          Align(
-            alignment: Alignment.topCenter,
-            child: Padding(
-            padding: EdgeInsets.only(top: screenHeight * 0.055),
-            child: Stack(
-              children: [
-                Container(
-                  width: screenWidth * .45,
-                  height: screenHeight * .20,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border:
-                        Border.all(color: const Color.fromARGB(255, 112, 135, 121), width: 2),
-                    color:
-                        const Color.fromARGB(255, 112, 135, 121), // Change to your desired color
-                  ),
-                  padding: EdgeInsets.symmetric(vertical: screenHeight * .035),
-                  // You can put an Image or Icon widget inside the container for profile picture
-                  child: Icon(Icons.person,
-                      size: screenHeight * .20, color: calPolyGreen),
-                ),
-                Positioned(
-                    bottom: screenHeight * .011, // Adjust as needed
-                    right: screenWidth *.022, // Adjust as needed
-                    child: Container(
-                        decoration: BoxDecoration(
-                            color: calPolyGold, borderRadius: BorderRadius.circular(screenHeight * .008)),
-                        child: Material(
-                          borderRadius: BorderRadius.circular(100),
-                          child: InkWell(
-                            onTap: () {
-                              setState(() {
-                                // Toggle edit mode
-                                if (_editMode == false) {
-                                  _editMode = !_editMode;
-                                }
-                              });
-                              // Add your onPressed function here
-                              // For example, you can navigate to another screen
-                              // or show a dialog to edit the profile
-                            },
-                            child: Ink(
-                              width: screenWidth * .09,
-                              height: screenHeight * .04,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: calPolyGold,
-                              ),
-                              child: Icon(
-                                Icons.edit,
-                                size: screenHeight * .03,
-                                color: calPolyGreen,
-                              ),
-                            ),
-                          ),
-                        )))
-              ],
-            ),
-          ),
-          ),
-        ],
-      ),
-    );
+                  )
+                ])));
   }
 }

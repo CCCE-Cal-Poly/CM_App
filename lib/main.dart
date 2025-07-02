@@ -68,7 +68,7 @@ class MyApp extends StatelessWidget {
           return const MaterialApp(
             home: Scaffold(
                 appBar: GoldAppBar(),
-                body: OnboardingScreen()), // Show TOS/Onboarding screen
+                body: RenderedPage()), // Show TOS/Onboarding screen
           );
         }
         return StreamBuilder<User?>(

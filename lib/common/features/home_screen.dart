@@ -1,5 +1,5 @@
 import 'package:ccce_application/common/collections/calevent.dart';
-import 'package:ccce_application/common/theme/colors.dart';
+import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:ccce_application/common/widgets/debug_outline.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -178,7 +178,8 @@ class CalendarScreenState extends State<HomeScreen> {
                           DateFormat('MMM d').format(ev.startTime),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                              fontFamily: "SansSerifProSemiBold", fontSize: 11),
+                              fontFamily: "AppFonts.sansProSemiBold",
+                              fontSize: 11),
                         ),
                         Text(
                           "${DateFormat('hh:mm a').format(ev.startTime)}-${DateFormat('hh:mm a').format(ev.endTime)}",
@@ -202,7 +203,7 @@ class CalendarScreenState extends State<HomeScreen> {
                         children: [
                           Text(ev.eventName,
                               style: const TextStyle(
-                                  fontFamily: "SansSerifProSemiBold",
+                                  fontFamily: "AppFonts.sansProSemiBold",
                                   fontSize: 13)),
                           Text(ev.eventLocation,
                               style: const TextStyle(
@@ -258,7 +259,7 @@ class CalendarScreenState extends State<HomeScreen> {
                       children: [
                         Text(ev.eventName,
                             style: const TextStyle(
-                                fontFamily: "SansSerifProSemiBold",
+                                fontFamily: "AppFonts.sansProSemiBold",
                                 fontSize: 13)),
                         Text(ev.eventLocation,
                             style: const TextStyle(
@@ -508,7 +509,7 @@ class CalendarScreenState extends State<HomeScreen> {
                             DateFormat('MMM d').format(n.dateTime),
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                                fontFamily: "SansSerifProSemiBold",
+                                fontFamily: "AppFonts.sansProSemiBold",
                                 fontSize: 11,
                                 color: AppColors.darkGoldText),
                           ),
@@ -536,7 +537,7 @@ class CalendarScreenState extends State<HomeScreen> {
                           children: [
                             Text(n.title,
                                 style: const TextStyle(
-                                    fontFamily: "SansSerifProSemiBold",
+                                    fontFamily: "AppFonts.sansProSemiBold",
                                     fontSize: 13)),
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -706,7 +707,7 @@ class CalendarScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.only(right: 16.0),
                       child: Text(dateFormatter(_focusedMonth, _focusedYear),
                           style: const TextStyle(
-                            fontFamily: "SansSerifProSemiBold",
+                            fontFamily: "AppFonts.sansProSemiBold",
                             fontSize: 20,
                             color: AppColors.tanText,
                           )),

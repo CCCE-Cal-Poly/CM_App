@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ccce_application/common/theme/colors.dart';
-import 'dart:math';
+import 'package:ccce_application/common/theme/theme.dart';
 
 class WelcomePage2 extends StatelessWidget {
   const WelcomePage2({Key? key}) : super(key: key);
