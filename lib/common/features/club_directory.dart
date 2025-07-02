@@ -33,8 +33,13 @@ class _ClubDirectoryState extends State<ClubDirectory> {
           // Convert each value to String and add it to companyData
           clubData[key] = value.toString();
         });
-        Club newClub = Club(clubData['Name'], clubData['About'],
-            clubData['Email'], clubData['Acronym'], clubData['Instagram']);
+        Club newClub = Club(
+            clubData['Name'],
+            clubData['About'],
+            clubData['Email'],
+            clubData['Acronym'],
+            clubData['Instagram'],
+            clubData['Logo']);
         clubs.add(newClub);
       });
     } catch (e) {
@@ -50,8 +55,6 @@ class _ClubDirectoryState extends State<ClubDirectory> {
 
   static List<Club> clubs = [];
   static List<Club> filteredClubs = [];
-  static const tanColor = Color(0xFFcecca0);
-  static const lighterTanColor = Color(0xFFfffded);
   @override
   void initState() {
     super.initState();
@@ -115,13 +118,14 @@ class _ClubDirectoryState extends State<ClubDirectory> {
               child: CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
             ),
             const Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Icon(Icons.hub, color: AppColors.welcomeLightYellow, size: 20),
                 SizedBox(width: 6),
                 Text(
                   "Club Directory",
                   style: TextStyle(
-                    fontFamily: AppFonts.sansProSemiBold,
+                    fontFamily: 'SansSerifProSemiBold',
                     fontSize: 21,
                     color: AppColors.welcomeLightYellow,
                   ),
@@ -134,76 +138,57 @@ class _ClubDirectoryState extends State<ClubDirectory> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Container(
-                      // Wrap TextField with shadow
-                      // decoration: BoxDecoration(
-                      //   color: tanColor, // Set background color (optional)
-                      //   borderRadius: BorderRadius.circular(
-                      //       10.0), // Rounded corners (optional)
-                      //   boxShadow: [
-                      //     // Add shadow
-                      //     BoxShadow(
-                      //       color: Colors.grey
-                      //           .withOpacity(0.3), // Shadow color with opacity
-                      //       spreadRadius: 2.0, // Adjust shadow spread (optional)
-                      //       blurRadius: 5.0, // Adjust shadow blur (optional)
-                      //       offset: const Offset(
-                      //           0.0, 4.0), // Shadow offset (optional)
-                      //     ),
-                      //   ],
-                      // ),
-                      child: TextField(
-                        //controller: _searchController,
-                        onChanged: (text) {
-                          setState(() {
-                            _isTextEntered = text.isNotEmpty;
-                            // Clear the previously filtered companies
-                            filteredClubs.clear();
+                    child: TextField(
+                      //controller: _searchController,
+                      onChanged: (text) {
+                        setState(() {
+                          _isTextEntered = text.isNotEmpty;
+                          // Clear the previously filtered companies
+                          filteredClubs.clear();
 
-                            // Iterate through the original list of companies if text is entered
-                            if (_isTextEntered) {
-                              for (Club club in clubs) {
-                                // Check if the company name starts with the entered text substring
-                                if (club.name
-                                    .toLowerCase()
-                                    .startsWith(text.toLowerCase())) {
-                                  // If it does, add the company to the filtered list
-                                  filteredClubs.add(club);
-                                }
+                          // Iterate through the original list of companies if text is entered
+                          if (_isTextEntered) {
+                            for (Club club in clubs) {
+                              // Check if the company name starts with the entered text substring
+                              if (club.name
+                                  .toLowerCase()
+                                  .startsWith(text.toLowerCase())) {
+                                // If it does, add the company to the filtered list
+                                filteredClubs.add(club);
                               }
                             }
-                          });
-                        },
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.search, color: Colors.grey),
-                          // contentPadding: EdgeInsets.all(2.0),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.zero,
-                            borderSide: BorderSide(
-                              color: Colors.black,
-                              width: 2.0,
-                            ),
+                          }
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.search, color: Colors.grey),
+                        // contentPadding: EdgeInsets.all(2.0),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(
+                            color: Colors.black,
+                            width: 2.0,
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.zero,
-                            borderSide: BorderSide(
-                              color: Colors.black,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.zero,
-                            borderSide: BorderSide(
-                              color: Colors.black,
-                            ),
-                          ),
-                          hintText: 'Club Directory',
-                          // border: OutlineInputBorder(
-                          //   borderRadius: BorderRadius.circular(10.0),
-                          // ),
-                          fillColor: Colors.white,
-                          filled: true,
-                          // Add Container with colored background for the button
                         ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(
+                            color: Colors.black,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(
+                            color: Colors.black,
+                          ),
+                        ),
+                        hintText: 'Club Directory',
+                        // border: OutlineInputBorder(
+                        //   borderRadius: BorderRadius.circular(10.0),
+                        // ),
+                        fillColor: Colors.white,
+                        filled: true,
+                        // Add Container with colored background for the button
                       ),
                     ),
                   )

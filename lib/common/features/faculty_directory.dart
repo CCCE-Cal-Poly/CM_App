@@ -65,8 +65,6 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
 
   static List<Faculty> facultyList = [];
   static List<Faculty> filteredFaculty = [];
-  static const tanColor = Color(0xFFcecca0);
-  static const lighterTanColor = Color(0xFFfffded);
   @override
   void initState() {
     super.initState();
@@ -136,7 +134,7 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                 color: AppColors.welcomeLightYellow,
                 width: 1), // Border color and width
             fixedSize: const Size(60, 30), // Set the button size
-            minimumSize: Size(80, 20), // Minimum size constraint
+            minimumSize: const Size(80, 20), // Minimum size constraint
             backgroundColor:
                 _colorFlag ? Colors.transparent : AppColors.welcomeLightYellow),
         child: Text(txt,
@@ -183,78 +181,58 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Container(
-                      // Wrap TextField with shadow
-                      // decoration: BoxDecoration(
-                      //   color: tanColor, // Set background color (optional)
-                      //   borderRadius: BorderRadius.circular(
-                      //       10.0), // Rounded corners (optional)
-                      //   boxShadow: [
-                      //     // Add shadow
-                      //     BoxShadow(
-                      //       color: Colors.grey
-                      //           .withOpacity(0.3), // Shadow color with opacity
-                      //       spreadRadius: 2.0, // Adjust shadow spread (optional)
-                      //       blurRadius: 5.0, // Adjust shadow blur (optional)
-                      //       offset: const Offset(
-                      //           0.0, 4.0), // Shadow offset (optional)
-                      //     ),
-                      //   ],
-                      // ),
-                      child: TextField(
-                        //controller: _searchController,
-                        onChanged: (text) {
-                          setState(() {
-                            _isTextEntered = text.isNotEmpty;
-                            // Clear the previously filtered companies
-                            filteredFaculty.clear();
+                    child: TextField(
+                      //controller: _searchController,
+                      onChanged: (text) {
+                        setState(() {
+                          _isTextEntered = text.isNotEmpty;
+                          // Clear the previously filtered companies
+                          filteredFaculty.clear();
 
-                            // Iterate through the original list of companies if text is entered
-                            if (_isTextEntered) {
-                              for (Faculty faculty in facultyList) {
-                                // Check if the company name starts with the entered text substring
-                                String name =
-                                    faculty.fname + " " + faculty.lname;
-                                if (name
-                                    .toLowerCase()
-                                    .startsWith(text.toLowerCase())) {
-                                  // If it does, add the company to the filtered list
-                                  filteredFaculty.add(faculty);
-                                }
+                          // Iterate through the original list of companies if text is entered
+                          if (_isTextEntered) {
+                            for (Faculty faculty in facultyList) {
+                              // Check if the company name starts with the entered text substring
+                              String name = faculty.fname + " " + faculty.lname;
+                              if (name
+                                  .toLowerCase()
+                                  .startsWith(text.toLowerCase())) {
+                                // If it does, add the company to the filtered list
+                                filteredFaculty.add(faculty);
                               }
                             }
-                          });
-                        },
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.search, color: Colors.grey),
-                          // contentPadding: EdgeInsets.all(2.0),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.zero,
-                            borderSide: const BorderSide(
-                              color: Colors.black,
-                              width: 2.0,
-                            ),
+                          }
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.search, color: Colors.grey),
+                        // contentPadding: EdgeInsets.all(2.0),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: const BorderSide(
+                            color: Colors.black,
+                            width: 2.0,
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.zero,
-                            borderSide: BorderSide(
-                              color: Colors.black,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.zero,
-                            borderSide: BorderSide(
-                              color: Colors.black,
-                            ),
-                          ),
-                          hintText: 'Faculty Directory',
-                          // border: OutlineInputBorder(
-                          //   borderRadius: BorderRadius.circular(10.0),
-                          // ),
-                          fillColor: Colors.white,
-                          filled: true,
-                          // Add Container with colored background for the button
                         ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(
+                            color: Colors.black,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(
+                            color: Colors.black,
+                          ),
+                        ),
+                        hintText: 'Faculty Directory',
+                        // border: OutlineInputBorder(
+                        //   borderRadius: BorderRadius.circular(10.0),
+                        // ),
+                        fillColor: Colors.white,
+                        filled: true,
+                        // Add Container with colored background for the button
                       ),
                     ),
                   )
@@ -327,13 +305,13 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                                           borderRadius: BorderRadius.zero,
                                         ),
                                         backgroundColor: Colors.white,
-                                        child: SizedBox(
-                                          height: 155,
+                                        child: Container(
                                           width: MediaQuery.of(context)
                                                   .size
                                                   .width *
                                               0.8,
                                           child: Column(
+                                            mainAxisSize: MainAxisSize.min,
                                             mainAxisAlignment:
                                                 MainAxisAlignment.spaceBetween,
                                             children: [
@@ -345,54 +323,53 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                                                   children: <Widget>[
                                                     Row(
                                                       children: [
-                                                        Row(
-                                                          children: [
-                                                            IconButton(
-                                                              icon: const Icon(
-                                                                  Icons
-                                                                      .arrow_back,
-                                                                  size: 20),
-                                                              color:
-                                                                  Colors.black,
-                                                              onPressed: () {
-                                                                Navigator.of(
-                                                                        context)
-                                                                    .pop();
-                                                              },
-                                                            ),
-                                                            Text(
-                                                              '${f.lname}, ${f.fname}',
-                                                              style: const TextStyle(
-                                                                  fontSize: 17,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold),
-                                                            ),
-                                                          ],
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .only(
+                                                                  top: 8.0),
+                                                          child: Row(
+                                                            children: [
+                                                              SizedBox(
+                                                                height: 32,
+                                                                child:
+                                                                    IconButton(
+                                                                  icon: const Icon(
+                                                                      Icons
+                                                                          .arrow_back,
+                                                                      size: 20),
+                                                                  color: Colors
+                                                                      .black,
+                                                                  onPressed:
+                                                                      () {
+                                                                    Navigator.of(
+                                                                            context)
+                                                                        .pop();
+                                                                  },
+                                                                ),
+                                                              ),
+                                                              Text(
+                                                                '${f.lname}, ${f.fname}',
+                                                                style: const TextStyle(
+                                                                    fontSize:
+                                                                        17,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold),
+                                                              ),
+                                                            ],
+                                                          ),
                                                         ),
                                                         const Padding(
                                                             padding:
                                                                 EdgeInsets.only(
                                                                     left: 8.0)),
-                                                        Expanded(
-                                                          child: AutoSizeText(
-                                                            f.title ?? '',
-                                                            style: const TextStyle(
-                                                                fontSize: 12,
-                                                                color: AppColors
-                                                                    .darkGoldText,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w500),
-                                                            minFontSize: 7,
-                                                            maxLines: 2,
-                                                            softWrap: true,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .visible,
-                                                            textAlign: TextAlign
-                                                                .center,
-                                                          ),
+                                                        const Expanded(
+                                                          child: Padding(
+                                                              padding:
+                                                                  EdgeInsetsGeometry
+                                                                      .all(
+                                                                          0.5)),
                                                         ),
                                                         const Padding(
                                                             padding:
@@ -401,8 +378,34 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                                                                         8.0)),
                                                       ],
                                                     ),
-                                                    const SizedBox(height: 2),
+                                                    Row(children: [
+                                                      const Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 48.0)),
+                                                      Expanded(
+                                                        child: AutoSizeText(
+                                                          f.title ?? '',
+                                                          style: const TextStyle(
+                                                              fontSize: 12,
+                                                              color: AppColors
+                                                                  .darkGoldText,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500),
+                                                          minFontSize: 7,
+                                                          maxLines: 2,
+                                                          softWrap: true,
+                                                          overflow: TextOverflow
+                                                              .visible,
+                                                        ),
+                                                      ),
+                                                    ]),
+                                                    const SizedBox(height: 10),
                                                     Row(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .center,
                                                       children: [
                                                         const Padding(
                                                           padding:
@@ -411,7 +414,7 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                                                           child: Text(
                                                             "Office: ",
                                                             style: TextStyle(
-                                                                fontSize: 16,
+                                                                fontSize: 15,
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .w600,
@@ -436,11 +439,13 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                                                         ),
                                                       ],
                                                     ),
-                                                    const SizedBox(height: 10),
+                                                    const SizedBox(height: 6),
                                                     Row(
                                                       crossAxisAlignment:
                                                           CrossAxisAlignment
-                                                              .start,
+                                                              .baseline,
+                                                      textBaseline: TextBaseline
+                                                          .alphabetic,
                                                       children: [
                                                         const Padding(
                                                           padding:
@@ -471,6 +476,7 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                                                       ],
                                                     ),
                                                   ]),
+                                              const SizedBox(height: 8),
                                               Padding(
                                                 padding: const EdgeInsets.only(
                                                     left: 8.0,
@@ -625,50 +631,284 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                                         shape: const RoundedRectangleBorder(
                                           borderRadius: BorderRadius.zero,
                                         ),
-                                        child: SizedBox(
-                                          height: 200,
+                                        backgroundColor: Colors.white,
+                                        child: Container(
                                           width: MediaQuery.of(context)
                                                   .size
                                                   .width *
                                               0.8,
                                           child: Column(
                                             mainAxisSize: MainAxisSize.min,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: <Widget>[
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 2.0),
-                                                child: IconButton(
-                                                  icon: const Icon(
-                                                      Icons.arrow_back),
-                                                  onPressed: () {
-                                                    Navigator.of(context).pop();
-                                                  },
-                                                ),
-                                              ),
-                                              Container(
-                                                  color: Colors.white,
-                                                  child: Column(children: [
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: <Widget>[
+                                                    Row(
+                                                      children: [
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .only(
+                                                                  top: 8.0),
+                                                          child: Row(
+                                                            children: [
+                                                              SizedBox(
+                                                                height: 32,
+                                                                child:
+                                                                    IconButton(
+                                                                  icon: const Icon(
+                                                                      Icons
+                                                                          .arrow_back,
+                                                                      size: 20),
+                                                                  color: Colors
+                                                                      .black,
+                                                                  onPressed:
+                                                                      () {
+                                                                    Navigator.of(
+                                                                            context)
+                                                                        .pop();
+                                                                  },
+                                                                ),
+                                                              ),
+                                                              Text(
+                                                                '${f.lname}, ${f.fname}',
+                                                                style: const TextStyle(
+                                                                    fontSize:
+                                                                        17,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        const Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                                    left: 8.0)),
+                                                        const Expanded(
+                                                          child: Padding(
+                                                              padding:
+                                                                  EdgeInsetsGeometry
+                                                                      .all(
+                                                                          0.5)),
+                                                        ),
+                                                        const Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                                    right:
+                                                                        8.0)),
+                                                      ],
+                                                    ),
+                                                    Row(children: [
+                                                      const Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 48.0)),
+                                                      Expanded(
+                                                        child: AutoSizeText(
+                                                          f.title ?? '',
+                                                          style: const TextStyle(
+                                                              fontSize: 12,
+                                                              color: AppColors
+                                                                  .darkGoldText,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500),
+                                                          minFontSize: 7,
+                                                          maxLines: 2,
+                                                          softWrap: true,
+                                                          overflow: TextOverflow
+                                                              .visible,
+                                                        ),
+                                                      ),
+                                                    ]),
                                                     const SizedBox(height: 10),
-                                                    Text(
-                                                      '${f.lname}, ${f.fname}',
-                                                      style: const TextStyle(
-                                                          fontSize: 20,
-                                                          fontWeight:
-                                                              FontWeight.bold),
-                                                    ),
-                                                    const SizedBox(height: 20),
-                                                    Text(
-                                                      style: const TextStyle(
+                                                    Row(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        const Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 48.0),
+                                                          child: Text(
+                                                            "Office: ",
+                                                            style: TextStyle(
+                                                                fontSize: 15,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600,
+                                                                color: Colors
+                                                                    .black),
+                                                          ),
+                                                        ),
+                                                        const Icon(
+                                                          Icons.location_on,
                                                           color: AppColors
-                                                              .welcomeLightYellow),
-                                                      f.title ?? '',
-                                                      textAlign:
-                                                          TextAlign.center,
+                                                              .darkGoldText,
+                                                          size: 16,
+                                                        ),
+                                                        Text(
+                                                          ' ' +
+                                                              (f.office ??
+                                                                  'N/A'),
+                                                          style: const TextStyle(
+                                                              fontSize: 12,
+                                                              color: AppColors
+                                                                  .darkGoldText),
+                                                        ),
+                                                      ],
                                                     ),
-                                                  ]))
+                                                    const SizedBox(height: 6),
+                                                    Row(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .baseline,
+                                                      textBaseline: TextBaseline
+                                                          .alphabetic,
+                                                      children: [
+                                                        const Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 48.0),
+                                                          child: Text(
+                                                            "Hours: ",
+                                                            style: TextStyle(
+                                                                fontSize: 12,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                                color: Colors
+                                                                    .black),
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          expandDayAcronyms(
+                                                              (f.hours ?? 'N/A')
+                                                                  .replaceAll(
+                                                                      ';',
+                                                                      '\n')),
+                                                          style: const TextStyle(
+                                                              fontSize: 11,
+                                                              color: AppColors
+                                                                  .darkGoldText),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ]),
+                                              const SizedBox(height: 8),
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    left: 8.0,
+                                                    right: 8.0,
+                                                    bottom: 8.0),
+                                                child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceEvenly,
+                                                    children: [
+                                                      Row(
+                                                        children: [
+                                                          Container(
+                                                            decoration:
+                                                                const BoxDecoration(
+                                                              color: AppColors
+                                                                  .calPolyGreen,
+                                                              shape: BoxShape
+                                                                  .circle,
+                                                            ),
+                                                            height: 24,
+                                                            width: 24,
+                                                            alignment: Alignment
+                                                                .center,
+                                                            child: IconButton(
+                                                                icon:
+                                                                    const Icon(
+                                                                  Icons.mail,
+                                                                  size: 13,
+                                                                ),
+                                                                padding:
+                                                                    EdgeInsets
+                                                                        .zero,
+                                                                color: AppColors
+                                                                    .lightGold,
+                                                                onPressed:
+                                                                    () {}),
+                                                          ),
+                                                          const Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                                    right: 5.0),
+                                                          ),
+                                                          AutoSizeText(
+                                                            f.email ?? '',
+                                                            style: const TextStyle(
+                                                                fontSize: 12,
+                                                                color: AppColors
+                                                                    .darkGoldText),
+                                                            minFontSize: 9,
+                                                            maxLines: 1,
+                                                          ),
+                                                          const Padding(
+                                                              padding: EdgeInsets
+                                                                  .only(
+                                                                      right:
+                                                                          5.0)),
+                                                        ],
+                                                      ),
+                                                      Row(
+                                                        children: [
+                                                          Container(
+                                                            decoration:
+                                                                const BoxDecoration(
+                                                              color: AppColors
+                                                                  .calPolyGreen,
+                                                              shape: BoxShape
+                                                                  .circle,
+                                                            ),
+                                                            height: 24,
+                                                            width: 24,
+                                                            alignment: Alignment
+                                                                .center,
+                                                            child: IconButton(
+                                                                icon:
+                                                                    const Icon(
+                                                                  Icons.phone,
+                                                                  size: 13,
+                                                                ),
+                                                                padding:
+                                                                    EdgeInsets
+                                                                        .zero,
+                                                                color: AppColors
+                                                                    .lightGold,
+                                                                onPressed:
+                                                                    () {}),
+                                                          ),
+                                                          const Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                                    right: 5.0),
+                                                          ),
+                                                          AutoSizeText(
+                                                            f.phone ?? '',
+                                                            style: const TextStyle(
+                                                                fontSize: 12,
+                                                                color: AppColors
+                                                                    .darkGoldText),
+                                                            minFontSize: 9,
+                                                            maxLines: 1,
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ]),
+                                              ),
                                             ],
                                           ),
                                         ),
