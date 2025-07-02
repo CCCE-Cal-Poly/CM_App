@@ -1,3 +1,4 @@
+import 'package:ccce_application/common/theme/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/company.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -54,8 +55,6 @@ class _MemberDirectoryState extends State<MemberDirectory> {
 
   static List<Company> companies = [];
   static List<Company> filteredCompanies = [];
-  static const tanColor = Color(0xFFcecca0);
-  static const lighterTanColor = Color(0xFFfffded);
   @override
   void initState() {
     super.initState();
@@ -92,15 +91,15 @@ class _MemberDirectoryState extends State<MemberDirectory> {
           });
         },
         style: OutlinedButton.styleFrom(
-            padding: EdgeInsets.symmetric(horizontal: 10),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6), // Rounded corners
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero, // Rounded corners
             ),
-            textStyle: TextStyle(fontSize: 14),
-            side: BorderSide(
+            textStyle: const TextStyle(fontSize: 14),
+            side: const BorderSide(
                 color: Colors.black, width: 1), // Border color and width
             fixedSize: const Size(60, 30), // Set the button size
-            minimumSize: Size(80, 20), // Minimum size constraint
+            minimumSize: const Size(80, 20), // Minimum size constraint
             backgroundColor: _colorFlag ? Colors.transparent : Colors.black),
         child: Text(txt,
             style: TextStyle(
@@ -109,7 +108,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
     }
 
     return Scaffold(
-      backgroundColor: lighterTanColor,
+      backgroundColor: AppColors.calPolyGreen,
       body: Column(
         children: [
           Padding(
@@ -117,64 +116,45 @@ class _MemberDirectoryState extends State<MemberDirectory> {
             child: Row(
               children: [
                 Expanded(
-                  child: Container(
-                    // Wrap TextField with shadow
-                    // decoration: BoxDecoration(
-                    //   color: tanColor, // Set background color (optional)
-                    //   borderRadius: BorderRadius.circular(
-                    //       10.0), // Rounded corners (optional)
-                    //   boxShadow: [
-                    //     // Add shadow
-                    //     BoxShadow(
-                    //       color: Colors.grey
-                    //           .withOpacity(0.3), // Shadow color with opacity
-                    //       spreadRadius: 2.0, // Adjust shadow spread (optional)
-                    //       blurRadius: 5.0, // Adjust shadow blur (optional)
-                    //       offset: const Offset(
-                    //           0.0, 4.0), // Shadow offset (optional)
-                    //     ),
-                    //   ],
-                    // ),
-                    child: TextField(
-                      //controller: _searchController,
-                      onChanged: (text) {
-                        setState(() {
-                          _isTextEntered = text.isNotEmpty;
-                          // Clear the previously filtered companies
-                          filteredCompanies.clear();
-
-                          // Iterate through the original list of companies if text is entered
-                          if (_isTextEntered) {
-                            for (Company company in companies) {
-                              // Check if the company name starts with the entered text substring
-                              if (company.name
-                                  .toLowerCase()
-                                  .startsWith(text.toLowerCase())) {
-                                // If it does, add the company to the filtered list
-                                filteredCompanies.add(company);
-                              }
+                  child: TextField(
+                    //controller: _searchController,
+                    onChanged: (text) {
+                      setState(() {
+                        _isTextEntered = text.isNotEmpty;
+                        // Clear the previously filtered companies
+                        filteredCompanies.clear();
+                  
+                        // Iterate through the original list of companies if text is entered
+                        if (_isTextEntered) {
+                          for (Company company in companies) {
+                            // Check if the company name starts with the entered text substring
+                            if (company.name
+                                .toLowerCase()
+                                .startsWith(text.toLowerCase())) {
+                              // If it does, add the company to the filtered list
+                              filteredCompanies.add(company);
                             }
                           }
-                        });
-                      },
-                      decoration: InputDecoration(
-                        prefixIcon: Icon(Icons.search, color: Colors.grey),
-                        // contentPadding: EdgeInsets.all(2.0),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0),
-                          borderSide: BorderSide(
-                            color: Colors.black,
-                            width: 2.0,
-                          ),
+                        }
+                      });
+                    },
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(Icons.search, color: Colors.grey),
+                      // contentPadding: EdgeInsets.all(2.0),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                        borderSide: const BorderSide(
+                          color: Colors.black,
+                          width: 2.0,
                         ),
-                        hintText: 'Member Directory',
-                        // border: OutlineInputBorder(
-                        //   borderRadius: BorderRadius.circular(10.0),
-                        // ),
-                        fillColor: Colors.white,
-                        filled: true,
-                        // Add Container with colored background for the button
                       ),
+                      hintText: 'Member Directory',
+                      // border: OutlineInputBorder(
+                      //   borderRadius: BorderRadius.circular(10.0),
+                      // ),
+                      fillColor: Colors.white,
+                      filled: true,
+                      // Add Container with colored background for the button
                     ),
                   ),
                 )

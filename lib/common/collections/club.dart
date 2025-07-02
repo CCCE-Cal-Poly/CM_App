@@ -80,13 +80,18 @@ class ClubItem extends StatelessWidget {
   }
 }
 
-class ClubPopUp extends StatelessWidget {
+class ClubPopUp extends StatefulWidget {
   final Club club;
 
   final VoidCallback onClose;
 
   const ClubPopUp({required this.club, required this.onClose, Key? key})
       : super(key: key);
+
+  @override
+  _ClubPopUpState createState() => _ClubPopUpState();
+}
+  
 
   Widget clubLogoImage(String? url, double width, double height) {
   if (url == null || url.isEmpty) {
@@ -101,6 +106,8 @@ class ClubPopUp extends StatelessWidget {
     ),
   );
 }
+class _ClubPopUpState extends State<ClubPopUp> {
+  bool isJoined = false;
 
   @override
   Widget build(BuildContext context) {
@@ -132,12 +139,15 @@ class ClubPopUp extends StatelessWidget {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.arrow_back,
-                                  color: Colors.black,
+                              SizedBox(
+                                height: screenHeight * .03,
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.arrow_back,
+                                    color: Colors.black,
+                                  ),
+                                  onPressed: widget.onClose,
                                 ),
-                                onPressed: onClose,
                               ),
                             ],
                           ),
@@ -151,7 +161,7 @@ class ClubPopUp extends StatelessWidget {
                               SizedBox(
                                 width: screenHeight * 0.14,
                                 height: screenHeight * 0.14,
-                                child:  clubLogoImage(club.logo, screenHeight * 0.1, screenHeight * 0.1),
+                                child:  clubLogoImage(widget.club.logo, screenHeight * 0.1, screenHeight * 0.1),
                               ),
                             ],
                           ),
@@ -164,7 +174,7 @@ class ClubPopUp extends StatelessWidget {
                               SizedBox(
                                 width: screenWidth * 0.7,
                                 child: AutoSizeText(
-                                  club.name,
+                                  widget.club.name,
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                     fontSize:
@@ -177,7 +187,7 @@ class ClubPopUp extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                "(" + club.acronym + ")",
+                                "(" + widget.club.acronym + ")",
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontSize:
@@ -185,6 +195,56 @@ class ClubPopUp extends StatelessWidget {
                                 ),
                               ),
                               SizedBox(height: screenHeight * .0015),
+                              Padding(
+                                padding: EdgeInsets.only(top: screenHeight * 0.015),
+                                child: ElevatedButton(
+                                  onPressed: isJoined
+                                      ? () {
+                                          setState(() {
+                                            isJoined = false;
+                                          });
+                                        }
+                                      : () {
+                                          setState(() {
+                                            isJoined = true;
+                                          });
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    fixedSize: Size(screenWidth * 0.5, screenHeight * 0.05),
+                                    backgroundColor: isJoined
+                                      ?Colors.grey
+                                      : AppColors.calPolyGreen,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.zero, // Sharp corners
+                                    ),
+                                    padding: EdgeInsets.symmetric(horizontal: screenWidth*.03, vertical: screenHeight * .008),
+                                  ),
+                                  child: isJoined
+                                      ? const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.check, color: Colors.white),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'JOINED',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : const Text(
+                                          'JOIN CLUB',
+                                          style: TextStyle(
+                                            color: AppColors.welcomeLightYellow,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                ),
+                              ),
                               // ... additional content
                             ],
                           ),
@@ -197,123 +257,132 @@ class ClubPopUp extends StatelessWidget {
             ),
           ),
           // Bottom section with text
-          Expanded(
-            child: Container(
-              color: AppColors.calPolyGreen,
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // First Section
-                  // Second Section (Upcoming Events)
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Upcoming Events",
-                        style: TextStyle(
-                          color: AppColors.lightGold,
-                          fontSize: 22.0,
-                          fontWeight: FontWeight.bold,
-                        ),
+          Container(
+            color: AppColors.calPolyGreen,
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // First Section
+                // Second Section (Upcoming Events)
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Upcoming Events",
+                      style: TextStyle(
+                        color: AppColors.lightGold,
+                        fontSize: 22.0,
+                        fontWeight: FontWeight.w400,
                       ),
-                      const SizedBox(
-                        height: 5,
-                      ), // Add space between text elements
-                      Text(
-                        "",
-                        style: const TextStyle(
-                          color: Color.fromARGB(255, 35, 35, 35),
-                          fontSize: 16.0,
-                        ),
+                    ),
+                    SizedBox(
+                      height: 5,
+                    ), // Add space between text elements
+                    Text(
+                      "This is a Placeholder.",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16.0,
                       ),
-                    ],
-                  ),
-                  // Divider between the second and third sections
-                  const Divider(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.mail,
-                                size: 24, // Adjust the size of the icon as needed
-                                color: Colors.white, // Add your desired icon color
-                              ),
-                              const SizedBox(
-                                width: 10,
-                              ), // Add space between icon and text
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    club.email,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18.0,
-                                    ),
+                    ),
+                  ],
+                ),
+                // Divider between the second and third sections
+                const Divider(),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.mail,
+                              size: 24, // Adjust the size of the icon as needed
+                              color: Colors.white, // Add your desired icon color
+                            ),
+                            const SizedBox(
+                              width: 10,
+                            ), // Add space between icon and text
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  widget.club.email ?? 'No Email',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18.0,
                                   ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.camera_alt,
-                            size: 24, // Adjust the size of the icon as needed
-                            color: Colors.white, // Add your desired icon color
-                          ),
-                          const SizedBox(
-                            width: 10,
-                          ), // Add space between icon and text
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                club.instagram,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18.0,
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                          ],
+                        ),
+                  Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      height: 24,
+                      width: 24,
+                      decoration: BoxDecoration( 
+                        borderRadius: BorderRadius.circular(6.0),
+                        color: Colors.transparent, 
+                        border: Border.all(
+                          color: Colors.white
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(
+                      width: 10,
+                    ), // Add space between icon and text
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          (widget.club.instagram!=null) ? '@' + widget.club.instagram : 'No Instagram',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18.0,
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  // Third Section (About)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "About",
-                        style: TextStyle(
-                          color: AppColors.lightGold,
-                          fontSize: 22.0,
-                          fontWeight: FontWeight.bold,
                         ),
-                      ),
-                      const SizedBox(
-                        height: 5,
-                      ), // Add space between text elements
-                      Text(
-                        club.name,
-                        style: const TextStyle(
-                          color: Color.fromARGB(255, 35, 35, 35),
-                          fontSize: 16.0,
-                        ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
+                ),
                 ],
-              ),
+                ),
+                // Third Section (About)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "About",
+                      style: TextStyle(
+                        color: AppColors.lightGold,
+                        fontSize: 22.0,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 5,
+                    ), // Add space between text elements
+                    Text(
+                      widget.club.aboutMsg,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14.0,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
