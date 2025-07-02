@@ -497,7 +497,7 @@ class CalendarScreenState extends State<HomeScreen> {
                 Container(
                     height: 65,
                     width: 80,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.white, // Match event display
                     ),
                     child: Center(

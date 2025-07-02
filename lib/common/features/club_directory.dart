@@ -46,6 +46,7 @@ class _ClubDirectoryState extends State<ClubDirectory> {
   }
 
   final TextEditingController _searchController = TextEditingController();
+  
   bool _isTextEntered = false;
 
   static List<Club> clubs = [];
@@ -67,40 +68,8 @@ class _ClubDirectoryState extends State<ClubDirectory> {
 
   @override
   Widget build(BuildContext context) {
-    void sortAlphabetically() {
-      setState(() {
-        clubs = clubs.reversed.toList();
-      });
-    }
-
-    OutlinedButton createButtonSorter(String txt, VoidCallback sortingFunction,
-        {bool colorFlag = true}) {
-      bool _colorFlag = colorFlag;
-      return OutlinedButton(
-        onPressed: () {
-          setState(() {
-            sortingFunction(); // Call your sorting function
-            print(_colorFlag);
-            _colorFlag = !_colorFlag; // Flip the boolean
-            print(_colorFlag);
-          });
-        },
-        style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.zero, // Rounded corners
-            ),
-            textStyle: const TextStyle(fontSize: 14),
-            side: const BorderSide(
-                color: Colors.black, width: 1), // Border color and width
-            fixedSize: const Size(60, 30), // Set the button size
-            minimumSize: const Size(80, 20), // Minimum size constraint
-            backgroundColor: _colorFlag ? Colors.transparent : Colors.black),
-        child: Text(txt,
-            style: TextStyle(
-                fontSize: 14, color: _colorFlag ? Colors.black : Colors.white)),
-      );
-    }
+    double screenWidth= MediaQuery.of(context).size.width;
+    double screenHeight=MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: AppColors.calPolyGreen,
@@ -126,7 +95,7 @@ class _ClubDirectoryState extends State<ClubDirectory> {
       ),
     ],),
             Padding(
-              padding: const EdgeInsets.only(left: 16.0, top: 16.0, right: 16.0),
+              padding: EdgeInsets.all(screenHeight * 0.015),
               child: Row(
                 children: [
                   Expanded(
@@ -185,26 +154,6 @@ class _ClubDirectoryState extends State<ClubDirectory> {
                       ),
                   )
                 ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    createButtonSorter('A-Z', sortAlphabetically,
-                        colorFlag: false),
-                    // Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
-                    // createButtonSorter('Sudents', () => {}),
-                    // Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
-                    // createButtonSorter('Alumni', () => {}),
-                    // Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
-                    // createButtonSorter('Industry', () => {}),
-                    // Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
-                    // createButtonSorter('Jobs', () => {}),
-                  ],
-                ),
               ),
             ),
             Expanded(

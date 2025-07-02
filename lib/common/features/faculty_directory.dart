@@ -103,6 +103,12 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
   return result;
 }
 
+  Map<String, bool> buttonStates = {
+  'A-Z': true,
+  'Admin': false,
+  'Faculty': false,
+  };
+
   @override
   Widget build(BuildContext context) {
     void sortAlphabetically() {
@@ -111,16 +117,13 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
       });
     }
 
-    OutlinedButton createButtonSorter(String txt, VoidCallback sortingFunction,
-        {bool colorFlag = true}) {
-      bool _colorFlag = colorFlag;
+    OutlinedButton createButtonSorter(String txt, VoidCallback sortingFunction) {
+      bool isActive = buttonStates[txt] ?? false;
       return OutlinedButton(
         onPressed: () {
           setState(() {
             sortingFunction(); // Call your sorting function
-            print(_colorFlag);
-            _colorFlag = !_colorFlag; // Flip the boolean
-            print(_colorFlag);
+            buttonStates[txt] = !isActive; // Flip the boolean
           });
         },
         style: OutlinedButton.styleFrom(
@@ -130,13 +133,14 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
             ),
             textStyle: const TextStyle(fontSize: 14),
             side: const BorderSide(
-                color: AppColors.welcomeLightYellow, width: 1), // Border color and width
+                color: Colors.black, width: 1), // Border color and width
             fixedSize: const Size(60, 30), // Set the button size
             minimumSize: const Size(80, 20), // Minimum size constraint
-            backgroundColor: _colorFlag ? Colors.transparent : AppColors.welcomeLightYellow),
+            backgroundColor: !isActive ? Colors.transparent : AppColors.welcomeLightYellow),
         child: Text(txt,
             style: TextStyle(
-                fontSize: 14, color: _colorFlag ? AppColors.welcomeLightYellow : AppColors.calPolyGreen)),
+                fontSize: 14, color: !isActive ? AppColors.welcomeLightYellow : AppColors.calPolyGreen,
+                fontWeight: FontWeight.w600)),
       );
     }
     
@@ -231,10 +235,11 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    createButtonSorter('A-Z', sortAlphabetically,
-                        colorFlag: false),
+                    createButtonSorter('A-Z', sortAlphabetically),
                     const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
                     createButtonSorter('Admin', () => {}),
+                    const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
+                    createButtonSorter('Faculty', () => {}),
                   ],
                 ),
               ),
@@ -255,7 +260,7 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
       final List<Widget> sectionedList = [];
 
       // Administrative staff section
-      sectionedList.add(
+      (!(buttonStates['Faculty']!) || (buttonStates['Admin']!&&buttonStates['Faculty']!)) ? (sectionedList.add(
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
           child: Text(
@@ -267,15 +272,17 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
             ),
           ),
         ),
-      );
-      if (adminList.isEmpty) {
-        sectionedList.add(
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-            child: Text("None", style: TextStyle(color: Colors.grey)),
-          ),
-        );
-      } else {
+      )) : null;
+      if (!(buttonStates['Faculty']!) || (buttonStates['Admin']!&&buttonStates['Faculty']!)) {
+        if (adminList.isEmpty) {
+          sectionedList.add(
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+              child: Text("None", style: TextStyle(color: Colors.grey)),
+            ),
+          );
+        }
+        else{
         sectionedList.addAll(
           adminList.map((f) => GestureDetector(
             onTap: () {
@@ -287,7 +294,226 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                 borderRadius: BorderRadius.zero,
               ),
               backgroundColor: Colors.white,
-              child: Container(
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.8,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    height: 32,
+                                    child: IconButton(
+                                    icon: const Icon(Icons.arrow_back, size: 20),
+                                    color: Colors.black,
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                    ),
+                                  ),
+                                    Text(
+                                      '${f.lname}, ${f.fname}',
+                                      style: const TextStyle(
+                                          fontSize: 17, fontWeight: FontWeight.bold),
+                                    ),
+                                ],
+                                      ),
+                            ),
+                                    const Padding(padding: EdgeInsets.only(left: 8.0)),
+                                    const Expanded(
+                                      child: Padding(padding:EdgeInsetsGeometry.all(0.5)),
+                                    ),
+                                    const Padding(padding: EdgeInsets.only(right:8.0)),
+                              
+                                              ],),
+                                  Row(
+                                    children: [
+                                      const Padding(
+                                        padding: EdgeInsets.only(left: 48.0)),
+                                      Expanded(
+                                        child: AutoSizeText(f.title ?? '',
+                                                style: const TextStyle(
+                                                  fontSize: 12, color: AppColors.darkGoldText, fontWeight: FontWeight.w500),
+                                                minFontSize: 7,
+                                                maxLines: 2,
+                                                softWrap: true,
+                                                overflow:TextOverflow.visible,
+                                              ),
+                                      ),
+                                    ]
+                                      ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      const Padding(
+                                        padding: EdgeInsets.only(left: 48.0),
+                                        child: Text(
+                                          "Office: ",
+                                          style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black),
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.location_on,
+                                        color: AppColors.darkGoldText,
+                                        size: 16,
+                                      ),
+                                      Text(
+                                        ' ' + (f.office ?? 'N/A'),
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.darkGoldText),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                                    textBaseline: TextBaseline.alphabetic,
+                                    children: [
+                                      const Padding(
+                                        padding: EdgeInsets.only (left: 48.0),
+                                        child: Text(
+                                          "Hours: ",
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.black),
+                                        ),
+                                      ),
+                                      Text(
+                                        expandDayAcronyms((f.hours ?? 'N/A').replaceAll(';', '\n')),
+                                        style: const TextStyle(
+                                            fontSize: 11,
+                                            color: AppColors.darkGoldText),
+                                      ),
+                                    ],
+                                  ),
+                          ]
+                        ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [Row(
+                                  children: [
+                                    Container(
+                                      decoration:  const BoxDecoration(
+                                      color: AppColors.calPolyGreen,
+                                      shape: BoxShape.circle,
+                                      ),
+                                      height: 24,
+                                      width: 24,
+                                      alignment: Alignment.center,
+                                      child: IconButton(icon: const Icon(Icons.mail, size: 13, ), padding: EdgeInsets.zero, color: AppColors.lightGold, onPressed: () {}),
+                                    ),
+                            const Padding(
+                              padding: EdgeInsets.only(right: 5.0),
+                            ),
+                            AutoSizeText(
+                              f.email ?? '',
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppColors.darkGoldText),
+                              minFontSize: 9,
+                              maxLines: 1,
+                            ),
+                            const Padding(padding: EdgeInsets.only(right: 5.0)),
+                            ],
+                                ),
+                            Row(
+                              children: [
+                                Container(
+                                  decoration:  const BoxDecoration(
+                                  color: AppColors.calPolyGreen,
+                                  shape: BoxShape.circle,
+                                  ),
+                                  height: 24,
+                                  width: 24,
+                                  alignment: Alignment.center,
+                                  child: IconButton(icon: const Icon(Icons.phone, size: 13, ), padding: EdgeInsets.zero, color: AppColors.lightGold, onPressed: () {}),
+                                ),
+                            const Padding(
+                              padding: EdgeInsets.only(right: 5.0),
+                            ),
+                            AutoSizeText(
+                              f.phone ?? '',
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppColors.darkGoldText),
+                              minFontSize: 9,
+                              maxLines: 1,
+                            ),
+                              ],
+                            ),
+                            ]
+                          ),
+                        ),
+                  ],
+                ),
+                    
+              ),
+            );
+          }
+        );
+      },
+      child: FacultyItem(f),
+    )).toList(),
+          );
+      }
+      }
+      else{
+        const SizedBox(height: 10);
+      }
+
+      // Faculty section
+
+      (!(buttonStates['Admin']!) || (buttonStates['Admin']!&&buttonStates['Faculty']!)) ? (sectionedList.add(
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+          child: Text(
+            "Faculty",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w400,
+              color: AppColors.welcomeLightYellow,
+            ),
+          ),
+        ),
+      )) : null;
+      if (!(buttonStates['Admin']!) || (buttonStates['Admin']! && buttonStates['Faculty']!)){
+        if (facultyOnlyList.isEmpty) {
+        sectionedList.add(
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            child: Text("None", style: TextStyle(color: Colors.grey)),
+          ),
+        );
+      } 
+      else {
+        sectionedList.addAll(
+          facultyOnlyList.map((f) => GestureDetector(
+            onTap: () {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return Dialog(
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+              ),
+              backgroundColor: Colors.white,
+              child: SizedBox(
                 width: MediaQuery.of(context).size.width * 0.8,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -465,217 +691,9 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
     )).toList(),
           );
       }
-
-      // Faculty section
-      sectionedList.add(
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-          child: Text(
-            "Faculty",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w400,
-              color: AppColors.welcomeLightYellow,
-            ),
-          ),
-        ),
-      );
-      if (facultyOnlyList.isEmpty) {
-        sectionedList.add(
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-            child: Text("None", style: TextStyle(color: Colors.grey)),
-          ),
-        );
-      } else {
-        sectionedList.addAll(
-          facultyOnlyList.map((f) => GestureDetector(
-            onTap: () {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return Dialog(
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
-              ),
-              backgroundColor: Colors.white,
-              child: Container(
-                width: MediaQuery.of(context).size.width * 0.8,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Row(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: Row(
-                                children: [
-                                  SizedBox(
-                                    height: 32,
-                                    child: IconButton(
-                                    icon: const Icon(Icons.arrow_back, size: 20),
-                                    color: Colors.black,
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                    ),
-                                  ),
-                                    Text(
-                                      '${f.lname}, ${f.fname}',
-                                      style: const TextStyle(
-                                          fontSize: 17, fontWeight: FontWeight.bold),
-                                    ),
-                                ],
-                                      ),
-                            ),
-                                    const Padding(padding: EdgeInsets.only(left: 8.0)),
-                                    const Expanded(
-                                      child: Padding(padding:EdgeInsetsGeometry.all(0.5)),
-                                    ),
-                                    const Padding(padding: EdgeInsets.only(right:8.0)),
-                              
-                                              ],),
-                                  Row(
-                                    children: [
-                                      const Padding(
-                                        padding: EdgeInsets.only(left: 48.0)),
-                                      Expanded(
-                                        child: AutoSizeText(f.title ?? '',
-                                                style: const TextStyle(
-                                                  fontSize: 12, color: AppColors.darkGoldText, fontWeight: FontWeight.w500),
-                                                minFontSize: 7,
-                                                maxLines: 2,
-                                                softWrap: true,
-                                                overflow:TextOverflow.visible,
-                                              ),
-                                      ),
-                                    ]
-                                      ),
-                                  const SizedBox(height: 10),
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      const Padding(
-                                        padding: EdgeInsets.only(left: 48.0),
-                                        child: Text(
-                                          "Office: ",
-                                          style: TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black),
-                                        ),
-                                      ),
-                                      const Icon(
-                                        Icons.location_on,
-                                        color: AppColors.darkGoldText,
-                                        size: 16,
-                                      ),
-                                      Text(
-                                        ' ' + (f.office ?? 'N/A'),
-                                        style: const TextStyle(
-                                            fontSize: 12,
-                                            color: AppColors.darkGoldText),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                                    textBaseline: TextBaseline.alphabetic,
-                                    children: [
-                                      const Padding(
-                                        padding: EdgeInsets.only (left: 48.0),
-                                        child: Text(
-                                          "Hours: ",
-                                          style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.black),
-                                        ),
-                                      ),
-                                      Text(
-                                        expandDayAcronyms((f.hours ?? 'N/A').replaceAll(';', '\n')),
-                                        style: const TextStyle(
-                                            fontSize: 11,
-                                            color: AppColors.darkGoldText),
-                                      ),
-                                    ],
-                                  ),
-                          ]
-                        ),
-                        const SizedBox(height: 8),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 8.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [Row(
-                                  children: [
-                                    Container(
-                                      decoration:  const BoxDecoration(
-                                      color: AppColors.calPolyGreen,
-                                      shape: BoxShape.circle,
-                                      ),
-                                      height: 24,
-                                      width: 24,
-                                      alignment: Alignment.center,
-                                      child: IconButton(icon: const Icon(Icons.mail, size: 13, ), padding: EdgeInsets.zero, color: AppColors.lightGold, onPressed: () {}),
-                                    ),
-                            const Padding(
-                              padding: EdgeInsets.only(right: 5.0),
-                            ),
-                            AutoSizeText(
-                              f.email ?? '',
-                              style: const TextStyle(
-                                  fontSize: 12, color: AppColors.darkGoldText),
-                              minFontSize: 9,
-                              maxLines: 1,
-                            ),
-                            const Padding(padding: EdgeInsets.only(right: 5.0)),
-                            ],
-                                ),
-                            Row(
-                              children: [
-                                Container(
-                                  decoration:  const BoxDecoration(
-                                  color: AppColors.calPolyGreen,
-                                  shape: BoxShape.circle,
-                                  ),
-                                  height: 24,
-                                  width: 24,
-                                  alignment: Alignment.center,
-                                  child: IconButton(icon: const Icon(Icons.phone, size: 13, ), padding: EdgeInsets.zero, color: AppColors.lightGold, onPressed: () {}),
-                                ),
-                            const Padding(
-                              padding: EdgeInsets.only(right: 5.0),
-                            ),
-                            AutoSizeText(
-                              f.phone ?? '',
-                              style: const TextStyle(
-                                  fontSize: 12, color: AppColors.darkGoldText),
-                              minFontSize: 9,
-                              maxLines: 1,
-                            ),
-                              ],
-                            ),
-                            ]
-                          ),
-                        ),
-                  ],
-                ),
-                    
-              ),
-            );
-          },
-        );
-      },
-      child: FacultyItem(f),
-    )).toList(),
-          );
+      }
+      else{
+        const SizedBox(height: 10);
       }
 
       return ListView(
