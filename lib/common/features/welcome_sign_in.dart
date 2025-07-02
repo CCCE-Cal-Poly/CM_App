@@ -1,6 +1,6 @@
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:ccce_application/common/theme/colors.dart';
+import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/features/sign_in.dart';
 import 'package:ccce_application/common/features/sign_up.dart';
 

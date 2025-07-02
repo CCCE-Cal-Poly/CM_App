@@ -33,7 +33,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
       ClubDirectory(scaffoldKey: _scaffoldKey),
       FacultyDirectory(scaffoldKey: _scaffoldKey),
       Container(),
-      const ProfileScreen(),
+      ProfileScreen(scaffoldKey: _scaffoldKey),
     ];
   }
 
