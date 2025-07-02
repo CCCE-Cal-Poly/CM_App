@@ -11,3 +11,7 @@ class AppColors {
   // Text Colors
   static const tanText = Color(0xFFF6D78B);
 }
+
+class AppFonts {
+  static const sansProSemiBold = "AppFonts.sansProSemiBold";
+}

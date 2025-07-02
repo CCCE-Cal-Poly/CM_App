@@ -1,4 +1,4 @@
-import 'package:ccce_application/common/theme/colors.dart';
+import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:ccce_application/common/widgets/debug_outline.dart';
 import 'package:auto_size_text/auto_size_text.dart';
@@ -81,29 +81,30 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
     // Fetch company data from a source (e.g., API call, database)
     // and populate the companies list
   }
-  String expandDayAcronyms(String hours) {
-  // You can expand this map as needed
-  const dayMap = {
-    'M': 'Monday',
-    'T': 'Tuesday',
-    'W': 'Wednesday',
-    'R': 'Thursday',
-    'F': 'Friday',
-    'S': 'Saturday',
-    'U': 'Sunday',
-  };
 
-  // Replace each acronym with its full name
-  String result = hours;
-  dayMap.forEach((abbr, full) {
-    // Use RegExp to match only standalone day letters (not inside words)
-    result = result.replaceAllMapped(
-      RegExp(r'\b' + abbr + r'\b'),
-      (match) => full,
-    );
-  });
-  return result;
-}
+  String expandDayAcronyms(String hours) {
+    // You can expand this map as needed
+    const dayMap = {
+      'M': 'Monday',
+      'T': 'Tuesday',
+      'W': 'Wednesday',
+      'R': 'Thursday',
+      'F': 'Friday',
+      'S': 'Saturday',
+      'U': 'Sunday',
+    };
+
+    // Replace each acronym with its full name
+    String result = hours;
+    dayMap.forEach((abbr, full) {
+      // Use RegExp to match only standalone day letters (not inside words)
+      result = result.replaceAllMapped(
+        RegExp(r'\b' + abbr + r'\b'),
+        (match) => full,
+      );
+    });
+    return result;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -132,16 +133,21 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
             ),
             textStyle: const TextStyle(fontSize: 14),
             side: const BorderSide(
-                color: AppColors.welcomeLightYellow, width: 1), // Border color and width
+                color: AppColors.welcomeLightYellow,
+                width: 1), // Border color and width
             fixedSize: const Size(60, 30), // Set the button size
             minimumSize: Size(80, 20), // Minimum size constraint
-            backgroundColor: _colorFlag ? Colors.transparent : AppColors.welcomeLightYellow),
+            backgroundColor:
+                _colorFlag ? Colors.transparent : AppColors.welcomeLightYellow),
         child: Text(txt,
             style: TextStyle(
-                fontSize: 14, color: _colorFlag ? AppColors.welcomeLightYellow : AppColors.calPolyGreen)),
+                fontSize: 14,
+                color: _colorFlag
+                    ? AppColors.welcomeLightYellow
+                    : AppColors.calPolyGreen)),
       );
     }
-    
+
     return Scaffold(
       backgroundColor: AppColors.calPolyGreen,
       body: Padding(
@@ -152,20 +158,28 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
               padding: const EdgeInsets.only(bottom: 20.0),
               child: CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
             ),
-            Row(children: [
-      Image.asset('assets/icons/faculty_catalog.png', color: AppColors.welcomeLightYellow, width: 26, height: 28,),
-      const SizedBox(width: 6),
-      const Text(
-        "Faculty Directory",
-        style: TextStyle(
-          fontFamily: 'SansSerifProSemiBold', 
-          fontSize: 21,
-          color: AppColors.welcomeLightYellow,
-        ),
-      ),
-    ],),
+            Row(
+              children: [
+                Image.asset(
+                  'assets/icons/faculty_catalog.png',
+                  color: AppColors.welcomeLightYellow,
+                  width: 26,
+                  height: 28,
+                ),
+                const SizedBox(width: 6),
+                const Text(
+                  "Faculty Directory",
+                  style: TextStyle(
+                    fontFamily: AppFonts.sansProSemiBold,
+                    fontSize: 21,
+                    color: AppColors.welcomeLightYellow,
+                  ),
+                ),
+              ],
+            ),
             Padding(
-              padding: const EdgeInsets.only(left: 16.0, top: 12.0, right: 16.0),
+              padding:
+                  const EdgeInsets.only(left: 16.0, top: 12.0, right: 16.0),
               child: Row(
                 children: [
                   Expanded(
@@ -194,12 +208,13 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                             _isTextEntered = text.isNotEmpty;
                             // Clear the previously filtered companies
                             filteredFaculty.clear();
-                            
+
                             // Iterate through the original list of companies if text is entered
                             if (_isTextEntered) {
                               for (Faculty faculty in facultyList) {
                                 // Check if the company name starts with the entered text substring
-                                String name = faculty.fname + " " + faculty.lname;
+                                String name =
+                                    faculty.fname + " " + faculty.lname;
                                 if (name
                                     .toLowerCase()
                                     .startsWith(text.toLowerCase())) {
@@ -261,296 +276,417 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
               ),
             ),
             Expanded(
-  child: Builder(
-    builder: (context) {
-      final List<Faculty> displayList =
-          _isTextEntered ? filteredFaculty : facultyList;
+              child: Builder(
+                builder: (context) {
+                  final List<Faculty> displayList =
+                      _isTextEntered ? filteredFaculty : facultyList;
 
-      // Split into admin and faculty
-      final List<Faculty> adminList =
-          displayList.where((f) => f.administration).toList();
-      final List<Faculty> facultyOnlyList =
-          displayList.where((f) => !f.administration).toList();
+                  // Split into admin and faculty
+                  final List<Faculty> adminList =
+                      displayList.where((f) => f.administration).toList();
+                  final List<Faculty> facultyOnlyList =
+                      displayList.where((f) => !f.administration).toList();
 
-      // Combine with section headers
-      final List<Widget> sectionedList = [];
+                  // Combine with section headers
+                  final List<Widget> sectionedList = [];
 
-      // Administrative staff section
-      sectionedList.add(
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-          child: Text(
-            "Administrative staff",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w400,
-              color: AppColors.welcomeLightYellow,
-            ),
-          ),
-        ),
-      );
-      if (adminList.isEmpty) {
-        sectionedList.add(
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-            child: Text("None", style: TextStyle(color: Colors.grey)),
-          ),
-        );
-      } else {
-        sectionedList.addAll(
-          adminList.map((f) => GestureDetector(
-            onTap: () {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return Dialog(
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
-              ),
-              backgroundColor: Colors.white,
-              child: SizedBox(
-                height: 155,
-                width: MediaQuery.of(context).size.width * 0.8,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Row(
-                          children: [
-                            Row(
-                              children: [
-                                IconButton(
-                                icon: const Icon(Icons.arrow_back, size: 20),
-                                color: Colors.black,
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                              ),
-                                  Text(
-                                    '${f.lname}, ${f.fname}',
-                                    style: const TextStyle(
-                                        fontSize: 17, fontWeight: FontWeight.bold),
-                                  ),
-                              ],
-                                    ),
-                                    const Padding(padding: EdgeInsets.only(left: 8.0)),
-                                    Expanded(
-                                      child: AutoSizeText(f.title ?? '',
-                                        style: const TextStyle(
-                                          fontSize: 12, color: AppColors.darkGoldText, fontWeight: FontWeight.w500),
-                                        minFontSize: 7,
-                                        maxLines: 2,
-                                        softWrap: true,
-                                        overflow:TextOverflow.visible,
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                    const Padding(padding: EdgeInsets.only(right:8.0)),
-                              
-                                              ],),
-                                  const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      const Padding(
-                                        padding: EdgeInsets.only(left: 48.0),
-                                        child: Text(
-                                          "Office: ",
-                                          style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black),
-                                        ),
-                                      ),
-                                      const Icon(
-                                        Icons.location_on,
-                                        color: AppColors.darkGoldText,
-                                        size: 16,
-                                      ),
-                                      Text(
-                                        ' ' + (f.office ?? 'N/A'),
-                                        style: const TextStyle(
-                                            fontSize: 12,
-                                            color: AppColors.darkGoldText),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Padding(
-                                        padding: EdgeInsets.only (left: 48.0),
-                                        child: Text(
-                                          "Hours: ",
-                                          style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.black),
-                                        ),
-                                      ),
-                                      Text(
-                                        expandDayAcronyms((f.hours ?? 'N/A').replaceAll(';', '\n')),
-                                        style: const TextStyle(
-                                            fontSize: 11,
-                                            color: AppColors.darkGoldText),
-                                      ),
-                                    ],
-                                  ),
-                          ]
+                  // Administrative staff section
+                  sectionedList.add(
+                    const Padding(
+                      padding:
+                          EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                      child: Text(
+                        "Administrative staff",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.welcomeLightYellow,
                         ),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 8.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [Row(
-                                  children: [
-                                    Container(
-                                      decoration:  const BoxDecoration(
-                                      color: AppColors.calPolyGreen,
-                                      shape: BoxShape.circle,
-                                      ),
-                                      height: 24,
-                                      width: 24,
-                                      alignment: Alignment.center,
-                                      child: IconButton(icon: const Icon(Icons.mail, size: 13, ), padding: EdgeInsets.zero, color: AppColors.lightGold, onPressed: () {}),
-                                    ),
-                            const Padding(
-                              padding: EdgeInsets.only(right: 5.0),
-                            ),
-                            AutoSizeText(
-                              f.email ?? '',
-                              style: const TextStyle(
-                                  fontSize: 12, color: AppColors.darkGoldText),
-                              minFontSize: 9,
-                              maxLines: 1,
-                            ),
-                            const Padding(padding: EdgeInsets.only(right: 5.0)),
-                            ],
-                                ),
-                            Row(
-                              children: [
-                                Container(
-                                  decoration:  const BoxDecoration(
-                                  color: AppColors.calPolyGreen,
-                                  shape: BoxShape.circle,
-                                  ),
-                                  height: 24,
-                                  width: 24,
-                                  alignment: Alignment.center,
-                                  child: IconButton(icon: const Icon(Icons.phone, size: 13, ), padding: EdgeInsets.zero, color: AppColors.lightGold, onPressed: () {}),
-                                ),
-                            const Padding(
-                              padding: EdgeInsets.only(right: 5.0),
-                            ),
-                            AutoSizeText(
-                              f.phone ?? '',
-                              style: const TextStyle(
-                                  fontSize: 12, color: AppColors.darkGoldText),
-                              minFontSize: 9,
-                              maxLines: 1,
-                            ),
-                              ],
-                            ),
-                            ]
-                          ),
-                        ),
-                  ],
-                ),
-                    
-              ),
-            );
-          },
-        );
-      },
-      child: FacultyItem(f),
-    )).toList(),
-          );
-      }
-
-      // Faculty section
-      sectionedList.add(
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-          child: Text(
-            "Faculty",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w400,
-              color: AppColors.welcomeLightYellow,
-            ),
-          ),
-        ),
-      );
-      if (facultyOnlyList.isEmpty) {
-        sectionedList.add(
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-            child: Text("None", style: TextStyle(color: Colors.grey)),
-          ),
-        );
-      } else {
-        sectionedList.addAll(
-          facultyOnlyList.map((f) => GestureDetector(
-            onTap: () {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return Dialog(
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
-              ),
-              child: SizedBox(
-                height: 200,
-                width: MediaQuery.of(context).size.width * 0.8,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back),
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
                       ),
                     ),
-                    Container(
-                        color: Colors.white,
-                        child: Column(children: [
-                          const SizedBox(height: 10),
-                          Text(
-                            '${f.lname}, ${f.fname}',
-                            style: const TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            style: const TextStyle(color: AppColors.welcomeLightYellow),
-                            f.title ?? '',
-                            textAlign: TextAlign.center,
-                          ),
-                        ]))
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-      child: FacultyItem(f),
-    )).toList(),
-          );
-      }
+                  );
+                  if (adminList.isEmpty) {
+                    sectionedList.add(
+                      const Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 4.0),
+                        child:
+                            Text("None", style: TextStyle(color: Colors.grey)),
+                      ),
+                    );
+                  } else {
+                    sectionedList.addAll(
+                      adminList
+                          .map((f) => GestureDetector(
+                                onTap: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return Dialog(
+                                        shape: const RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                        backgroundColor: Colors.white,
+                                        child: SizedBox(
+                                          height: 155,
+                                          width: MediaQuery.of(context)
+                                                  .size
+                                                  .width *
+                                              0.8,
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: <Widget>[
+                                                    Row(
+                                                      children: [
+                                                        Row(
+                                                          children: [
+                                                            IconButton(
+                                                              icon: const Icon(
+                                                                  Icons
+                                                                      .arrow_back,
+                                                                  size: 20),
+                                                              color:
+                                                                  Colors.black,
+                                                              onPressed: () {
+                                                                Navigator.of(
+                                                                        context)
+                                                                    .pop();
+                                                              },
+                                                            ),
+                                                            Text(
+                                                              '${f.lname}, ${f.fname}',
+                                                              style: const TextStyle(
+                                                                  fontSize: 17,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        const Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                                    left: 8.0)),
+                                                        Expanded(
+                                                          child: AutoSizeText(
+                                                            f.title ?? '',
+                                                            style: const TextStyle(
+                                                                fontSize: 12,
+                                                                color: AppColors
+                                                                    .darkGoldText,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500),
+                                                            minFontSize: 7,
+                                                            maxLines: 2,
+                                                            softWrap: true,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .visible,
+                                                            textAlign: TextAlign
+                                                                .center,
+                                                          ),
+                                                        ),
+                                                        const Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                                    right:
+                                                                        8.0)),
+                                                      ],
+                                                    ),
+                                                    const SizedBox(height: 2),
+                                                    Row(
+                                                      children: [
+                                                        const Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 48.0),
+                                                          child: Text(
+                                                            "Office: ",
+                                                            style: TextStyle(
+                                                                fontSize: 16,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600,
+                                                                color: Colors
+                                                                    .black),
+                                                          ),
+                                                        ),
+                                                        const Icon(
+                                                          Icons.location_on,
+                                                          color: AppColors
+                                                              .darkGoldText,
+                                                          size: 16,
+                                                        ),
+                                                        Text(
+                                                          ' ' +
+                                                              (f.office ??
+                                                                  'N/A'),
+                                                          style: const TextStyle(
+                                                              fontSize: 12,
+                                                              color: AppColors
+                                                                  .darkGoldText),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                    Row(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        const Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 48.0),
+                                                          child: Text(
+                                                            "Hours: ",
+                                                            style: TextStyle(
+                                                                fontSize: 12,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                                color: Colors
+                                                                    .black),
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          expandDayAcronyms(
+                                                              (f.hours ?? 'N/A')
+                                                                  .replaceAll(
+                                                                      ';',
+                                                                      '\n')),
+                                                          style: const TextStyle(
+                                                              fontSize: 11,
+                                                              color: AppColors
+                                                                  .darkGoldText),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ]),
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    left: 8.0,
+                                                    right: 8.0,
+                                                    bottom: 8.0),
+                                                child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceEvenly,
+                                                    children: [
+                                                      Row(
+                                                        children: [
+                                                          Container(
+                                                            decoration:
+                                                                const BoxDecoration(
+                                                              color: AppColors
+                                                                  .calPolyGreen,
+                                                              shape: BoxShape
+                                                                  .circle,
+                                                            ),
+                                                            height: 24,
+                                                            width: 24,
+                                                            alignment: Alignment
+                                                                .center,
+                                                            child: IconButton(
+                                                                icon:
+                                                                    const Icon(
+                                                                  Icons.mail,
+                                                                  size: 13,
+                                                                ),
+                                                                padding:
+                                                                    EdgeInsets
+                                                                        .zero,
+                                                                color: AppColors
+                                                                    .lightGold,
+                                                                onPressed:
+                                                                    () {}),
+                                                          ),
+                                                          const Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                                    right: 5.0),
+                                                          ),
+                                                          AutoSizeText(
+                                                            f.email ?? '',
+                                                            style: const TextStyle(
+                                                                fontSize: 12,
+                                                                color: AppColors
+                                                                    .darkGoldText),
+                                                            minFontSize: 9,
+                                                            maxLines: 1,
+                                                          ),
+                                                          const Padding(
+                                                              padding: EdgeInsets
+                                                                  .only(
+                                                                      right:
+                                                                          5.0)),
+                                                        ],
+                                                      ),
+                                                      Row(
+                                                        children: [
+                                                          Container(
+                                                            decoration:
+                                                                const BoxDecoration(
+                                                              color: AppColors
+                                                                  .calPolyGreen,
+                                                              shape: BoxShape
+                                                                  .circle,
+                                                            ),
+                                                            height: 24,
+                                                            width: 24,
+                                                            alignment: Alignment
+                                                                .center,
+                                                            child: IconButton(
+                                                                icon:
+                                                                    const Icon(
+                                                                  Icons.phone,
+                                                                  size: 13,
+                                                                ),
+                                                                padding:
+                                                                    EdgeInsets
+                                                                        .zero,
+                                                                color: AppColors
+                                                                    .lightGold,
+                                                                onPressed:
+                                                                    () {}),
+                                                          ),
+                                                          const Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                                    right: 5.0),
+                                                          ),
+                                                          AutoSizeText(
+                                                            f.phone ?? '',
+                                                            style: const TextStyle(
+                                                                fontSize: 12,
+                                                                color: AppColors
+                                                                    .darkGoldText),
+                                                            minFontSize: 9,
+                                                            maxLines: 1,
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ]),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                                child: FacultyItem(f),
+                              ))
+                          .toList(),
+                    );
+                  }
 
-      return ListView(
-        children: sectionedList,
-      );
-    },
-  ),
+                  // Faculty section
+                  sectionedList.add(
+                    const Padding(
+                      padding:
+                          EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                      child: Text(
+                        "Faculty",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.welcomeLightYellow,
+                        ),
+                      ),
+                    ),
+                  );
+                  if (facultyOnlyList.isEmpty) {
+                    sectionedList.add(
+                      const Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 4.0),
+                        child:
+                            Text("None", style: TextStyle(color: Colors.grey)),
+                      ),
+                    );
+                  } else {
+                    sectionedList.addAll(
+                      facultyOnlyList
+                          .map((f) => GestureDetector(
+                                onTap: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return Dialog(
+                                        shape: const RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                        child: SizedBox(
+                                          height: 200,
+                                          width: MediaQuery.of(context)
+                                                  .size
+                                                  .width *
+                                              0.8,
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: <Widget>[
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 2.0),
+                                                child: IconButton(
+                                                  icon: const Icon(
+                                                      Icons.arrow_back),
+                                                  onPressed: () {
+                                                    Navigator.of(context).pop();
+                                                  },
+                                                ),
+                                              ),
+                                              Container(
+                                                  color: Colors.white,
+                                                  child: Column(children: [
+                                                    const SizedBox(height: 10),
+                                                    Text(
+                                                      '${f.lname}, ${f.fname}',
+                                                      style: const TextStyle(
+                                                          fontSize: 20,
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                    const SizedBox(height: 20),
+                                                    Text(
+                                                      style: const TextStyle(
+                                                          color: AppColors
+                                                              .welcomeLightYellow),
+                                                      f.title ?? '',
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                    ),
+                                                  ]))
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                                child: FacultyItem(f),
+                              ))
+                          .toList(),
+                    );
+                  }
+
+                  return ListView(
+                    children: sectionedList,
+                  );
+                },
+              ),
             ),
           ],
         ),
