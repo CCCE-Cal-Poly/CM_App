@@ -1,4 +1,4 @@
-import 'package:ccce_application/common/theme/colors.dart';
+import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/club.dart';
@@ -114,20 +114,23 @@ class _ClubDirectoryState extends State<ClubDirectory> {
               padding: const EdgeInsets.only(bottom: 20.0),
               child: CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
             ),
-            const Row(children: [
-      Icon(Icons.hub, color: AppColors.welcomeLightYellow, size: 20),
-      SizedBox(width: 6),
-      Text(
-        "Club Directory",
-        style: TextStyle(
-          fontFamily: 'SansSerifProSemiBold',
-          fontSize: 21,
-          color: AppColors.welcomeLightYellow,
-        ),
-      ),
-    ],),
+            const Row(
+              children: [
+                Icon(Icons.hub, color: AppColors.welcomeLightYellow, size: 20),
+                SizedBox(width: 6),
+                Text(
+                  "Club Directory",
+                  style: TextStyle(
+                    fontFamily: AppFonts.sansProSemiBold,
+                    fontSize: 21,
+                    color: AppColors.welcomeLightYellow,
+                  ),
+                ),
+              ],
+            ),
             Padding(
-              padding: const EdgeInsets.only(left: 16.0, top: 16.0, right: 16.0),
+              padding:
+                  const EdgeInsets.only(left: 16.0, top: 16.0, right: 16.0),
               child: Row(
                 children: [
                   Expanded(
@@ -156,7 +159,7 @@ class _ClubDirectoryState extends State<ClubDirectory> {
                             _isTextEntered = text.isNotEmpty;
                             // Clear the previously filtered companies
                             filteredClubs.clear();
-        
+
                             // Iterate through the original list of companies if text is entered
                             if (_isTextEntered) {
                               for (Club club in clubs) {
@@ -182,17 +185,17 @@ class _ClubDirectoryState extends State<ClubDirectory> {
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.zero,
-                              borderSide: BorderSide(
-                                color: Colors.black,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.zero,
                             borderSide: BorderSide(
                               color: Colors.black,
                             ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.zero,
+                            borderSide: BorderSide(
+                              color: Colors.black,
                             ),
+                          ),
                           hintText: 'Club Directory',
                           // border: OutlineInputBorder(
                           //   borderRadius: BorderRadius.circular(10.0),
