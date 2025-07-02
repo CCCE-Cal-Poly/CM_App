@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ccce_application/rendered_page.dart';
 import 'package:ccce_application/common/features/sign_up.dart';
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
-import 'package:ccce_application/common/theme/colors.dart';
+import 'package:ccce_application/common/theme/theme.dart';
 
 class SignIn extends StatefulWidget {
   const SignIn({super.key});

@@ -1,5 +1,5 @@
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:ccce_application/common/theme/colors.dart';
+import 'package:ccce_application/common/theme/theme.dart';
 import 'package:flutter/material.dart';
 
 class Club implements Comparable<Club> {
