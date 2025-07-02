@@ -1,4 +1,4 @@
-import 'package:ccce_application/common/theme/colors.dart';
+import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:ccce_application/common/widgets/debug_outline.dart';
 import 'package:auto_size_text/auto_size_text.dart';
@@ -79,17 +79,18 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
     // Fetch company data from a source (e.g., API call, database)
     // and populate the companies list
   }
+
   String expandDayAcronyms(String hours) {
-  // You can expand this map as needed
-  const dayMap = {
-    'M': 'Monday',
-    'T': 'Tuesday',
-    'W': 'Wednesday',
-    'R': 'Thursday',
-    'F': 'Friday',
-    'S': 'Saturday',
-    'U': 'Sunday',
-  };
+    // You can expand this map as needed
+    const dayMap = {
+      'M': 'Monday',
+      'T': 'Tuesday',
+      'W': 'Wednesday',
+      'R': 'Thursday',
+      'F': 'Friday',
+      'S': 'Saturday',
+      'U': 'Sunday',
+    };
 
   // Replace each acronym with its full name
   String result = hours;
@@ -143,7 +144,7 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                 fontWeight: FontWeight.w600)),
       );
     }
-    
+
     return Scaffold(
       backgroundColor: AppColors.calPolyGreen,
       body: Padding(
@@ -154,77 +155,85 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
               padding: const EdgeInsets.only(bottom: 20.0),
               child: CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
             ),
-            Row(children: [
-      Image.asset('assets/icons/faculty_catalog.png', color: AppColors.welcomeLightYellow, width: 26, height: 28,),
-      const SizedBox(width: 6),
-      const Text(
-        "Faculty Directory",
-        style: TextStyle(
-          fontFamily: 'SansSerifProSemiBold', 
-          fontSize: 21,
-          color: AppColors.welcomeLightYellow,
-        ),
-      ),
-    ],),
+            Row(
+              children: [
+                Image.asset(
+                  'assets/icons/faculty_catalog.png',
+                  color: AppColors.welcomeLightYellow,
+                  width: 26,
+                  height: 28,
+                ),
+                const SizedBox(width: 6),
+                const Text(
+                  "Faculty Directory",
+                  style: TextStyle(
+                    fontFamily: AppFonts.sansProSemiBold,
+                    fontSize: 21,
+                    color: AppColors.welcomeLightYellow,
+                  ),
+                ),
+              ],
+            ),
             Padding(
-              padding: const EdgeInsets.only(left: 16.0, top: 12.0, right: 16.0),
+              padding:
+                  const EdgeInsets.only(left: 16.0, top: 12.0, right: 16.0),
               child: Row(
                 children: [
                   Expanded(
                     child: TextField(
-                        //controller: _searchController,
-                        onChanged: (text) {
-                          setState(() {
-                            _isTextEntered = text.isNotEmpty;
-                            // Clear the previously filtered companies
-                            filteredFaculty.clear();
-                            
-                            // Iterate through the original list of companies if text is entered
-                            if (_isTextEntered) {
-                              for (Faculty faculty in facultyList) {
-                                // Check if the company name starts with the entered text substring
-                                String name = faculty.fname + " " + faculty.lname;
-                                if (name
-                                    .toLowerCase()
-                                    .startsWith(text.toLowerCase())) {
-                                  // If it does, add the company to the filtered list
-                                  filteredFaculty.add(faculty);
-                                }
+                      //controller: _searchController,
+                      onChanged: (text) {
+                        setState(() {
+                          _isTextEntered = text.isNotEmpty;
+                          // Clear the previously filtered companies
+                          filteredFaculty.clear();
+
+                          // Iterate through the original list of companies if text is entered
+                          if (_isTextEntered) {
+                            for (Faculty faculty in facultyList) {
+                              // Check if the company name starts with the entered text substring
+                              String name = faculty.fname + " " + faculty.lname;
+                              if (name
+                                  .toLowerCase()
+                                  .startsWith(text.toLowerCase())) {
+                                // If it does, add the company to the filtered list
+                                filteredFaculty.add(faculty);
                               }
                             }
-                          });
-                        },
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.search, color: Colors.grey),
-                          // contentPadding: EdgeInsets.all(2.0),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.zero,
-                            borderSide: const BorderSide(
-                              color: Colors.black,
-                              width: 2.0,
-                            ),
+                          }
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.search, color: Colors.grey),
+                        // contentPadding: EdgeInsets.all(2.0),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: const BorderSide(
+                            color: Colors.black,
+                            width: 2.0,
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.zero,
-                            borderSide: BorderSide(
-                              color: Colors.black,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.zero,
-                            borderSide: BorderSide(
-                              color: Colors.black,
-                            ),
-                          ),
-                          hintText: 'Faculty Directory',
-                          // border: OutlineInputBorder(
-                          //   borderRadius: BorderRadius.circular(10.0),
-                          // ),
-                          fillColor: Colors.white,
-                          filled: true,
-                          // Add Container with colored background for the button
                         ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(
+                            color: Colors.black,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(
+                            color: Colors.black,
+                          ),
+                        ),
+                        hintText: 'Faculty Directory',
+                        // border: OutlineInputBorder(
+                        //   borderRadius: BorderRadius.circular(10.0),
+                        // ),
+                        fillColor: Colors.white,
+                        filled: true,
+                        // Add Container with colored background for the button
                       ),
+                    ),
                   )
                 ],
               ),
@@ -245,19 +254,19 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
               ),
             ),
             Expanded(
-  child: Builder(
-    builder: (context) {
-      final List<Faculty> displayList =
-          _isTextEntered ? filteredFaculty : facultyList;
+              child: Builder(
+                builder: (context) {
+                  final List<Faculty> displayList =
+                      _isTextEntered ? filteredFaculty : facultyList;
 
-      // Split into admin and faculty
-      final List<Faculty> adminList =
-          displayList.where((f) => f.administration).toList();
-      final List<Faculty> facultyOnlyList =
-          displayList.where((f) => !f.administration).toList();
+                  // Split into admin and faculty
+                  final List<Faculty> adminList =
+                      displayList.where((f) => f.administration).toList();
+                  final List<Faculty> facultyOnlyList =
+                      displayList.where((f) => !f.administration).toList();
 
-      // Combine with section headers
-      final List<Widget> sectionedList = [];
+                  // Combine with section headers
+                  final List<Widget> sectionedList = [];
 
       // Administrative staff section
       (!(buttonStates['Faculty']!) || (buttonStates['Admin']!&&buttonStates['Faculty']!)) ? (sectionedList.add(
@@ -696,11 +705,11 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
         const SizedBox(height: 10);
       }
 
-      return ListView(
-        children: sectionedList,
-      );
-    },
-  ),
+                  return ListView(
+                    children: sectionedList,
+                  );
+                },
+              ),
             ),
           ],
         ),

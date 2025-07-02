@@ -121,3 +121,6 @@ java_pid*
 
 package.json
 package-lock.json
+
+# Ignore sensitive Firebase API keys
+lib/firebase_keys.dart
