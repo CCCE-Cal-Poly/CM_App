@@ -1,5 +1,5 @@
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:ccce_application/common/theme/colors.dart';
+import 'package:ccce_application/common/theme/theme.dart';
 import 'package:flutter/material.dart';
 
 class Club implements Comparable<Club> {
@@ -9,7 +9,8 @@ class Club implements Comparable<Club> {
   dynamic acronym;
   dynamic instagram;
   String? logo;
-  Club(this.name, this.aboutMsg, this.email, this.acronym, this.instagram, this.logo);
+  Club(this.name, this.aboutMsg, this.email, this.acronym, this.instagram,
+      this.logo);
 
   @override
   int compareTo(Club other) {
@@ -21,18 +22,18 @@ class ClubItem extends StatelessWidget {
   /// Returns a widget that displays the club logo image.
   /// If the URL is null or empty, it returns a broken image icon.
   Widget clubLogoImage(String? url, double width, double height) {
-  if (url == null || url.isEmpty) {
-    return Icon(Icons.broken_image, size: height, color: Colors.grey);
+    if (url == null || url.isEmpty) {
+      return Icon(Icons.broken_image, size: height, color: Colors.grey);
+    }
+    return ClipOval(
+      child: Image.network(
+        url,
+        width: width,
+        height: height,
+        fit: BoxFit.cover, // Ensures the image fills the circle
+      ),
+    );
   }
-  return ClipOval(
-    child: Image.network(
-      url,
-      width: width,
-      height: height,
-      fit: BoxFit.cover, // Ensures the image fills the circle
-    ),
-  );
-}
 
   final Club club;
 
@@ -61,15 +62,21 @@ class ClubItem extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: screenHeight * .005, horizontal: screenWidth * 0.01),
+          padding: EdgeInsets.symmetric(
+              vertical: screenHeight * .005, horizontal: screenWidth * 0.01),
           child: Column(
             children: [
               ListTile(
-                leading: clubLogoImage(club.logo, screenWidth * .1, screenWidth * .1),
-                title: AutoSizeText(club.name + " (" + club.acronym + ")",
-                    style: const TextStyle(color: Colors.black, fontSize: 13.0, fontWeight: FontWeight.w600),
-                    minFontSize: 11,
-                    maxLines: 2,
+                leading: clubLogoImage(
+                    club.logo, screenWidth * .1, screenWidth * .1),
+                title: AutoSizeText(
+                  club.name + " (" + club.acronym + ")",
+                  style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 13.0,
+                      fontWeight: FontWeight.w600),
+                  minFontSize: 11,
+                  maxLines: 2,
                 ),
               ),
             ],
@@ -89,18 +96,18 @@ class ClubPopUp extends StatelessWidget {
       : super(key: key);
 
   Widget clubLogoImage(String? url, double width, double height) {
-  if (url == null || url.isEmpty) {
-    return Icon(Icons.broken_image, size: height, color: Colors.grey);
+    if (url == null || url.isEmpty) {
+      return Icon(Icons.broken_image, size: height, color: Colors.grey);
+    }
+    return ClipOval(
+      child: Image.network(
+        url,
+        width: width,
+        height: height,
+        fit: BoxFit.cover, // Ensures the image fills the circle
+      ),
+    );
   }
-  return ClipOval(
-    child: Image.network(
-      url,
-      width: width,
-      height: height,
-      fit: BoxFit.cover, // Ensures the image fills the circle
-    ),
-  );
-}
 
   @override
   Widget build(BuildContext context) {
@@ -119,16 +126,16 @@ class ClubPopUp extends StatelessWidget {
                   child: Container(
                     // Container for popup content
                     decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.zero
-                    ),
+                        color: Colors.white, borderRadius: BorderRadius.zero),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         // Close button with arrow
                         Padding(
-                          padding: EdgeInsets.only(left: screenWidth * .02, top: screenHeight * .012),
+                          padding: EdgeInsets.only(
+                              left: screenWidth * .02,
+                              top: screenHeight * .012),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -151,7 +158,8 @@ class ClubPopUp extends StatelessWidget {
                               SizedBox(
                                 width: screenHeight * 0.14,
                                 height: screenHeight * 0.14,
-                                child:  clubLogoImage(club.logo, screenHeight * 0.1, screenHeight * 0.1),
+                                child: clubLogoImage(club.logo,
+                                    screenHeight * 0.1, screenHeight * 0.1),
                               ),
                             ],
                           ),
@@ -235,32 +243,32 @@ class ClubPopUp extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.mail,
+                            size: 24, // Adjust the size of the icon as needed
+                            color: Colors.white, // Add your desired icon color
+                          ),
+                          const SizedBox(
+                            width: 10,
+                          ), // Add space between icon and text
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(
-                                Icons.mail,
-                                size: 24, // Adjust the size of the icon as needed
-                                color: Colors.white, // Add your desired icon color
-                              ),
-                              const SizedBox(
-                                width: 10,
-                              ), // Add space between icon and text
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    club.email,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18.0,
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                club.email,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18.0,
+                                ),
                               ),
                             ],
                           ),
-                        Row(
+                        ],
+                      ),
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Icon(

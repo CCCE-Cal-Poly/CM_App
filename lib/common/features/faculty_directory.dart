@@ -367,7 +367,7 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                                                         const Expanded(
                                                           child: Padding(
                                                               padding:
-                                                                  EdgeInsetsGeometry
+                                                                  EdgeInsets
                                                                       .all(
                                                                           0.5)),
                                                         ),
@@ -694,7 +694,7 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                                                         const Expanded(
                                                           child: Padding(
                                                               padding:
-                                                                  EdgeInsetsGeometry
+                                                                  EdgeInsets
                                                                       .all(
                                                                           0.5)),
                                                         ),

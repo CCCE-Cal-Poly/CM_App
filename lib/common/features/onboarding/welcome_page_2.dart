@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ccce_application/common/theme/colors.dart';
+import 'package:ccce_application/common/theme/theme.dart';
 import 'dart:math';
 
 class WelcomePage2 extends StatelessWidget {
