@@ -6,22 +6,24 @@ import 'package:ccce_application/main.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+enum EventType { infoSession, club }
+
 class CalEvent {
   String id;
+  EventType eventType;
   String eventName;
   DateTime startTime;
   DateTime endTime;
   String eventLocation;
-  String? eventType;
   InfoSessionData? isd;
 
   CalEvent(
       {required this.id,
+      required this.eventType,
       required this.eventName,
       required this.startTime,
       required this.endTime,
       required this.eventLocation,
-      this.eventType,
       this.isd});
 
   @override
@@ -39,27 +41,43 @@ class CalEvent {
   int get hashCode => id.hashCode;
 
   factory CalEvent.fromSnapshot(DocumentSnapshot doc) {
-    String eventName = doc.get("company");
-    String openPositions =
-        doc.get("isHiring") == "No" ? "" : doc.get("position");
-    DateTime startTime = doc.get("startTime").toDate();
-
-    // Extract data from the snapshot
-    return CalEvent(
-        id: doc.id,
-        eventName: eventName,
-        startTime: startTime,
-        endTime: startTime.add(const Duration(hours: 1)),
-        eventLocation: doc.get("mainLocation"),
-        eventType: doc.get("eventType"),
-        isd: InfoSessionData(
+    EventType eventType = EventType.values.firstWhere(
+      (e) => e.toString().split('.').last == doc.get("eventType"),
+      orElse: () => EventType.infoSession,
+    );
+    InfoSessionData? isd = null;
+    String eventName = "";
+    switch (eventType) {
+      case EventType.infoSession:
+        eventName = doc.get("company") + " - Info Session";
+        String openPositions =
+            doc.get("isHiring") == "No" ? "" : doc.get("position");
+        isd = InfoSessionData(
             doc.get("website"),
             doc.get("interviewLocation"),
             doc.get("contactName"),
             doc.get("contactEmail"),
             openPositions,
             doc.get("jobLocations"),
-            doc.get("interviewLink")));
+            doc.get("interviewLink"));
+        break;
+      case EventType.club:
+        eventName = '${doc.get("hostAcronym")} - ${doc.get("title")}';
+
+        break;
+    }
+
+    DateTime startTime = doc.get("startTime").toDate();
+
+    // Extract data from the snapshot
+    return CalEvent(
+        id: doc.id,
+        eventType: eventType,
+        eventName: eventName,
+        startTime: startTime,
+        endTime: startTime.add(const Duration(hours: 1)),
+        eventLocation: doc.get("mainLocation"),
+        isd: isd);
   }
 }
 
