@@ -1,76 +1,41 @@
+import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
-import 'package:flutter/material.dart';
-import 'package:ccce_application/common/collections/club.dart';
+import 'package:ccce_application/main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-class ClubDirectory extends StatefulWidget {
+class InfoSessionsScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
-  const ClubDirectory({super.key, required this.scaffoldKey});
+  const InfoSessionsScreen({super.key, required this.scaffoldKey});
 
-  final String title = "Club Directory";
   @override
-  State<ClubDirectory> createState() => _ClubDirectoryState();
+  State<InfoSessionsScreen> createState() => _InfoSessionsState();
 }
 
-class _ClubDirectoryState extends State<ClubDirectory> {
-  Future<List<Club>> fetchDataFromFirestore() async {
-    List<Club> clubs = [];
+class _InfoSessionsState extends State<InfoSessionsScreen> {
 
-    try {
-      // Get a reference to the Firestore database
-      FirebaseFirestore firestore = FirebaseFirestore.instance;
-
-      // Query the "companies" collection
-      QuerySnapshot querySnapshot = await firestore.collection('clubs').get();
-
-      // Iterate through the documents in the query snapshot
-      querySnapshot.docs.forEach((doc) {
-        // Convert each document to a Map and add it to the list
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        Map<String, String> clubData = {};
-        data.forEach((key, value) {
-          // Convert each value to String and add it to companyData
-          clubData[key] = value.toString();
-        });
-        Club newClub = Club(
-            clubData['Name'],
-            clubData['About'],
-            clubData['Email'],
-            clubData['Acronym'],
-            clubData['Instagram'],
-            clubData['Logo']);
-        clubs.add(newClub);
-      });
-    } catch (e) {
-      // Handle any errors that occur
-      print('Error fetching data: $e');
-    }
-
-    return clubs;
-  }
   bool _isTextEntered = false;
 
-  static List<Club> clubs = [];
-  static List<Club> filteredClubs = [];
+  List<CalEvent> infoSessions = [];
+  List<CalEvent> filteredInfoSessions = [];
+
   @override
   void initState() {
     super.initState();
-
-    fetchDataFromFirestore().then((clubData) {
-      setState(() {
-        clubs = clubData;
-        clubs.sort();
-      });
-    });
-
-    // Fetch company data from a source (e.g., API call, database)
-    // and populate the companies list
-  }
+    }
 
   @override
   Widget build(BuildContext context) {
-    double screenHeight=MediaQuery.of(context).size.height;
+    var screenHeight = MediaQuery.of(context).size.height;
+
+    return Consumer<EventProvider>(
+    builder: (context, eventProvider, child) {
+      // Update infoSessions whenever the provider changes
+      final infoSessions = eventProvider.isLoaded 
+          ? eventProvider.getEventsByType('infoSession')
+          : <CalEvent>[];
 
     return Scaffold(
       backgroundColor: AppColors.calPolyGreen,
@@ -85,10 +50,10 @@ class _ClubDirectoryState extends State<ClubDirectory> {
             const Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(Icons.hub, color: AppColors.welcomeLightYellow, size: 20),
+                Icon(Icons.info, color: AppColors.welcomeLightYellow, size: 20),
                 SizedBox(width: 6),
                 Text(
-                  "Club Directory",
+                  "Info Sessions",
                   style: TextStyle(
                     fontFamily: 'SansSerifProSemiBold',
                     fontSize: 21,
@@ -108,17 +73,17 @@ class _ClubDirectoryState extends State<ClubDirectory> {
                         setState(() {
                           _isTextEntered = text.isNotEmpty;
                           // Clear the previously filtered companies
-                          filteredClubs.clear();
+                          filteredInfoSessions.clear();
 
                           // Iterate through the original list of companies if text is entered
                           if (_isTextEntered) {
-                            for (Club club in clubs) {
+                            for (CalEvent infoSession in infoSessions) {
                               // Check if the company name starts with the entered text substring
-                              if (club.name
+                              if (infoSession.eventName
                                   .toLowerCase()
                                   .startsWith(text.toLowerCase())) {
                                 // If it does, add the company to the filtered list
-                                filteredClubs.add(club);
+                                filteredInfoSessions.add(infoSession);
                               }
                             }
                           }
@@ -146,7 +111,7 @@ class _ClubDirectoryState extends State<ClubDirectory> {
                             color: Colors.black,
                           ),
                         ),
-                        hintText: 'Club Directory',
+                        hintText: 'Info Session Directory',
                         // border: OutlineInputBorder(
                         //   borderRadius: BorderRadius.circular(10.0),
                         // ),
@@ -162,25 +127,25 @@ class _ClubDirectoryState extends State<ClubDirectory> {
             Expanded(
               child: ListView.builder(
                 scrollDirection: Axis.vertical,
-                itemCount: _isTextEntered ? filteredClubs.length : clubs.length,
+                itemCount: _isTextEntered ? filteredInfoSessions.length : infoSessions.length,
                 itemBuilder: (context, index) {
-                  final List<Club> displayList =
-                      _isTextEntered ? filteredClubs : clubs;
+                  final List<CalEvent> displayList =
+                      _isTextEntered ? filteredInfoSessions : infoSessions;
                   return GestureDetector(
                     onTap: () {
-                      Club clubData = displayList[index];
+                      CalEvent infoSessionData = displayList[index];
                       showDialog(
                         context: context,
                         builder: (BuildContext context) {
-                          return ClubPopUp(
-                            club: clubData,
+                          return InfoSessionPopUp(
+                            infoSession: infoSessionData,
                             onClose: () =>
                                 Navigator.pop(context), // Close popup on tap
                           );
                         },
                       );
                     },
-                    child: ClubItem(
+                    child: InfoSessionItem(
                         displayList[index]), // Existing CompanyItem widget
                   );
                 },
@@ -191,4 +156,6 @@ class _ClubDirectoryState extends State<ClubDirectory> {
       ),
     );
   }
+    );
+}
 }

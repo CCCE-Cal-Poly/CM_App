@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:flutter/material.dart';
 
@@ -72,243 +73,212 @@ class FacultyItem extends StatelessWidget {
 class FacultyPopUp extends StatelessWidget {
   final Faculty faculty;
 
-  static const backGroundColor = Color.fromRGBO(255, 253, 237, 1);
-  static const calPolyGreen = Color(0xFF003831);
-  static const calPolyGold = Color.fromRGBO(206, 204, 160, 1);
-
   final VoidCallback onClose;
 
   const FacultyPopUp({required this.faculty, required this.onClose, Key? key})
       : super(key: key);
 
+  String expandDayAcronyms(String hours) {
+    // You can expand this map as needed
+    const dayMap = {
+      'M': 'Monday',
+      'T': 'Tuesday',
+      'W': 'Wednesday',
+      'R': 'Thursday',
+      'F': 'Friday',
+      'S': 'Saturday',
+      'U': 'Sunday',
+    };
+
+  // Replace each acronym with its full name
+  String result = hours;
+  dayMap.forEach((abbr, full) {
+    // Use RegExp to match only standalone day letters (not inside words)
+    result = result.replaceAllMapped(
+      RegExp(r'\b' + abbr + r'\b'),
+      (match) => full,
+    );
+  });
+  return result;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: backGroundColor,
-      body: Column(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Stack(
-              // Use Stack within Column for content positioning
-              children: [
-                // Transparent background to allow tapping outside to close (optional)
-                // GestureDetector(
-                //   onTap: onClose,
-                //   child: Container(
-                //     color: Colors.transparent,
-                //     width: double.infinity,
-                //     height: double.infinity,
-                //   ),
-                // ),
-                // Center the popup content
-                Center(
-                  child: Container(
-                    // Container for popup content
-                    decoration: const BoxDecoration(
-                      color: calPolyGold,
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(25.0),
-                        bottomRight: Radius.circular(25.0),
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Close button with arrow
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.arrow_back,
-                                  color: Colors.white,
-                                ),
-                                onPressed: onClose,
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Circle near the top of the page in the middle
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 100,
-                                height: 100,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Color.fromARGB(255, 252, 253,
-                                      240), // Change color as needed
-                                ),
-                                child: const Center(
-                                  child: Icon(Icons.construction),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Your existing club details here
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            children: [
-                              Text(
-                                faculty.fname + " " + faculty.lname,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize:
-                                      24.0, // Adjust the font size as needed
-                                  fontWeight:
-                                      FontWeight.bold, // Make the text bold
-                                ),
-                              ),
-                              // ... additional content
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Bottom section with text
-          Expanded(
-            flex: 3,
-            child: Container(
-              color: backGroundColor,
-              padding: const EdgeInsets.all(16.0),
-              child: ListView(
-                children: [
-                  // First Section
-                  Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.mail,
-                            size: 24, // Adjust the size of the icon as needed
-                            color: Colors.black, // Add your desired icon color
-                          ),
-                          const SizedBox(
-                            width: 10,
-                          ), // Add space between icon and text
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                faculty.email,
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 18.0,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      // Additional Text Row
-                      const SizedBox(
-                        height: 5,
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.camera_alt,
-                            size: 24, // Adjust the size of the icon as needed
-                            color: Colors.black, // Add your desired icon color
-                          ),
-                          const SizedBox(
-                            width: 10,
-                          ), // Add space between icon and text
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                faculty.administration ? "true" : "false",
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 18.0,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      // Divider between the first section and the rest
-                      //const Divider(),
-                      const SizedBox(
-                        height: 10,
-                      )
-                    ],
-                  ),
-                  // Second Section (Upcoming Events)
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Upcoming Events",
-                        style: TextStyle(
-                          color: Color.fromARGB(255, 102, 102, 102),
-                          fontSize: 22.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 5,
-                      ), // Add space between text elements
-                      Text(
-                        "",
-                        style: const TextStyle(
-                          color: Color.fromARGB(255, 35, 35, 35),
-                          fontSize: 16.0,
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Divider between the second and third sections
-                  const Divider(),
-                  // Third Section (About)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "About",
-                        style: TextStyle(
-                          color: Color.fromARGB(255, 102, 102, 102),
-                          fontSize: 22.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 5,
-                      ), // Add space between text elements
-                      Text(
-                        faculty.fname + " " + faculty.lname,
-                        style: const TextStyle(
-                          color: Color.fromARGB(255, 35, 35, 35),
-                          fontSize: 16.0,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+    return Dialog(
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
+              backgroundColor: Colors.white,
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.8,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    height: 32,
+                                    child: IconButton(
+                                    icon: const Icon(Icons.arrow_back, size: 20),
+                                    color: Colors.black,
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                    ),
+                                  ),
+                                    Text(
+                                      '${faculty.lname}, ${faculty.fname}',
+                                      style: const TextStyle(
+                                          fontSize: 17, fontWeight: FontWeight.bold),
+                                    ),
+                                ],
+                                      ),
+                            ),
+                                    const Padding(padding: EdgeInsets.only(left: 8.0)),
+                                    const Expanded(
+                                      child: Padding(padding:EdgeInsetsGeometry.all(0.5)),
+                                    ),
+                                    const Padding(padding: EdgeInsets.only(right:8.0)),
+                              
+                                              ],),
+                                  Row(
+                                    children: [
+                                      const Padding(
+                                        padding: EdgeInsets.only(left: 48.0)),
+                                      Expanded(
+                                        child: AutoSizeText(faculty.title ?? '',
+                                                style: const TextStyle(
+                                                  fontSize: 12, color: AppColors.darkGoldText, fontWeight: FontWeight.w500),
+                                                minFontSize: 7,
+                                                maxLines: 2,
+                                                softWrap: true,
+                                                overflow:TextOverflow.visible,
+                                              ),
+                                      ),
+                                    ]
+                                      ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      const Padding(
+                                        padding: EdgeInsets.only(left: 48.0),
+                                        child: Text(
+                                          "Office: ",
+                                          style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black),
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.location_on,
+                                        color: AppColors.darkGoldText,
+                                        size: 16,
+                                      ),
+                                      Text(
+                                        ' ' + (faculty.office ?? 'N/A'),
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.darkGoldText),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                                    textBaseline: TextBaseline.alphabetic,
+                                    children: [
+                                      const Padding(
+                                        padding: EdgeInsets.only (left: 48.0),
+                                        child: Text(
+                                          "Hours: ",
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.black),
+                                        ),
+                                      ),
+                                      Text(
+                                        expandDayAcronyms((faculty.hours ?? 'N/A').replaceAll(';', '\n')),
+                                        style: const TextStyle(
+                                            fontSize: 11,
+                                            color: AppColors.darkGoldText),
+                                      ),
+                                    ],
+                                  ),
+                          ]
+                        ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [Row(
+                                  children: [
+                                    Container(
+                                      decoration:  const BoxDecoration(
+                                      color: AppColors.calPolyGreen,
+                                      shape: BoxShape.circle,
+                                      ),
+                                      height: 24,
+                                      width: 24,
+                                      alignment: Alignment.center,
+                                      child: IconButton(icon: const Icon(Icons.mail, size: 13, ), padding: EdgeInsets.zero, color: AppColors.lightGold, onPressed: () {}),
+                                    ),
+                            const Padding(
+                              padding: EdgeInsets.only(right: 5.0),
+                            ),
+                            AutoSizeText(
+                              faculty.email ?? '',
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppColors.darkGoldText),
+                              minFontSize: 9,
+                              maxLines: 1,
+                            ),
+                            const Padding(padding: EdgeInsets.only(right: 5.0)),
+                            ],
+                                ),
+                            Row(
+                              children: [
+                                Container(
+                                  decoration:  const BoxDecoration(
+                                  color: AppColors.calPolyGreen,
+                                  shape: BoxShape.circle,
+                                  ),
+                                  height: 24,
+                                  width: 24,
+                                  alignment: Alignment.center,
+                                  child: IconButton(icon: const Icon(Icons.phone, size: 13, ), padding: EdgeInsets.zero, color: AppColors.lightGold, onPressed: () {}),
+                                ),
+                            const Padding(
+                              padding: EdgeInsets.only(right: 5.0),
+                            ),
+                            AutoSizeText(
+                              faculty.phone ?? '',
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppColors.darkGoldText),
+                              minFontSize: 9,
+                              maxLines: 1,
+                            ),
+                              ],
+                            ),
+                            ]
+                          ),
+                        ),
+                  ],
+                ),
+                    
+              ),
+            );
   }
 }

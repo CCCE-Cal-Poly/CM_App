@@ -1,6 +1,8 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/theme/theme.dart';
+import 'package:ccce_application/main.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class Club implements Comparable<Club> {
   dynamic name;
@@ -107,7 +109,6 @@ class ClubPopUp extends StatefulWidget {
   );
 }
 class _ClubPopUpState extends State<ClubPopUp> {
-  bool isJoined = false;
 
   @override
   Widget build(BuildContext context) {
@@ -117,144 +118,139 @@ class _ClubPopUpState extends State<ClubPopUp> {
       backgroundColor: AppColors.calPolyGreen,
       body: ListView(
         children: [
-          SizedBox(
-            height: screenHeight * .45,
-            child: Stack(
-              // Use Stack within Column for content positioning
-              children: [
-                Center(
-                  child: Container(
-                    // Container for popup content
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.zero
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Close button with arrow
-                        Padding(
-                          padding: EdgeInsets.only(left: screenWidth * .02, top: screenHeight * .012),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              SizedBox(
-                                height: screenHeight * .03,
-                                child: IconButton(
-                                  icon: const Icon(
-                                    Icons.arrow_back,
-                                    color: Colors.black,
-                                  ),
-                                  onPressed: widget.onClose,
+          Stack(
+            // Use Stack within Column for content positioning
+            children: [
+              Center(
+                child: Container(
+                  // Container for popup content
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.zero
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Close button with arrow
+                      Padding(
+                        padding: EdgeInsets.only(left: screenWidth * .02, top: screenHeight * .012),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            SizedBox(
+                              height: screenHeight * .03,
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.arrow_back,
+                                  color: Colors.black,
                                 ),
+                                onPressed: widget.onClose,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        // Circle near the top of the page in the middle
-                        Padding(
-                          padding: EdgeInsets.all(screenWidth * 0.015),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: screenHeight * 0.14,
-                                height: screenHeight * 0.14,
-                                child:  clubLogoImage(widget.club.logo, screenHeight * 0.1, screenHeight * 0.1),
-                              ),
-                            ],
-                          ),
+                      ),
+                      // Circle near the top of the page in the middle
+                      Padding(
+                        padding: EdgeInsets.all(screenWidth * 0.015),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: screenHeight * 0.14,
+                              height: screenHeight * 0.14,
+                              child:  clubLogoImage(widget.club.logo, screenHeight * 0.1, screenHeight * 0.1),
+                            ),
+                          ],
                         ),
-                        // Your existing club details here
-                        Padding(
-                          padding: EdgeInsets.all(screenHeight * 0.015),
-                          child: Column(
-                            children: [
-                              SizedBox(
-                                width: screenWidth * 0.7,
-                                child: AutoSizeText(
-                                  widget.club.name,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize:
-                                        19, // Adjust the font size as needed
-                                    fontWeight:
-                                        FontWeight.bold, // Make the text bold
-                                  ),
-                                  minFontSize: 16,
-                                  maxLines: 2,
-                                ),
-                              ),
-                              Text(
-                                "(" + widget.club.acronym + ")",
+                      ),
+                      // Your existing club details here
+                      Padding(
+                        padding: EdgeInsets.all(screenHeight * 0.015),
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              width: screenWidth * 0.7,
+                              child: AutoSizeText(
+                                widget.club.name,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontSize:
-                                      15.0, // Adjust the font size as needed
+                                      19, // Adjust the font size as needed
+                                  fontWeight:
+                                      FontWeight.bold, // Make the text bold
                                 ),
+                                minFontSize: 16,
+                                maxLines: 2,
                               ),
-                              SizedBox(height: screenHeight * .0015),
-                              Padding(
-                                padding: EdgeInsets.only(top: screenHeight * 0.015),
-                                child: ElevatedButton(
-                                  onPressed: isJoined
-                                      ? () {
-                                          setState(() {
-                                            isJoined = false;
-                                          });
-                                        }
-                                      : () {
-                                          setState(() {
-                                            isJoined = true;
-                                          });
-                                        },
-                                  style: ElevatedButton.styleFrom(
-                                    fixedSize: Size(screenWidth * 0.5, screenHeight * 0.05),
-                                    backgroundColor: isJoined
-                                      ?Colors.grey
-                                      : AppColors.calPolyGreen,
-                                    shape: const RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.zero, // Sharp corners
-                                    ),
-                                    padding: EdgeInsets.symmetric(horizontal: screenWidth*.03, vertical: screenHeight * .008),
+                            ),
+                            Text(
+                              "(" + widget.club.acronym + ")",
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize:
+                                    15.0, // Adjust the font size as needed
+                              ),
+                            ),
+                            SizedBox(height: screenHeight * .0015),
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: screenHeight * 0.015),
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    if (context.read<AppState>().isJoined(widget.club)) {
+                                    context.read<AppState>().removeJoinedClub(widget.club);
+                                    } else {
+                                    context.read<AppState>().addJoinedClub(widget.club);
+                                    }
+                                  });
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  fixedSize: Size(screenWidth * 0.5, screenHeight * 0.05),
+                                  backgroundColor: context.read<AppState>().isJoined(widget.club)
+                                    ?Colors.grey
+                                    : AppColors.calPolyGreen,
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.zero, // Sharp corners
                                   ),
-                                  child: isJoined
-                                      ? const Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(Icons.check, color: Colors.white),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              'JOINED',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        )
-                                      : const Text(
-                                          'JOIN CLUB',
-                                          style: TextStyle(
-                                            color: AppColors.welcomeLightYellow,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
+                                  padding: EdgeInsets.symmetric(horizontal: screenWidth*.03, vertical: screenHeight * .008),
                                 ),
+                                child: context.read<AppState>().isJoined(widget.club)
+                                    ? const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.check, color: Colors.black),
+                                          SizedBox(width: 6),
+                                          Text(
+                                            'JOINED',
+                                            style: TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : const Text(
+                                        'JOIN CLUB',
+                                        style: TextStyle(
+                                          color: AppColors.welcomeLightYellow,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                               ),
-                              // ... additional content
-                            ],
-                          ),
+                            ),
+                            // ... additional content
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
           // Bottom section with text
           Container(
@@ -304,18 +300,12 @@ class _ClubPopUpState extends State<ClubPopUp> {
                             const SizedBox(
                               width: 10,
                             ), // Add space between icon and text
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  widget.club.email ?? 'No Email',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18.0,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              widget.club.email ?? 'No Email',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18.0,
+                              ),
                             ),
                           ],
                         ),

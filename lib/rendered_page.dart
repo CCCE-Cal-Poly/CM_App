@@ -1,8 +1,10 @@
+import 'package:ccce_application/common/features/job_board.dart';
 import 'package:flutter/material.dart';
 // Import your feature files
 import 'package:ccce_application/common/features/faculty_directory.dart';
 import 'package:ccce_application/common/features/profile_screen.dart';
 import 'package:ccce_application/common/features/member_directory.dart';
+import 'package:ccce_application/common/features/info_sessions_screen.dart';
 import 'package:ccce_application/common/features/club_directory.dart';
 import 'package:ccce_application/common/features/home_screen.dart';
 import 'package:ccce_application/common/widgets/debug_outline.dart';
@@ -29,10 +31,11 @@ class _MyRenderedPageState extends State<RenderedPage> {
     _pageList = <Widget>[
       // Initialize _pageList here
       HomeScreen(scaffoldKey: _scaffoldKey),
-      const MemberDirectory(),
+      MemberDirectory(scaffoldKey: _scaffoldKey),
       ClubDirectory(scaffoldKey: _scaffoldKey),
       FacultyDirectory(scaffoldKey: _scaffoldKey),
-      Container(),
+      InfoSessionsScreen(scaffoldKey: _scaffoldKey),
+      JobBoard(scaffoldKey: _scaffoldKey),
       ProfileScreen(scaffoldKey: _scaffoldKey),
     ];
   }
@@ -120,8 +123,9 @@ class _MyRenderedPageState extends State<RenderedPage> {
                   createListItem("Member Directory", 1),
                   createListItem("Club Directory", 2),
                   createListItem("Faculty Directory", 3),
-                  createListItem("Resources", 4),
-                  createListItem("Profile", 5),
+                  createListItem("Info Sessions", 4),
+                  createListItem("Job Board", 5),
+                  createListItem("Profile", 6),
                 ],
               ),
             ),

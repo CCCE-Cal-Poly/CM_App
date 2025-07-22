@@ -6,59 +6,17 @@ import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/faculty.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class FacultyDirectory extends StatefulWidget {
+class JobBoard extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
-  const FacultyDirectory({super.key, required this.scaffoldKey});
+  const JobBoard({super.key, required this.scaffoldKey});
 
   final String title = "Directory";
   @override
-  State<FacultyDirectory> createState() => _FacultyDirectoryState();
+  State<JobBoard> createState() => _JobBoardState();
 }
 
-class _FacultyDirectoryState extends State<FacultyDirectory> {
-  Future<List<Faculty>> fetchDataFromFirestore() async {
-    List<Faculty> facultyList = [];
-
-    try {
-      // Get a reference to the Firestore database
-      FirebaseFirestore firestore = FirebaseFirestore.instance;
-
-      // Query the "companies" collection
-      QuerySnapshot querySnapshot = await firestore.collection('faculty').get();
-
-      // Iterate through the documents in the query snapshot
-      querySnapshot.docs.forEach((doc) {
-        // Convert each document to a Map and add it to the list
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        Map<String, String> facultyData = {};
-        data.forEach((key, value) {
-          // Convert each value to String and add it to companyData
-          facultyData[key] = value.toString();
-        });
-        bool administration = false;
-        if (facultyData['administration'] != null) {
-          administration =
-              facultyData['administration']!.toLowerCase().contains("true");
-        }
-        Faculty newFaculty = Faculty(
-            facultyData['first name'],
-            facultyData['last name'],
-            facultyData['title'],
-            facultyData['email'],
-            facultyData['phone'],
-            facultyData['hours'],
-            facultyData['office'],
-            administration,
-            facultyData['emeritus'] == "true" ? true : false);
-        facultyList.add(newFaculty);
-      });
-    } catch (e) {
-      // Handle any errors that occur
-      print('Error fetching data: $e');
-    }
-
-    return facultyList;
-  }
+class _JobBoardState extends State<JobBoard> {
+  
 
   final TextEditingController _searchController = TextEditingController();
   bool _isTextEntered = false;
@@ -82,9 +40,9 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
 
 
   Map<String, bool> buttonStates = {
-  'A-Z': true,
-  'Admin': false,
-  'Faculty': false,
+  'Internship': true,
+  'Full Time': false,
+  'Part Time': false,
   };
 
   @override
@@ -105,11 +63,11 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
           });
         },
         style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.zero, // Rounded corners
             ),
-            textStyle: const TextStyle(fontSize: 14),
+            textStyle: const TextStyle(fontSize: 12),
             side: const BorderSide(
                 color: Colors.black, width: 1), // Border color and width
             fixedSize: const Size(60, 30), // Set the button size
@@ -132,17 +90,13 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
               padding: const EdgeInsets.only(bottom: 16.0),
               child: CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
             ),
-            Row(
+            const Row(
               children: [
-                Image.asset(
-                  'assets/icons/faculty_catalog.png',
-                  color: AppColors.welcomeLightYellow,
-                  width: 26,
-                  height: 28,
+                Icon(Icons.share, color: AppColors.welcomeLightYellow
                 ),
-                const SizedBox(width: 6),
-                const Text(
-                  "Faculty Directory",
+                SizedBox(width: 6),
+                Text(
+                  "Job Board",
                   style: TextStyle(
                     fontFamily: AppFonts.sansProSemiBold,
                     fontSize: 21,
@@ -185,7 +139,7 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                         // contentPadding: EdgeInsets.all(2.0),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.zero,
-                          borderSide: const BorderSide(
+                          borderSide: BorderSide(
                             color: Colors.black,
                             width: 2.0,
                           ),
@@ -202,7 +156,7 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                             color: Colors.black,
                           ),
                         ),
-                        hintText: 'Faculty Directory',
+                        hintText: 'Job Board',
                         // border: OutlineInputBorder(
                         //   borderRadius: BorderRadius.circular(10.0),
                         // ),
@@ -221,11 +175,11 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    createButtonSorter('A-Z', sortAlphabetically),
+                    createButtonSorter('Internship', sortAlphabetically),
                     const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
-                    createButtonSorter('Admin', () => {}),
+                    createButtonSorter('Full Time', () => {}),
                     const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
-                    createButtonSorter('Faculty', () => {}),
+                    createButtonSorter('Part Time', () => {}),
                   ],
                 ),
               ),
@@ -245,12 +199,12 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                   // Combine with section headers
                   final List<Widget> sectionedList = [];
 
-      // Administrative staff section
-      (!(buttonStates['Faculty']!) || (buttonStates['Admin']!&&buttonStates['Faculty']!)) ? (sectionedList.add(
+      // Full Time section
+      (!(buttonStates['Part Time']!) || (buttonStates['Part Time']!&&buttonStates['Full Time']!)) ? (sectionedList.add(
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
           child: Text(
-            "Administrative staff",
+            "Full Time",
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w400,
@@ -259,7 +213,7 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
           ),
         ),
       )) : null;
-      if (!(buttonStates['Faculty']!) || (buttonStates['Admin']!&&buttonStates['Faculty']!)) {
+      if (!(buttonStates['Part Time']!) || (buttonStates['Part Time']!&&buttonStates['Full Time']!)) {
         if (adminList.isEmpty) {
           sectionedList.add(
             const Padding(
@@ -291,13 +245,13 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
         const SizedBox(height: 10);
       }
 
-      // Faculty section
+      // Part Time section
 
-      (!(buttonStates['Admin']!) || (buttonStates['Admin']!&&buttonStates['Faculty']!)) ? (sectionedList.add(
+      (!(buttonStates['Full Time']!) || (buttonStates['Part Time']!&&buttonStates['Full Time']!)) ? (sectionedList.add(
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
           child: Text(
-            "Faculty",
+            "Part Time",
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w400,
@@ -306,7 +260,7 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
           ),
         ),
       )) : null;
-      if (!(buttonStates['Admin']!) || (buttonStates['Admin']! && buttonStates['Faculty']!)){
+      if (!(buttonStates['Full Time']!) || (buttonStates['Part Time']! && buttonStates['Full Time']!)){
         if (facultyOnlyList.isEmpty) {
         sectionedList.add(
           const Padding(
@@ -348,5 +302,10 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
         ),
       ),
     );
+  }
+  
+  Future<List<Faculty>> fetchDataFromFirestore() async {
+    List<Faculty> facultyList = [];
+    return facultyList;
   }
 }
