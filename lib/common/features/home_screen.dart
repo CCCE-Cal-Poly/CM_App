@@ -2,8 +2,10 @@ import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:ccce_application/common/widgets/debug_outline.dart';
+import 'package:ccce_application/main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'dart:collection';
 import 'package:intl/intl.dart';
@@ -15,23 +17,17 @@ class HomeScreen extends StatefulWidget {
   CalendarScreenState createState() => CalendarScreenState();
 }
 
-Future<HashMap<DateTime, List<CalEvent>>> fetchEvents() async {
-  final snapshot = await FirebaseFirestore.instance.collection('events').get();
-  HashMap<DateTime, List<CalEvent>> events = HashMap();
+HashMap<DateTime, List<CalEvent>> getEventsGroupedByDate(EventProvider provider) {
+  final HashMap<DateTime, List<CalEvent>> events = HashMap();
 
-  for (final doc in snapshot.docs) {
-    final event = CalEvent.fromSnapshot(doc);
-    var start = event.startTime;
-    final date = DateTime.utc(
-      start.year,
-      start.month,
-      start.day,
-    ); // Format date as YYYY-MM-DD
+  for (final event in provider.allEvents) {
+    final start = event.startTime;
+    final date = DateTime.utc(start.year, start.month, start.day);
 
     events.update(date, (value) {
       value.add(event);
       return value;
-    }, ifAbsent: () => <CalEvent>[event]);
+    }, ifAbsent: () => [event]);
   }
 
   return events;
@@ -106,11 +102,15 @@ class CalendarScreenState extends State<HomeScreen> {
     super.initState();
     _focusedMonth = _focusedDay.month;
     _focusedYear = _focusedDay.year;
-    fetchEvents().then((events) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+    final provider = Provider.of<EventProvider>(context, listen: false);
+    if (provider.isLoaded) {
+      final events = getEventsGroupedByDate(provider);
       setState(() {
         eventMap = events;
       });
-    });
+    }
+  });
   }
 
   void updateFocusedDates(day) {
@@ -133,8 +133,6 @@ class CalendarScreenState extends State<HomeScreen> {
     //print('${day} ${events}');
     return events;
   }
-
-  var events = fetchEvents();
 
   List<CalEvent> _getEventsForDay(DateTime day) {
     return eventMap.putIfAbsent(day, () => <CalEvent>[]);
@@ -637,7 +635,6 @@ class CalendarScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
     Widget calWidget = buildCalendar(context);
     Widget eventDisplayWidget = buildEventDisplay(context);
     Widget announcementDisplayWidget = buildAnnouncementDisplay(context);

@@ -1,4 +1,5 @@
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:ccce_application/common/features/my_info_sessions.dart';
 import 'package:ccce_application/common/features/sign_in.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
@@ -261,6 +262,31 @@ class ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               )
                             ],
+                          ),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.darkGoldText,
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => Scaffold(
+                                  appBar: AppBar(
+                                    title: const Text("My Info Sessions", style: TextStyle(fontFamily: AppFonts.sansProSemiBold, color: AppColors.welcomeLightYellow, fontWeight: FontWeight.w600)),
+                                    backgroundColor: AppColors.calPolyGreen,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  backgroundColor: AppColors.calPolyGreen,
+                                  body: buildInfoSessionDisplay(context),
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            "My Info Sessions",
+                            style: TextStyle(color: Colors.white),
                           ),
                         )
                       ],

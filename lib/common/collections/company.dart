@@ -1,4 +1,8 @@
+import 'package:auto_size_text/auto_size_text.dart';
+import 'package:ccce_application/common/theme/theme.dart';
+import 'package:ccce_application/main.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class Company implements Comparable<Company> {
   dynamic name;
@@ -8,8 +12,9 @@ class Company implements Comparable<Company> {
   dynamic recruiterName;
   dynamic recruiterTitle;
   dynamic recruiterEmail;
+  String? logo;
   Company(this.name, this.location, this.aboutMsg, this.msg, this.recruiterName,
-      this.recruiterTitle, this.recruiterEmail);
+      this.recruiterTitle, this.recruiterEmail, this.logo);
 
   @override
   int compareTo(Company other) {
@@ -22,31 +27,87 @@ class CompanyItem extends StatelessWidget {
 
   const CompanyItem(this.company, {Key? key}) : super(key: key);
 
+  Widget clubLogoImage(String? url, double width, double height) {
+  if (url == null || url.isEmpty) {
+    return Icon(Icons.broken_image, size: height, color: Colors.grey);
+  }
+  return ClipOval(
+    child: Container(
+      width: width,
+      height: height,
+      color:Colors.white,
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: Image.network(
+          url,
+          width: width,
+          height: height,
+        ),
+      ),
+      )
+    );
+    }
+
   @override
   Widget build(BuildContext context) {
+    double screenHeight = MediaQuery.of(context).size.height;
+    double screenWidth = MediaQuery.of(context).size.width;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Container(
         decoration: BoxDecoration(
-          color: Color(0xFF154733),
-          border: Border.all(color: Colors.grey),
-          borderRadius: BorderRadius.circular(8.0),
+          color: Colors.white,
+          border: Border.all(color: Colors.black),
+          borderRadius: BorderRadius.zero,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.3),
               spreadRadius: 1,
               blurRadius: 2,
-              offset: Offset(0, 2), // changes position of shadow
+              offset: const Offset(0, 2), // changes position of shadow
             ),
           ],
         ),
         child: Column(
           children: [
             ListTile(
-              leading: const Icon(Icons.person, color: Colors.white),
-              title: Text(company.name, style: TextStyle(color: Colors.white)),
+                leading: Container(
+                width: screenWidth * .11,
+                height: screenWidth * .11,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.transparent,
+                  border: Border.fromBorderSide(BorderSide(color: Colors.black, width: .5),)
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(1.0),
+                  child: ClipOval(
+                  child: clubLogoImage(company.logo, screenWidth * .09, screenWidth * .09),
+                  ),
+                ),
+                ),
+              title: AutoSizeText(company.name, style: const TextStyle(color: Colors.black,
+                fontSize: 16,
+                fontWeight: FontWeight.w600
+                ),
+                minFontSize: 12,
+                maxLines: 1,
+              ),
               subtitle:
-                  Text(company.location, style: TextStyle(color: Colors.white)),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.location_on, color: AppColors.lightGold, size: 16),
+                      const SizedBox(width: 2),
+                      AutoSizeText(company.location, style: const TextStyle(color: AppColors.lightGold,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600
+                      ),
+                    minFontSize: 10,
+                    maxLines: 1,
+                    ),
+                    ],
+                  ),
             ),
           ],
         ),
@@ -55,277 +116,339 @@ class CompanyItem extends StatelessWidget {
   }
 }
 
-class CompanyPopup extends StatelessWidget {
+class CompanyPopup extends StatefulWidget {
   final Company company;
-
-  static const backGroundColor = Color.fromRGBO(255, 253, 237, 1);
-  static const calPolyGreen = Color(0xFF003831);
-  static const calPolyGold = Color.fromRGBO(206, 204, 160, 1);
-
   final VoidCallback onClose;
 
   const CompanyPopup({required this.company, required this.onClose, Key? key})
       : super(key: key);
 
+  @override
+  State<CompanyPopup> createState() => _CompanyPopupState();
+}
+
+class _CompanyPopupState extends State<CompanyPopup> {
+
   String getRecName() {
-    return company.recruiterName;
+    return widget.company.recruiterName;
+  }
+
+  Widget clubLogoImage(String? url, double width, double height) {
+    if (url == null || url.isEmpty) {
+      return Icon(Icons.broken_image, size: height, color: Colors.grey);
+    }
+    return ClipOval(
+      child: Container(
+        width: width,
+        height: height,
+        color: Colors.white,
+        child: FittedBox(
+          fit: BoxFit.contain,
+          child: Image.network(
+            url,
+            width: width,
+            height: height,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    double screenHeight = MediaQuery.of(context).size.height;
+    double screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
-      backgroundColor: backGroundColor,
-      body: Column(
+      backgroundColor: AppColors.calPolyGreen,
+      body: ListView(
         children: [
-          Expanded(
-            flex: 2,
-            child: Stack(
-              // Use Stack within Column for content positioning
-              children: [
-                // Transparent background to allow tapping outside to close (optional)
-                // GestureDetector(
-                //   onTap: onClose,
-                //   child: Container(
-                //     color: calPolyGreen,
-                //     width: double.infinity,
-                //     height: double.infinity,
-                //   ),
-                // ),
-                // Center the popup content
-                Center(
-                  child: Container(
-                    // Container for popup content
-                    decoration: const BoxDecoration(
-                      color: calPolyGreen,
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(25.0),
-                        bottomRight: Radius.circular(25.0),
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Close button with arrow
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.arrow_back,
-                                      color: Colors.white),
-                                  onPressed: onClose,
-                                ),
-                              ]),
-                        ),
-                        // Circle near the top of the page in the middle
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 100,
-                                height: 100,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Color.fromARGB(255, 252, 253,
-                                      240), // Change color as needed
-                                ),
-                                child: const Center(
-                                  child: Icon(Icons.construction),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Your existing company details here
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            children: [
-                              Text(
-                                company.name,
-                                style: const TextStyle(
-                                  fontSize:
-                                      24.0, // Adjust the font size as needed
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white, // Make the text bold
-                                ),
-                              ),
-                              Text(
-                                company.location,
-                                style: const TextStyle(
-                                  fontSize: 18.0,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              GestureDetector(
-                                  child: Container(
-                                      width: 180,
-                                      height: 30,
-                                      decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(10.0),
-                                          color: backGroundColor),
-                                      child: const Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.star,
-                                              color: Colors.yellow),
-                                          SizedBox(width: 8),
-                                          Text("Add To Favorites")
-                                        ],
-                                      )))
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+          Stack(
+            children: [
+              Center(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.zero,
                   ),
-                ),
-              ],
-            ),
-          ),
-          // Bottom section with text
-          Expanded(
-            flex: 3,
-            child: Container(
-              color: backGroundColor,
-              padding: const EdgeInsets.all(16.0),
-              child: ListView(
-                children: [
-                  // First Section
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15.0),
-                          color: calPolyGreen),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Close button with arrow
+                      Padding(
+                        padding: EdgeInsets.all(screenHeight * 0.01),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back, color: Colors.black),
+                              onPressed: widget.onClose,
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Circle near the top of the page in the middle
+                      Padding(
+                        padding: EdgeInsets.all(screenHeight * 0.01),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: screenHeight * .1,
+                              height: screenHeight * .1,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                                border: Border.all(color: Colors.black, width: 1),
+                              ),
+                              child: Center(
+                                child: clubLogoImage(widget.company.logo, screenWidth * .1, screenWidth * .1),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Company details
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
                         child: Column(
                           children: [
-                            Row(
-                              children: [
-                                SizedBox(width: 40),
-                                const Center(
+                            Text(
+                              widget.company.name,
+                              style: const TextStyle(
+                                fontSize: 24.0,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                            Text(
+                              widget.company.location,
+                              style: const TextStyle(
+                                fontSize: 16.0,
+                                color: AppColors.darkGoldText,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                                child: SizedBox(
+                                width: screenWidth * .5,
+                                height: screenHeight * .05,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                  backgroundColor: context.read<AppState>().isFavorite(widget.company)
+                                    ? Colors.grey
+                                    : AppColors.calPolyGreen,
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.zero,
+                                  ),
+                                  elevation: 0,
+                                  ),
+                                  onPressed: () {
+                                  // Interact with provider to add/remove favorite
+                                  setState(() {
+                                    if (context.read<AppState>().isFavorite(widget.company)) {
+                                    context.read<AppState>().removeFavorite(widget.company);
+                                    } else {
+                                    context.read<AppState>().addFavorite(widget.company);
+                                    }
+                                  });
+                                  },
+                                  child: context.read<AppState>().isFavorite(widget.company)
+                                    ? const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                      Icon(Icons.check, color: Colors.black, size: 18),
+                                      SizedBox(width: 6),
+                                      AutoSizeText(
+                                        "ADDED",
+                                        style: TextStyle(
+                                        color: Colors.black,
+                                        fontFamily: AppFonts.sansProSemiBold,
+                                        fontSize: 16.0,
+                                        fontWeight: FontWeight.w500,
+                                        ),
+                                        minFontSize: 10,
+                                        maxLines: 1,
+                                      ),
+                                      ],
+                                    )
+                                    : const AutoSizeText(
+                                      "ADD TO FAVORITES",
+                                      style: TextStyle(
+                                      color: AppColors.welcomeLightYellow,
+                                      fontFamily: AppFonts.sansProSemiBold,
+                                      fontSize: 16.0,
+                                      fontWeight: FontWeight.w400,
+                                      ),
+                                      minFontSize: 10,
+                                      maxLines: 1,
+                                    ),
+                                ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // Bottom section with text
+          Container(
+            color: AppColors.calPolyGreen,
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0, top: 8, left: 8, right: 8),
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          borderRadius: BorderRadius.zero,
+                          color: Colors.white,
+                        ),
+                        child: Row(
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Center(
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12.0),
                                   child: CircleAvatar(
-                                    radius: 24,
-                                    backgroundColor: Colors.white,
+                                    radius: 20,
+                                    backgroundColor: Colors.grey,
                                     child: Icon(
                                       Icons.person,
-                                      size:
-                                          36, // Adjust the size of the icon as needed
-                                      color: calPolyGreen,
+                                      size: 32,
+                                      color: Colors.white,
                                     ),
                                   ),
                                 ),
-                                const SizedBox(
-                                  width: 20,
-                                ), // Add space between icon and text
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      company.recruiterName,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18.0,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                              ),
+                            ),
+                            Container(
+                              width: 2,
+                              height: 64,
+                              color: AppColors.calPolyGreen,
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  AutoSizeText(
+                                    widget.company.recruiterName,
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 18.0,
+                                      fontWeight: FontWeight.w600,
                                     ),
-                                    Text(
-                                      company.recruiterTitle,
-                                      style: const TextStyle(
-                                        color:
-                                            Color.fromARGB(255, 150, 150, 150),
-                                        fontSize: 14.0,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                    minFontSize: 14,
+                                    maxLines: 1,
+                                  ),
+                                  AutoSizeText(
+                                    widget.company.recruiterTitle,
+                                    style: const TextStyle(
+                                      color: AppColors.darkGoldText,
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.w400,
                                     ),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.mail,
-                                            color: Colors.white),
-                                        SizedBox(width: 10),
-                                        Text(
-                                          company.recruiterEmail,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 16.0,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                    minFontSize: 8,
+                                    maxLines: 1,
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                  ),
-                  // Divider between the first section and the rest
-                  const Divider(),
-                  // Second Section (About)
-                  Column(
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.mail,
+                            size: 24, // Adjust the size of the icon as needed
+                            color: Colors.white, // Add your desired icon color
+                          ),
+                          const SizedBox(
+                            width: 10,
+                          ), // Add space between icon and text
+                          Text(
+                            widget.company.recruiterEmail ?? 'No Email',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                // Divider between the first section and the rest
+                SizedBox(
+                  height: screenHeight * .03,
+                ),
+                // Second Section (About)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
                         "About",
                         style: TextStyle(
-                          color: Color.fromARGB(255, 102, 102, 102),
+                          color: AppColors.lightGold,
                           fontSize: 22.0,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w400,
+                          fontFamily: AppFonts.sansProSemiBold,
                         ),
                       ),
-                      const SizedBox(
-                        height: 5,
-                      ), // Add space between text elements
+                      const SizedBox(height: 5),
                       Text(
-                        company.aboutMsg,
+                        widget.company.aboutMsg,
                         style: const TextStyle(
-                          color: Color.fromARGB(255, 35, 35, 35),
+                          color: Colors.white,
                           fontSize: 16.0,
                         ),
                       ),
                     ],
                   ),
-                  // Divider between the second and third sections
-                  const Divider(),
-                  // Third Section (Message)
-                  Column(
+                ),
+                const Divider(
+                  color: Colors.white,
+                  thickness: 1.1,
+                ),
+                // Third Section (Message)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         "Message",
                         style: TextStyle(
-                          color: Color.fromARGB(255, 102, 102, 102),
+                          color: AppColors.lightGold,
                           fontSize: 22.0,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w400,
+                          fontFamily: AppFonts.sansProSemiBold,
                         ),
                       ),
-                      const SizedBox(
-                        height: 5,
-                      ), // Add space between text elements
+                      const SizedBox(height: 5),
                       Text(
-                        company.msg,
+                        widget.company.msg,
                         style: const TextStyle(
-                          color: Color.fromARGB(255, 35, 35, 35),
+                          color: Colors.white,
                           fontSize: 16.0,
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
