@@ -60,7 +60,9 @@ class FacultyItem extends StatelessWidget {
                 ),
                 Text(faculty.title,
                     style: const TextStyle(
-                        color: AppColors.darkGoldText, fontWeight: FontWeight.w400, fontSize: 11)),
+                        color: AppColors.darkGoldText,
+                        fontWeight: FontWeight.w400,
+                        fontSize: 11)),
               ],
             ),
           ),
