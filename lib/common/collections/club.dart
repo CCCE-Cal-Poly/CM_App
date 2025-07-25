@@ -1,6 +1,6 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/theme/theme.dart';
-import 'package:ccce_application/main.dart';
+import 'package:ccce_application/common/providers/app_state.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -11,7 +11,8 @@ class Club implements Comparable<Club> {
   dynamic acronym;
   dynamic instagram;
   String? logo;
-  Club(this.name, this.aboutMsg, this.email, this.acronym, this.instagram, this.logo);
+  Club(this.name, this.aboutMsg, this.email, this.acronym, this.instagram,
+      this.logo);
 
   @override
   int compareTo(Club other) {
@@ -23,18 +24,18 @@ class ClubItem extends StatelessWidget {
   /// Returns a widget that displays the club logo image.
   /// If the URL is null or empty, it returns a broken image icon.
   Widget clubLogoImage(String? url, double width, double height) {
-  if (url == null || url.isEmpty) {
-    return Icon(Icons.broken_image, size: height, color: Colors.grey);
+    if (url == null || url.isEmpty) {
+      return Icon(Icons.broken_image, size: height, color: Colors.grey);
+    }
+    return ClipOval(
+      child: Image.network(
+        url,
+        width: width,
+        height: height,
+        fit: BoxFit.cover, // Ensures the image fills the circle
+      ),
+    );
   }
-  return ClipOval(
-    child: Image.network(
-      url,
-      width: width,
-      height: height,
-      fit: BoxFit.cover, // Ensures the image fills the circle
-    ),
-  );
-}
 
   final Club club;
 
@@ -63,15 +64,21 @@ class ClubItem extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: screenHeight * .005, horizontal: screenWidth * 0.01),
+          padding: EdgeInsets.symmetric(
+              vertical: screenHeight * .005, horizontal: screenWidth * 0.01),
           child: Column(
             children: [
               ListTile(
-                leading: clubLogoImage(club.logo, screenWidth * .1, screenWidth * .1),
-                title: AutoSizeText(club.name + " (" + club.acronym + ")",
-                    style: const TextStyle(color: Colors.black, fontSize: 13.0, fontWeight: FontWeight.w600),
-                    minFontSize: 11,
-                    maxLines: 2,
+                leading: clubLogoImage(
+                    club.logo, screenWidth * .1, screenWidth * .1),
+                title: AutoSizeText(
+                  club.name + " (" + club.acronym + ")",
+                  style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 13.0,
+                      fontWeight: FontWeight.w600),
+                  minFontSize: 11,
+                  maxLines: 2,
                 ),
               ),
             ],
@@ -93,9 +100,8 @@ class ClubPopUp extends StatefulWidget {
   @override
   _ClubPopUpState createState() => _ClubPopUpState();
 }
-  
 
-  Widget clubLogoImage(String? url, double width, double height) {
+Widget clubLogoImage(String? url, double width, double height) {
   if (url == null || url.isEmpty) {
     return Icon(Icons.broken_image, size: height, color: Colors.grey);
   }
@@ -108,8 +114,8 @@ class ClubPopUp extends StatefulWidget {
     ),
   );
 }
-class _ClubPopUpState extends State<ClubPopUp> {
 
+class _ClubPopUpState extends State<ClubPopUp> {
   @override
   Widget build(BuildContext context) {
     double screenHeight = MediaQuery.of(context).size.height;
@@ -125,16 +131,15 @@ class _ClubPopUpState extends State<ClubPopUp> {
                 child: Container(
                   // Container for popup content
                   decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.zero
-                  ),
+                      color: Colors.white, borderRadius: BorderRadius.zero),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       // Close button with arrow
                       Padding(
-                        padding: EdgeInsets.only(left: screenWidth * .02, top: screenHeight * .012),
+                        padding: EdgeInsets.only(
+                            left: screenWidth * .02, top: screenHeight * .012),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -160,7 +165,8 @@ class _ClubPopUpState extends State<ClubPopUp> {
                             SizedBox(
                               width: screenHeight * 0.14,
                               height: screenHeight * 0.14,
-                              child:  clubLogoImage(widget.club.logo, screenHeight * 0.1, screenHeight * 0.1),
+                              child: clubLogoImage(widget.club.logo,
+                                  screenHeight * 0.1, screenHeight * 0.1),
                             ),
                           ],
                         ),
@@ -195,32 +201,48 @@ class _ClubPopUpState extends State<ClubPopUp> {
                             ),
                             SizedBox(height: screenHeight * .0015),
                             Padding(
-                              padding: EdgeInsets.symmetric(vertical: screenHeight * 0.015),
+                              padding: EdgeInsets.symmetric(
+                                  vertical: screenHeight * 0.015),
                               child: ElevatedButton(
                                 onPressed: () {
                                   setState(() {
-                                    if (context.read<AppState>().isJoined(widget.club)) {
-                                    context.read<AppState>().removeJoinedClub(widget.club);
+                                    if (context
+                                        .read<AppState>()
+                                        .isJoined(widget.club)) {
+                                      context
+                                          .read<AppState>()
+                                          .removeJoinedClub(widget.club);
                                     } else {
-                                    context.read<AppState>().addJoinedClub(widget.club);
+                                      context
+                                          .read<AppState>()
+                                          .addJoinedClub(widget.club);
                                     }
                                   });
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  fixedSize: Size(screenWidth * 0.5, screenHeight * 0.05),
-                                  backgroundColor: context.read<AppState>().isJoined(widget.club)
-                                    ?Colors.grey
-                                    : AppColors.calPolyGreen,
+                                  fixedSize: Size(
+                                      screenWidth * 0.5, screenHeight * 0.05),
+                                  backgroundColor: context
+                                          .read<AppState>()
+                                          .isJoined(widget.club)
+                                      ? Colors.grey
+                                      : AppColors.calPolyGreen,
                                   shape: const RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.zero, // Sharp corners
+                                    borderRadius:
+                                        BorderRadius.zero, // Sharp corners
                                   ),
-                                  padding: EdgeInsets.symmetric(horizontal: screenWidth*.03, vertical: screenHeight * .008),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: screenWidth * .03,
+                                      vertical: screenHeight * .008),
                                 ),
-                                child: context.read<AppState>().isJoined(widget.club)
+                                child: context
+                                        .read<AppState>()
+                                        .isJoined(widget.club)
                                     ? const Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(Icons.check, color: Colors.black),
+                                          Icon(Icons.check,
+                                              color: Colors.black),
                                           SizedBox(width: 6),
                                           Text(
                                             'JOINED',
@@ -290,53 +312,18 @@ class _ClubPopUpState extends State<ClubPopUp> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.mail,
-                              size: 24, // Adjust the size of the icon as needed
-                              color: Colors.white, // Add your desired icon color
-                            ),
-                            const SizedBox(
-                              width: 10,
-                            ), // Add space between icon and text
-                            Text(
-                              widget.club.email ?? 'No Email',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18.0,
-                              ),
-                            ),
-                          ],
-                        ),
-                  Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      height: 24,
-                      width: 24,
-                      decoration: BoxDecoration( 
-                        borderRadius: BorderRadius.circular(6.0),
-                        color: Colors.transparent, 
-                        border: Border.all(
-                          color: Colors.white
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        size: 16,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(
-                      width: 10,
-                    ), // Add space between icon and text
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        const Icon(
+                          Icons.mail,
+                          size: 24, // Adjust the size of the icon as needed
+                          color: Colors.white, // Add your desired icon color
+                        ),
+                        const SizedBox(
+                          width: 10,
+                        ), // Add space between icon and text
                         Text(
-                          (widget.club.instagram!=null) ? '@' + widget.club.instagram : 'No Instagram',
+                          widget.club.email ?? 'No Email',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18.0,
@@ -344,9 +331,44 @@ class _ClubPopUpState extends State<ClubPopUp> {
                         ),
                       ],
                     ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          height: 24,
+                          width: 24,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(6.0),
+                            color: Colors.transparent,
+                            border: Border.all(color: Colors.white),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(
+                          width: 10,
+                        ), // Add space between icon and text
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              (widget.club.instagram != null)
+                                  ? '@' + widget.club.instagram
+                                  : 'No Instagram',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18.0,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ],
-                ),
-                ],
                 ),
                 // Third Section (About)
                 Column(

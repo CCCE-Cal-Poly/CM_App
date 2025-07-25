@@ -274,7 +274,12 @@ class ProfileScreenState extends State<ProfileScreen> {
                               MaterialPageRoute(
                                 builder: (context) => Scaffold(
                                   appBar: AppBar(
-                                    title: const Text("My Info Sessions", style: TextStyle(fontFamily: AppFonts.sansProSemiBold, color: AppColors.welcomeLightYellow, fontWeight: FontWeight.w600)),
+                                    title: const Text("My Info Sessions",
+                                        style: TextStyle(
+                                            fontFamily:
+                                                AppFonts.sansProSemiBold,
+                                            color: AppColors.welcomeLightYellow,
+                                            fontWeight: FontWeight.w600)),
                                     backgroundColor: AppColors.calPolyGreen,
                                     foregroundColor: Colors.white,
                                   ),
