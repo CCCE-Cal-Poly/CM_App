@@ -70,8 +70,7 @@ class _JobBoardState extends State<JobBoard> {
             textStyle: const TextStyle(fontSize: 12),
             side: const BorderSide(
                 color: Colors.black, width: 1), // Border color and width
-            fixedSize: const Size(60, 30), // Set the button size
-            minimumSize: const Size(80, 20), // Minimum size constraint
+            minimumSize: const Size(75, 25), // Minimum size constraint
             backgroundColor: !isActive ? Colors.transparent : AppColors.welcomeLightYellow),
         child: Text(txt,
             style: TextStyle(
