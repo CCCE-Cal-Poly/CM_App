@@ -2,6 +2,7 @@ import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/collections/club.dart';
 import 'package:ccce_application/common/collections/company.dart';
 import 'package:ccce_application/common/collections/user_data.dart';
+import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:ccce_application/rendered_page.dart';
 import 'package:ccce_application/common/features/onboarding/onboarding_screen.dart';
@@ -70,7 +71,8 @@ class UserProvider with ChangeNotifier {
   bool isClubAdmin(String clubId) => _user?.isClubAdmin(clubId) ?? false;
 
   Future<void> loadUserProfile(String uid) async {
-    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
     if (doc.exists) {
       _user = UserData.fromMap(uid, doc.data()!);
       notifyListeners();
@@ -82,11 +84,9 @@ class EventProvider extends ChangeNotifier {
   final List<CalEvent> _allEvents = [];
   bool _isLoaded = false;
 
-  
-
   List<CalEvent> get allEvents => _allEvents;
   bool get isLoaded => _isLoaded;
-  
+
   EventProvider() {
     fetchAllEvents();
   }
@@ -94,7 +94,8 @@ class EventProvider extends ChangeNotifier {
     if (_isLoaded) return;
 
     try {
-      final snapshot = await FirebaseFirestore.instance.collection('events').get();
+      final snapshot =
+          await FirebaseFirestore.instance.collection('events').get();
       print("Fetched ${snapshot.docs.length} event docs");
       _allEvents.clear();
 
@@ -107,7 +108,6 @@ class EventProvider extends ChangeNotifier {
           print("⚠️ Failed to parse event doc ${doc.id}: $e");
         }
       }
-      
 
       _isLoaded = true;
       notifyListeners();
@@ -118,7 +118,6 @@ class EventProvider extends ChangeNotifier {
 
   List<CalEvent> getEventsByType(String type) =>
       _allEvents.where((event) => event.eventType == type).toList();
-  
 }
 
 class AppState extends ChangeNotifier {
@@ -127,7 +126,11 @@ class AppState extends ChangeNotifier {
   Set<CalEvent>? checkedInSessions;
   Set<CalEvent>? calendarEvents;
 
-  AppState({Set<Company>? favoriteCompanies, Set<Club>? joinedClubs, Set<CalEvent>? checkedInSessions, Set<CalEvent>? calendarEvents})
+  AppState(
+      {Set<Company>? favoriteCompanies,
+      Set<Club>? joinedClubs,
+      Set<CalEvent>? checkedInSessions,
+      Set<CalEvent>? calendarEvents})
       : favoriteCompanies = favoriteCompanies ?? <Company>{},
         joinedClubs = joinedClubs ?? <Club>{},
         checkedInSessions = checkedInSessions ?? <CalEvent>{},
@@ -169,7 +172,8 @@ class AppState extends ChangeNotifier {
 
   void checkInto(CalEvent session) {
     print("Checking into session: ${session.id}");
-    print("Existing sessions in checkedInSessions: ${checkedInSessions?.map((e) => e.id).toList()}");
+    print(
+        "Existing sessions in checkedInSessions: ${checkedInSessions?.map((e) => e.id).toList()}");
 
     checkedInSessions ??= <CalEvent>{};
     checkedInSessions!.add(session);
@@ -217,45 +221,56 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
-        future: _initializedApp(context),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const MaterialApp(
-              home: Scaffold(body: Center(child: CircularProgressIndicator())),
-            );
-          }
-          final tosAccepted = snapshot.data!;
-          if (!tosAccepted) {
-            return const MaterialApp(
-              home: Scaffold(
-                  appBar: GoldAppBar(),
-                  body: RenderedPage()), // Show TOS/Onboarding screen
-            );
-          }
-          return StreamBuilder<User?>(
-            stream: FirebaseAuth.instance.authStateChanges(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
+      future: _isTOSAccepted(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const MaterialApp(
+            home: Scaffold(
+                body: Center(
+                    child: CircularProgressIndicator(
+              color: AppColors.calPolyGreen,
+              backgroundColor: AppColors.calPolyGreen,
+            ))),
+          );
+        }
+        final tosAccepted = snapshot.data!;
+        print("TOS: " + tosAccepted.toString());
+        if (!tosAccepted) {
+          return const MaterialApp(
+            home: Scaffold(
+                appBar: GoldAppBar(),
+                body: OnboardingScreen()), // Show TOS/Onboarding screen
+          );
+        }
+        return StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const MaterialApp(
+                home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
+              );
+            }
+            return Consumer<EventProvider>(
+              builder: (context, eventProvider, child) {
+                if (!eventProvider.isLoaded) {
+                  return const MaterialApp(
+                    home: Scaffold(
+                        backgroundColor: AppColors.calPolyGreen,
+                        body: Center(
+                            child: CircularProgressIndicator(
+                          color: Colors.white,
+                        ))),
+                  );
+                }
+
                 return const MaterialApp(
                   home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
                 );
-              }
-              return Consumer<EventProvider>(
-                builder: (context, eventProvider, child) {
-                  if (!eventProvider.isLoaded) {
-                    return const MaterialApp(
-                      home: Scaffold(body: Center(child: CircularProgressIndicator())),
-                    );
-                  }
-                  
-                  return const MaterialApp(
-                    home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
-                  );
-                },
-              );
-            },
-          );
-        },
+              },
+            );
+          },
+        );
+      },
     );
   }
 }

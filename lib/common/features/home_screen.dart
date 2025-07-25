@@ -4,7 +4,6 @@ import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:ccce_application/main.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'dart:collection';
 import 'package:intl/intl.dart';
@@ -16,7 +15,8 @@ class HomeScreen extends StatefulWidget {
   CalendarScreenState createState() => CalendarScreenState();
 }
 
-HashMap<DateTime, List<CalEvent>> getEventsGroupedByDate(EventProvider provider) {
+HashMap<DateTime, List<CalEvent>> getEventsGroupedByDate(
+    EventProvider provider) {
   final HashMap<DateTime, List<CalEvent>> events = HashMap();
 
   for (final event in provider.allEvents) {
@@ -99,20 +99,20 @@ class CalendarScreenState extends State<HomeScreen> {
     _focusedMonth = _focusedDay.month;
     _focusedYear = _focusedDay.year;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-    final provider = Provider.of<EventProvider>(context, listen: false);
-    if (provider.isLoaded) {
-      final events = getEventsGroupedByDate(provider);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-    final provider = Provider.of<EventProvider>(context, listen: false);
-    if (provider.isLoaded) {
-      final events = getEventsGroupedByDate(provider);
-      setState(() {
-        eventMap = events;
-      });
-    }
-  });
-    }
-  });
+      final provider = Provider.of<EventProvider>(context, listen: false);
+      if (provider.isLoaded) {
+        final events = getEventsGroupedByDate(provider);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final provider = Provider.of<EventProvider>(context, listen: false);
+          if (provider.isLoaded) {
+            final events = getEventsGroupedByDate(provider);
+            setState(() {
+              eventMap = events;
+            });
+          }
+        });
+      }
+    });
   }
 
   void updateFocusedDates(day) {
