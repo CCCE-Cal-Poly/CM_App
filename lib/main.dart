@@ -2,6 +2,7 @@ import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/collections/club.dart';
 import 'package:ccce_application/common/collections/company.dart';
 import 'package:ccce_application/common/collections/user_data.dart';
+import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:ccce_application/rendered_page.dart';
 import 'package:ccce_application/common/features/onboarding/onboarding_screen.dart';
@@ -224,7 +225,12 @@ class MyApp extends StatelessWidget {
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const MaterialApp(
-            home: Scaffold(body: Center(child: CircularProgressIndicator())),
+            home: Scaffold(
+                body: Center(
+                    child: CircularProgressIndicator(
+              color: AppColors.calPolyGreen,
+              backgroundColor: AppColors.calPolyGreen,
+            ))),
           );
         }
         final tosAccepted = snapshot.data!;
@@ -249,7 +255,11 @@ class MyApp extends StatelessWidget {
                 if (!eventProvider.isLoaded) {
                   return const MaterialApp(
                     home: Scaffold(
-                        body: Center(child: CircularProgressIndicator())),
+                        backgroundColor: AppColors.calPolyGreen,
+                        body: Center(
+                            child: CircularProgressIndicator(
+                          color: Colors.white,
+                        ))),
                   );
                 }
 
