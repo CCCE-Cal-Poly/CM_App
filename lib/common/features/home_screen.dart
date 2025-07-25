@@ -18,12 +18,7 @@ class HomeScreen extends StatefulWidget {
 
 HashMap<DateTime, List<CalEvent>> getEventsGroupedByDate(EventProvider provider) {
   final HashMap<DateTime, List<CalEvent>> events = HashMap();
-HashMap<DateTime, List<CalEvent>> getEventsGroupedByDate(EventProvider provider) {
-  final HashMap<DateTime, List<CalEvent>> events = HashMap();
 
-  for (final event in provider.allEvents) {
-    final start = event.startTime;
-    final date = DateTime.utc(start.year, start.month, start.day);
   for (final event in provider.allEvents) {
     final start = event.startTime;
     final date = DateTime.utc(start.year, start.month, start.day);
@@ -31,7 +26,6 @@ HashMap<DateTime, List<CalEvent>> getEventsGroupedByDate(EventProvider provider)
     events.update(date, (value) {
       value.add(event);
       return value;
-    }, ifAbsent: () => [event]);
     }, ifAbsent: () => [event]);
   }
 
@@ -504,7 +498,6 @@ class CalendarScreenState extends State<HomeScreen> {
                 Container(
                     height: 65,
                     width: 80,
-                    decoration: const BoxDecoration(
                     decoration: const BoxDecoration(
                       color: Colors.white, // Match event display
                     ),

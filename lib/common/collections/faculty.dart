@@ -140,7 +140,7 @@ class FacultyPopUp extends StatelessWidget {
                             ),
                                     const Padding(padding: EdgeInsets.only(left: 8.0)),
                                     const Expanded(
-                                      child: Padding(padding:EdgeInsetsGeometry.all(0.5)),
+                                      child: Padding(padding:EdgeInsets.all(0.5)),
                                     ),
                                     const Padding(padding: EdgeInsets.only(right:8.0)),
                               
