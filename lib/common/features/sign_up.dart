@@ -13,8 +13,6 @@ class SignUp extends StatefulWidget {
 }
 
 class _SignUpState extends State<SignUp> {
-  static const calPolyGold = Color.fromRGBO(206, 204, 160, 1);
-  static const lighterTanColor = Color(0xFFfffded);
   static dynamic errorMsg = '';
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();

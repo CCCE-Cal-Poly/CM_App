@@ -1,4 +1,5 @@
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:flutter/material.dart';
 
@@ -35,14 +36,6 @@ class FacultyItem extends StatelessWidget {
           color: Colors.white,
           border: Border.all(color: Colors.black),
           borderRadius: BorderRadius.zero,
-          // boxShadow: [
-          //   BoxShadow(
-          //     color: Colors.black.withOpacity(0.3),
-          //     spreadRadius: 1,
-          //     blurRadius: 2,
-          //     offset: const Offset(0, 2), // changes position of shadow
-          //   ),
-          //],
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 6.0),

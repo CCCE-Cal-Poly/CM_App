@@ -84,20 +84,6 @@ class _MyRenderedPageState extends State<RenderedPage> {
                   (i) => _pages[i] ?? const SizedBox.shrink(),
                 ),
               ),
-              // Position the button at the top left, below the AppBar
-              // Positioned(
-              //   right: 4.0,
-              //   top: 0, // Position it exactly below the AppBar
-              //   child: IconButton(
-              //     icon: const Icon(
-              //       Icons.menu,
-              //       color: Colors.white,
-              //     ),
-              //     onPressed: () {
-              //       _scaffoldKey.currentState?.openEndDrawer();
-              //     },
-              //   ),
-              // ),
             ],
           );
         },

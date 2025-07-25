@@ -1,9 +1,11 @@
 import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/collections/club.dart';
 import 'package:ccce_application/common/collections/company.dart';
+import 'package:ccce_application/common/collections/user_data.dart';
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:ccce_application/rendered_page.dart';
 import 'package:ccce_application/common/features/onboarding/onboarding_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -11,6 +13,7 @@ import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:provider/provider.dart';
 import 'package:provider/provider.dart';
 
 // import 'package:isar/isar.dart';
@@ -52,10 +55,28 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider<AppState>(create: (_) => AppState()),
         ChangeNotifierProvider<EventProvider>(create: (_) => EventProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
       ],
       child: const MyApp(),
     ),
   );
+}
+
+class UserProvider with ChangeNotifier {
+  UserData? _user;
+
+  UserData? get user => _user;
+  bool get isAppAdmin => _user?.isAppAdmin ?? false;
+  bool isClubAdmin(String clubId) => _user?.isClubAdmin(clubId) ?? false;
+
+  Future<void> loadUserProfile(String uid) async {
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    if (doc.exists) {
+      _user = UserData.fromMap(uid, doc.data()!);
+      notifyListeners();
+    }
+  }
 }
 
 class EventProvider extends ChangeNotifier {
@@ -69,7 +90,6 @@ class EventProvider extends ChangeNotifier {
     fetchAllEvents();
   }
   Future<void> fetchAllEvents() async {
-    print("I AM WORKING");
     if (_isLoaded) return;
 
     try {
@@ -186,6 +206,15 @@ class MyApp extends StatelessWidget {
   Future<bool> _isTOSAccepted() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('TOS') ?? false;
+  }
+
+  Future<bool> _initializedApp(BuildContext context) async {
+    final eventProvider = Provider.of<EventProvider>(context, listen: false);
+    final results = await Future.wait([
+      _isTOSAccepted(),
+      eventProvider.fetchAllEvents(),
+    ]);
+    return results[0] as bool;
   }
 
   @override
