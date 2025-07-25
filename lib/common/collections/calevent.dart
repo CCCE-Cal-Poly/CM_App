@@ -5,6 +5,20 @@ import 'package:ccce_application/common/providers/app_state.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+Widget eventLogoImage(String? url, double width, double height) {
+  if (url == null || url.isEmpty) {
+    return Icon(Icons.broken_image, size: height, color: Colors.grey);
+  }
+  return ClipOval(
+    child: Image.network(
+      url,
+      width: width,
+      height: height,
+      fit: BoxFit.cover, // Ensures the image fills the circle
+    ),
+  );
+}
+
 class CalEvent {
   String id;
   String eventName;
@@ -12,6 +26,7 @@ class CalEvent {
   DateTime endTime;
   String eventLocation;
   String? eventType;
+  String? logo;
   InfoSessionData? isd;
 
   CalEvent(
@@ -21,6 +36,7 @@ class CalEvent {
       required this.endTime,
       required this.eventLocation,
       this.eventType,
+      this.logo,
       this.isd});
 
   @override
@@ -42,6 +58,7 @@ class CalEvent {
         endTime: startTime.add(const Duration(hours: 1)),
         eventLocation: doc.get("mainLocation"),
         eventType: doc.get("eventType"),
+        logo: doc.get("logo"),
         isd: InfoSessionData(
             doc.get("website"),
             doc.get("interviewLocation"),
@@ -105,6 +122,7 @@ class InfoSessionItem extends StatelessWidget {
           child: Column(
             children: [
               ListTile(
+<<<<<<< HEAD
                 leading: const Text("placeHolder"),
                 title: AutoSizeText(
                   infoSession.eventName ?? 'No Company Name',
@@ -114,6 +132,13 @@ class InfoSessionItem extends StatelessWidget {
                       fontWeight: FontWeight.w600),
                   minFontSize: 11,
                   maxLines: 2,
+=======
+                leading: eventLogoImage(infoSession.logo, screenWidth * .1, screenWidth * .1),
+                title: AutoSizeText(infoSession.eventName ?? 'No Company Name',
+                    style: const TextStyle(color: Colors.black, fontSize: 13.0, fontWeight: FontWeight.w600),
+                    minFontSize: 11,
+                    maxLines: 2,
+>>>>>>> cdf9005f05d6cc40e6df0f047ce07356a38b945b
                 ),
               ),
             ],
@@ -187,7 +212,11 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                             SizedBox(
                               width: screenHeight * 0.14,
                               height: screenHeight * 0.14,
+<<<<<<< HEAD
                               child: const Text("Placeholder"),
+=======
+                              child:  eventLogoImage(widget.infoSession.logo, screenHeight * 0.1, screenHeight * 0.1),
+>>>>>>> cdf9005f05d6cc40e6df0f047ce07356a38b945b
                             ),
                           ],
                         ),
