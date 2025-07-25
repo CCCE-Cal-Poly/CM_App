@@ -23,21 +23,22 @@ class _MyRenderedPageState extends State<RenderedPage> {
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  late List<Widget> _pageList; // Declare _pageList, but don't initialize here
+  late final List<Widget Function()> _pageBuilders;
+  late final List<Widget?> _pages;
 
   @override
   void initState() {
     super.initState();
-    _pageList = <Widget>[
-      // Initialize _pageList here
-      HomeScreen(scaffoldKey: _scaffoldKey),
-      MemberDirectory(scaffoldKey: _scaffoldKey),
-      ClubDirectory(scaffoldKey: _scaffoldKey),
-      FacultyDirectory(scaffoldKey: _scaffoldKey),
-      InfoSessionsScreen(scaffoldKey: _scaffoldKey),
-      JobBoard(scaffoldKey: _scaffoldKey),
-      ProfileScreen(scaffoldKey: _scaffoldKey),
+    _pageBuilders = [
+      () => HomeScreen(scaffoldKey: _scaffoldKey),
+      () => MemberDirectory(scaffoldKey: _scaffoldKey),
+      () => ClubDirectory(scaffoldKey: _scaffoldKey),
+      () => FacultyDirectory(scaffoldKey: _scaffoldKey),
+      () => InfoSessionsScreen(scaffoldKey: _scaffoldKey),
+      () => JobBoard(scaffoldKey: _scaffoldKey),
+      () => ProfileScreen(scaffoldKey: _scaffoldKey),
     ];
+    _pages = List<Widget?>.filled(_pageBuilders.length, null);
   }
 
   void _onItemTapped(int index) {
@@ -63,6 +64,10 @@ class _MyRenderedPageState extends State<RenderedPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Build the selected page if it hasn't been built yet
+    if (_pages[_selectedIndex] == null) {
+      _pages[_selectedIndex] = _pageBuilders[_selectedIndex]();
+    }
     return Scaffold(
       key: _scaffoldKey, // Assign the key to the Scaffold
       body: LayoutBuilder(
@@ -74,7 +79,10 @@ class _MyRenderedPageState extends State<RenderedPage> {
               // Position the main content (IndexedStack) below the AppBar
               IndexedStack(
                 index: _selectedIndex,
-                children: _pageList,
+                children: List.generate(
+                  _pages.length,
+                  (i) => _pages[i] ?? const SizedBox.shrink(),
+                ),
               ),
               // Position the button at the top left, below the AppBar
               // Positioned(

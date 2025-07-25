@@ -4,6 +4,7 @@ import 'package:ccce_application/common/theme/theme.dart';
 import 'package:flutter/services.dart'; // Import for rootBundle
 import 'package:ccce_application/common/features/sign_up.dart';
 import 'package:ccce_application/common/features/welcome_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TosScreen extends StatelessWidget {
   const TosScreen({Key? key}) : super(key: key);
@@ -84,7 +85,10 @@ class TosScreen extends StatelessWidget {
                             // Use SizedBox to control the width of the button
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: () {
+                              onPressed: () async {
+                                final prefs =
+                                    await SharedPreferences.getInstance();
+                                await prefs.setBool('TOS', true);
                                 Navigator.pushAndRemoveUntil(
                                   context,
                                   MaterialPageRoute(
