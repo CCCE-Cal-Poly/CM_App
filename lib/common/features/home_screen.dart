@@ -1,4 +1,5 @@
 import 'package:ccce_application/common/collections/calevent.dart';
+import 'package:ccce_application/common/providers/event_provider.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:ccce_application/main.dart';

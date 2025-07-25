@@ -1,6 +1,6 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/theme/theme.dart';
-import 'package:ccce_application/main.dart';
+import 'package:ccce_application/common/providers/app_state.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -28,14 +28,14 @@ class CompanyItem extends StatelessWidget {
   const CompanyItem(this.company, {Key? key}) : super(key: key);
 
   Widget clubLogoImage(String? url, double width, double height) {
-  if (url == null || url.isEmpty) {
-    return Icon(Icons.broken_image, size: height, color: Colors.grey);
-  }
-  return ClipOval(
-    child: Container(
+    if (url == null || url.isEmpty) {
+      return Icon(Icons.broken_image, size: height, color: Colors.grey);
+    }
+    return ClipOval(
+        child: Container(
       width: width,
       height: height,
-      color:Colors.white,
+      color: Colors.white,
       child: FittedBox(
         fit: BoxFit.contain,
         child: Image.network(
@@ -44,9 +44,8 @@ class CompanyItem extends StatelessWidget {
           height: height,
         ),
       ),
-      )
-    );
-    }
+    ));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,43 +70,49 @@ class CompanyItem extends StatelessWidget {
         child: Column(
           children: [
             ListTile(
-                leading: Container(
+              leading: Container(
                 width: screenWidth * .11,
                 height: screenWidth * .11,
                 decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.transparent,
-                  border: Border.fromBorderSide(BorderSide(color: Colors.black, width: .5),)
-                ),
+                    shape: BoxShape.circle,
+                    color: Colors.transparent,
+                    border: Border.fromBorderSide(
+                      BorderSide(color: Colors.black, width: .5),
+                    )),
                 child: Padding(
                   padding: const EdgeInsets.all(1.0),
                   child: ClipOval(
-                  child: clubLogoImage(company.logo, screenWidth * .09, screenWidth * .09),
+                    child: clubLogoImage(
+                        company.logo, screenWidth * .09, screenWidth * .09),
                   ),
                 ),
-                ),
-              title: AutoSizeText(company.name, style: const TextStyle(color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.w600
-                ),
+              ),
+              title: AutoSizeText(
+                company.name,
+                style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600),
                 minFontSize: 12,
                 maxLines: 1,
               ),
-              subtitle:
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.location_on, color: AppColors.lightGold, size: 16),
-                      const SizedBox(width: 2),
-                      AutoSizeText(company.location, style: const TextStyle(color: AppColors.lightGold,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600
-                      ),
+              subtitle: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Icon(Icons.location_on,
+                      color: AppColors.lightGold, size: 16),
+                  const SizedBox(width: 2),
+                  AutoSizeText(
+                    company.location,
+                    style: const TextStyle(
+                        color: AppColors.lightGold,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600),
                     minFontSize: 10,
                     maxLines: 1,
-                    ),
-                    ],
                   ),
+                ],
+              ),
             ),
           ],
         ),
@@ -128,7 +133,6 @@ class CompanyPopup extends StatefulWidget {
 }
 
 class _CompanyPopupState extends State<CompanyPopup> {
-
   String getRecName() {
     return widget.company.recruiterName;
   }
@@ -181,7 +185,8 @@ class _CompanyPopupState extends State<CompanyPopup> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.arrow_back, color: Colors.black),
+                              icon: const Icon(Icons.arrow_back,
+                                  color: Colors.black),
                               onPressed: widget.onClose,
                             ),
                           ],
@@ -199,10 +204,12 @@ class _CompanyPopupState extends State<CompanyPopup> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.white,
-                                border: Border.all(color: Colors.black, width: 1),
+                                border:
+                                    Border.all(color: Colors.black, width: 1),
                               ),
                               child: Center(
-                                child: clubLogoImage(widget.company.logo, screenWidth * .1, screenWidth * .1),
+                                child: clubLogoImage(widget.company.logo,
+                                    screenWidth * .1, screenWidth * .1),
                               ),
                             ),
                           ],
@@ -231,62 +238,76 @@ class _CompanyPopupState extends State<CompanyPopup> {
                             const SizedBox(height: 10),
                             Padding(
                               padding: const EdgeInsets.only(bottom: 8.0),
-                                child: SizedBox(
+                              child: SizedBox(
                                 width: screenWidth * .5,
                                 height: screenHeight * .05,
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                  backgroundColor: context.read<AppState>().isFavorite(widget.company)
-                                    ? Colors.grey
-                                    : AppColors.calPolyGreen,
-                                  shape: const RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.zero,
-                                  ),
-                                  elevation: 0,
+                                    backgroundColor: context
+                                            .read<AppState>()
+                                            .isFavorite(widget.company)
+                                        ? Colors.grey
+                                        : AppColors.calPolyGreen,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.zero,
+                                    ),
+                                    elevation: 0,
                                   ),
                                   onPressed: () {
-                                  // Interact with provider to add/remove favorite
-                                  setState(() {
-                                    if (context.read<AppState>().isFavorite(widget.company)) {
-                                    context.read<AppState>().removeFavorite(widget.company);
-                                    } else {
-                                    context.read<AppState>().addFavorite(widget.company);
-                                    }
-                                  });
+                                    // Interact with provider to add/remove favorite
+                                    setState(() {
+                                      if (context
+                                          .read<AppState>()
+                                          .isFavorite(widget.company)) {
+                                        context
+                                            .read<AppState>()
+                                            .removeFavorite(widget.company);
+                                      } else {
+                                        context
+                                            .read<AppState>()
+                                            .addFavorite(widget.company);
+                                      }
+                                    });
                                   },
-                                  child: context.read<AppState>().isFavorite(widget.company)
-                                    ? const Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                      Icon(Icons.check, color: Colors.black, size: 18),
-                                      SizedBox(width: 6),
-                                      AutoSizeText(
-                                        "ADDED",
-                                        style: TextStyle(
-                                        color: Colors.black,
-                                        fontFamily: AppFonts.sansProSemiBold,
-                                        fontSize: 16.0,
-                                        fontWeight: FontWeight.w500,
+                                  child: context
+                                          .read<AppState>()
+                                          .isFavorite(widget.company)
+                                      ? const Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.check,
+                                                color: Colors.black, size: 18),
+                                            SizedBox(width: 6),
+                                            AutoSizeText(
+                                              "ADDED",
+                                              style: TextStyle(
+                                                color: Colors.black,
+                                                fontFamily:
+                                                    AppFonts.sansProSemiBold,
+                                                fontSize: 16.0,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                              minFontSize: 10,
+                                              maxLines: 1,
+                                            ),
+                                          ],
+                                        )
+                                      : const AutoSizeText(
+                                          "ADD TO FAVORITES",
+                                          style: TextStyle(
+                                            color: AppColors.welcomeLightYellow,
+                                            fontFamily:
+                                                AppFonts.sansProSemiBold,
+                                            fontSize: 16.0,
+                                            fontWeight: FontWeight.w400,
+                                          ),
+                                          minFontSize: 10,
+                                          maxLines: 1,
                                         ),
-                                        minFontSize: 10,
-                                        maxLines: 1,
-                                      ),
-                                      ],
-                                    )
-                                    : const AutoSizeText(
-                                      "ADD TO FAVORITES",
-                                      style: TextStyle(
-                                      color: AppColors.welcomeLightYellow,
-                                      fontFamily: AppFonts.sansProSemiBold,
-                                      fontSize: 16.0,
-                                      fontWeight: FontWeight.w400,
-                                      ),
-                                      minFontSize: 10,
-                                      maxLines: 1,
-                                    ),
-                                ),
                                 ),
                               ),
+                            ),
                           ],
                         ),
                       ),
@@ -304,89 +325,90 @@ class _CompanyPopupState extends State<CompanyPopup> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0, top: 8, left: 8, right: 8),
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          borderRadius: BorderRadius.zero,
-                          color: Colors.white,
-                        ),
-                        child: Row(
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16.0),
-                              child: Center(
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 12.0),
-                                  child: CircleAvatar(
-                                    radius: 20,
-                                    backgroundColor: Colors.grey,
-                                    child: Icon(
-                                      Icons.person,
-                                      size: 32,
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                  padding: const EdgeInsets.only(
+                      bottom: 12.0, top: 8, left: 8, right: 8),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.zero,
+                      color: Colors.white,
+                    ),
+                    child: Row(
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12.0),
+                              child: CircleAvatar(
+                                radius: 20,
+                                backgroundColor: Colors.grey,
+                                child: Icon(
+                                  Icons.person,
+                                  size: 32,
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
-                            Container(
-                              width: 2,
-                              height: 64,
-                              color: AppColors.calPolyGreen,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(left: 16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  AutoSizeText(
-                                    widget.company.recruiterName,
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 18.0,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    minFontSize: 14,
-                                    maxLines: 1,
-                                  ),
-                                  AutoSizeText(
-                                    widget.company.recruiterTitle,
-                                    style: const TextStyle(
-                                      color: AppColors.darkGoldText,
-                                      fontSize: 14.0,
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                    minFontSize: 8,
-                                    maxLines: 1,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
+                        Container(
+                          width: 2,
+                          height: 64,
+                          color: AppColors.calPolyGreen,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              AutoSizeText(
+                                widget.company.recruiterName,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 18.0,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                minFontSize: 14,
+                                maxLines: 1,
+                              ),
+                              AutoSizeText(
+                                widget.company.recruiterTitle,
+                                style: const TextStyle(
+                                  color: AppColors.darkGoldText,
+                                  fontSize: 14.0,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                minFontSize: 8,
+                                maxLines: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.mail,
+                      size: 24, // Adjust the size of the icon as needed
+                      color: Colors.white, // Add your desired icon color
+                    ),
+                    const SizedBox(
+                      width: 10,
+                    ), // Add space between icon and text
+                    Text(
+                      widget.company.recruiterEmail ?? 'No Email',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18.0,
                       ),
                     ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.mail,
-                            size: 24, // Adjust the size of the icon as needed
-                            color: Colors.white, // Add your desired icon color
-                          ),
-                          const SizedBox(
-                            width: 10,
-                          ), // Add space between icon and text
-                          Text(
-                            widget.company.recruiterEmail ?? 'No Email',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18.0,
-                            ),
-                          ),
-                        ],
-                      ),
+                  ],
+                ),
                 // Divider between the first section and the rest
                 SizedBox(
                   height: screenHeight * .03,
