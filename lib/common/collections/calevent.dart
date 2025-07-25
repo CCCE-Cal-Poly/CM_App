@@ -46,29 +46,34 @@ class CalEvent {
   }
 
   factory CalEvent.fromSnapshot(DocumentSnapshot doc) {
-    String eventName = doc.get("company");
-    String openPositions =
-        doc.get("isHiring") == "No" ? "" : doc.get("position");
-    DateTime startTime = doc.get("startTime").toDate();
+    final data = doc.data() as Map<String, dynamic>;
 
-    // Extract data from the snapshot
-    return CalEvent(
-        id: doc.id,
-        eventName: eventName,
-        startTime: startTime,
-        endTime: startTime.add(const Duration(hours: 1)),
-        eventLocation: doc.get("mainLocation"),
-        eventType: doc.get("eventType"),
-        logo: doc.get("logo"),
-        isd: InfoSessionData(
-            doc.get("website"),
-            doc.get("interviewLocation"),
-            doc.get("contactName"),
-            doc.get("contactEmail"),
-            openPositions,
-            doc.get("jobLocations"),
-            doc.get("interviewLink")));
-  }
+  String eventName = data["company"];
+  String openPositions =
+      data["isHiring"] == "No" ? "" : data["position"];
+  DateTime startTime = data["startTime"].toDate();
+
+  String? theLogo = data.containsKey("logo") ? data["logo"] : null;
+
+  return CalEvent(
+    id: doc.id,
+    eventName: eventName,
+    startTime: startTime,
+    endTime: startTime.add(const Duration(hours: 1)),
+    eventLocation: data["mainLocation"],
+    eventType: data["eventType"],
+    logo: theLogo,
+    isd: InfoSessionData(
+      data["website"],
+      data["interviewLocation"],
+      data["contactName"],
+      data["contactEmail"],
+      openPositions,
+      data["jobLocations"],
+      data["interviewLink"],
+    ),
+  );
+}
 }
 
 class InfoSessionData {

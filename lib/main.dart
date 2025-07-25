@@ -207,15 +207,6 @@ class MyApp extends StatelessWidget {
     return prefs.getBool('TOS') ?? false;
   }
 
-  Future<bool> _initializedApp(BuildContext context) async {
-    final eventProvider = Provider.of<EventProvider>(context, listen: false);
-    final results = await Future.wait([
-      _isTOSAccepted(),
-      eventProvider.fetchAllEvents(),
-    ]);
-    return results[0] as bool;
-  }
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
