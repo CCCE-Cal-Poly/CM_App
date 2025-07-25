@@ -1,6 +1,7 @@
 import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/collections/club.dart';
 import 'package:ccce_application/common/collections/company.dart';
+import 'package:ccce_application/common/collections/user_data.dart';
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:ccce_application/rendered_page.dart';
 import 'package:ccce_application/common/features/onboarding/onboarding_screen.dart';
@@ -52,10 +53,27 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider<AppState>(create: (_) => AppState()),
         ChangeNotifierProvider<EventProvider>(create: (_) => EventProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
       ],
       child: const MyApp(),
     ),
   );
+}
+
+class UserProvider with ChangeNotifier {
+  UserData? _user;
+
+  UserData? get user => _user;
+  bool get isAppAdmin => _user?.isAppAdmin ?? false;
+  bool isClubAdmin(String clubId) => _user?.isClubAdmin(clubId) ?? false;
+
+  Future<void> loadUserProfile(String uid) async {
+    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    if (doc.exists) {
+      _user = UserData.fromMap(uid, doc.data()!);
+      notifyListeners();
+    }
+  }
 }
 
 class EventProvider extends ChangeNotifier {
@@ -71,7 +89,6 @@ class EventProvider extends ChangeNotifier {
     fetchAllEvents();
   }
   Future<void> fetchAllEvents() async {
-    print("I AM WORKING");
     if (_isLoaded) return;
 
     try {
@@ -186,10 +203,19 @@ class MyApp extends StatelessWidget {
     return prefs.getBool('TOS') ?? false;
   }
 
+  Future<bool> _initializedApp(BuildContext context) async {
+    final eventProvider = Provider.of<EventProvider>(context, listen: false);
+    final results = await Future.wait([
+      _isTOSAccepted(),
+      eventProvider.fetchAllEvents(),
+    ]);
+    return results[0] as bool;
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
-        future: _isTOSAccepted(),
+        future: _initializedApp(context),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const MaterialApp(
@@ -201,7 +227,7 @@ class MyApp extends StatelessWidget {
             return const MaterialApp(
               home: Scaffold(
                   appBar: GoldAppBar(),
-                  body: RenderedPage()), // Show TOS/Onboarding screen
+                  body: OnboardingScreen()), // Show TOS/Onboarding screen
             );
           }
           return StreamBuilder<User?>(

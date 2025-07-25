@@ -1,9 +1,7 @@
 import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
-import 'package:ccce_application/common/widgets/debug_outline.dart';
 import 'package:ccce_application/main.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -93,9 +91,6 @@ class CalendarScreenState extends State<HomeScreen> {
   late HashMap<DateTime, List<CalEvent>> eventMap = HashMap();
   List _selectedEvents = [];
   bool _screenBool = false;
-
-  static const calPolyGreen = Color(0xFF003831);
-  static const appBackgroundColor = Color(0xFFE4E3D3);
 
   @override
   void initState() {
