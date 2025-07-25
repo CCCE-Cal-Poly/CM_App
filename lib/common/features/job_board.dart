@@ -40,7 +40,7 @@ class _JobBoardState extends State<JobBoard> {
 
 
   Map<String, bool> buttonStates = {
-  'Internship': true,
+  'Internship': false,
   'Full Time': false,
   'Part Time': false,
   };

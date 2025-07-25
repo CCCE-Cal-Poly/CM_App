@@ -4,6 +4,7 @@ import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:ccce_application/main.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'dart:collection';
 import 'package:intl/intl.dart';
@@ -17,7 +18,12 @@ class HomeScreen extends StatefulWidget {
 
 HashMap<DateTime, List<CalEvent>> getEventsGroupedByDate(EventProvider provider) {
   final HashMap<DateTime, List<CalEvent>> events = HashMap();
+HashMap<DateTime, List<CalEvent>> getEventsGroupedByDate(EventProvider provider) {
+  final HashMap<DateTime, List<CalEvent>> events = HashMap();
 
+  for (final event in provider.allEvents) {
+    final start = event.startTime;
+    final date = DateTime.utc(start.year, start.month, start.day);
   for (final event in provider.allEvents) {
     final start = event.startTime;
     final date = DateTime.utc(start.year, start.month, start.day);
@@ -25,6 +31,7 @@ HashMap<DateTime, List<CalEvent>> getEventsGroupedByDate(EventProvider provider)
     events.update(date, (value) {
       value.add(event);
       return value;
+    }, ifAbsent: () => [event]);
     }, ifAbsent: () => [event]);
   }
 
@@ -101,9 +108,15 @@ class CalendarScreenState extends State<HomeScreen> {
     final provider = Provider.of<EventProvider>(context, listen: false);
     if (provider.isLoaded) {
       final events = getEventsGroupedByDate(provider);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+    final provider = Provider.of<EventProvider>(context, listen: false);
+    if (provider.isLoaded) {
+      final events = getEventsGroupedByDate(provider);
       setState(() {
         eventMap = events;
       });
+    }
+  });
     }
   });
   }
@@ -491,6 +504,7 @@ class CalendarScreenState extends State<HomeScreen> {
                 Container(
                     height: 65,
                     width: 80,
+                    decoration: const BoxDecoration(
                     decoration: const BoxDecoration(
                       color: Colors.white, // Match event display
                     ),

@@ -47,7 +47,7 @@ Widget buildInfoSessionList(context) {
 
     Map<String, List<CalEvent>> groupInfoSessions(List<CalEvent> infoSessions) {
       Map<String, List<CalEvent>> grouped = {};
-      for (var event in infoSessions) {
+      for (CalEvent event in infoSessions) {
         String dateKey = DateFormat('yyyy-MM-dd').format(event.startTime);
         if (!grouped.containsKey(dateKey)) {
           grouped[dateKey] = [];

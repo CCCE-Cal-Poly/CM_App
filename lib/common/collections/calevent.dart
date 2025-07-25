@@ -325,62 +325,61 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
               children: [
                 // First Section
                 // Second Section (Upcoming Events)
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "Upcoming Events",
+                    const Text(
+                      "Contacts",
                       style: TextStyle(
                         color: AppColors.lightGold,
                         fontSize: 22.0,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
-                    SizedBox(
-                      height: 5,
-                    ), // Add space between text elements
-                    Text(
-                      "This is a Placeholder.",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16.0,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+                      child: Container(
+                        width: screenWidth * .85,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: Colors.black),
+                          borderRadius: BorderRadius.zero,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 6.0),
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 18.0, top: 4.0, bottom: 8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.infoSession.isd?.recruiterName ?? 'No Listed Contact Name',
+                                  style: const TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14),
+                                ),
+                                Text(widget.infoSession.isd?.recruiterEmail ?? 'No Listed Contact Email',
+                                    style: const TextStyle(
+                                        color: AppColors.darkGoldText,
+                                        fontWeight: FontWeight.w400,
+                                        fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                    )
                   ],
                 ),
                 // Divider between the second and third sections
                 const Divider(),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.mail,
-                              size: 24, // Adjust the size of the icon as needed
-                              color: Colors.white, // Add your desired icon color
-                            ),
-                            const SizedBox(
-                              width: 10,
-                            ), // Add space between icon and text
-                            Text(
-                              widget.infoSession.isd?.recruiterEmail ?? 'No Email',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18.0,
-                              ),
-                            ),
-                          ],
-                        ),
-                ],
-                ),
                 // Third Section (About)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "Position",
+                      "About",
                       style: TextStyle(
                         color: AppColors.lightGold,
                         fontSize: 22.0,
@@ -389,7 +388,7 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                     ),
                     const SizedBox(
                       height: 5,
-                    ), // Add space between text elements
+                    ),
                     Text(
                       widget.infoSession.isd?.openPositions ?? 'No Position Info',
                       style: const TextStyle(
