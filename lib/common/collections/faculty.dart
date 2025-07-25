@@ -35,14 +35,6 @@ class FacultyItem extends StatelessWidget {
           color: Colors.white,
           border: Border.all(color: Colors.black),
           borderRadius: BorderRadius.zero,
-          // boxShadow: [
-          //   BoxShadow(
-          //     color: Colors.black.withOpacity(0.3),
-          //     spreadRadius: 1,
-          //     blurRadius: 2,
-          //     offset: const Offset(0, 2), // changes position of shadow
-          //   ),
-          //],
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 6.0),
