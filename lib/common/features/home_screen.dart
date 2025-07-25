@@ -697,7 +697,7 @@ class CalendarScreenState extends State<HomeScreen> {
                   children: [
                     Padding(
                         padding: const EdgeInsets.only(left: 16.0),
-                        child: Text(_name.isNotEmpty ? "Hi!" : "Hi $_name!",
+                        child: Text(_name.isEmpty ? "Hi!" : "Hi $_name!",
                             style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w300,
