@@ -97,6 +97,7 @@ class MyApp extends StatelessWidget {
           stream: FirebaseAuth.instance.authStateChanges(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
+              // LOOK INTO THIS
               return const MaterialApp(
                 home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
               );
@@ -113,7 +114,6 @@ class MyApp extends StatelessWidget {
                         ))),
                   );
                 }
-
                 return const MaterialApp(
                   home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
                 );

@@ -122,8 +122,8 @@ class InfoSessionItem extends StatelessWidget {
           child: Column(
             children: [
               ListTile(
-<<<<<<< HEAD
-                leading: const Text("placeHolder"),
+                leading: eventLogoImage(
+                    infoSession.logo, screenWidth * .1, screenWidth * .1),
                 title: AutoSizeText(
                   infoSession.eventName ?? 'No Company Name',
                   style: const TextStyle(
@@ -132,13 +132,6 @@ class InfoSessionItem extends StatelessWidget {
                       fontWeight: FontWeight.w600),
                   minFontSize: 11,
                   maxLines: 2,
-=======
-                leading: eventLogoImage(infoSession.logo, screenWidth * .1, screenWidth * .1),
-                title: AutoSizeText(infoSession.eventName ?? 'No Company Name',
-                    style: const TextStyle(color: Colors.black, fontSize: 13.0, fontWeight: FontWeight.w600),
-                    minFontSize: 11,
-                    maxLines: 2,
->>>>>>> cdf9005f05d6cc40e6df0f047ce07356a38b945b
                 ),
               ),
             ],
@@ -212,11 +205,8 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                             SizedBox(
                               width: screenHeight * 0.14,
                               height: screenHeight * 0.14,
-<<<<<<< HEAD
-                              child: const Text("Placeholder"),
-=======
-                              child:  eventLogoImage(widget.infoSession.logo, screenHeight * 0.1, screenHeight * 0.1),
->>>>>>> cdf9005f05d6cc40e6df0f047ce07356a38b945b
+                              child: eventLogoImage(widget.infoSession.logo,
+                                  screenHeight * 0.1, screenHeight * 0.1),
                             ),
                           ],
                         ),
