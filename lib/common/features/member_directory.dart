@@ -42,7 +42,9 @@ class _MemberDirectoryState extends State<MemberDirectory> {
             companyData['recruiterName'],
             companyData['recruiterTitle'],
             companyData['recruiterEmail'],
-            companyData['logo']);
+            companyData['logo'],
+            {}
+            );
         companies.add(newComp);
       });
     } catch (e) {

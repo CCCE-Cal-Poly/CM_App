@@ -1,9 +1,12 @@
+import 'package:ccce_application/common/providers/event_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ccce_application/rendered_page.dart';
 import 'package:ccce_application/common/features/sign_up.dart';
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:ccce_application/common/theme/theme.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignIn extends StatefulWidget {
   const SignIn({super.key});
@@ -53,7 +56,7 @@ class _SignInState extends State<SignIn> {
                     ),
                   ),
 
-                  Text(
+                  const Text(
                     'Cal Poly Construction\nManagement',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -68,7 +71,7 @@ class _SignInState extends State<SignIn> {
                     height: screenHeight * 0.025,
                     child: Text(
                       errorMsg,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.red,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -80,7 +83,7 @@ class _SignInState extends State<SignIn> {
                   Container(
                     width: screenWidth * 0.75,
                     height: screenHeight * 0.065,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.white,
                     ),
                     child: TextField(
@@ -100,7 +103,7 @@ class _SignInState extends State<SignIn> {
                           vertical: screenHeight * 0.015,
                           horizontal: screenWidth * 0.025,
                         ),
-                        hintStyle: TextStyle(
+                        hintStyle: const TextStyle(
                           fontSize: 16,
                           color: Colors.black,
                           fontWeight: FontWeight.bold,
@@ -115,7 +118,7 @@ class _SignInState extends State<SignIn> {
                   Container(
                     width: screenWidth * 0.75,
                     height: screenHeight * 0.065,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.white,
                     ),
                     child: TextField(
@@ -150,12 +153,12 @@ class _SignInState extends State<SignIn> {
                       onPressed: _signInFunc,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.lightGold,
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                           borderRadius: BorderRadius.zero, // No rounded corners
                         ),
                         elevation: 0, // No shadow
                       ),
-                      child: Text(
+                      child: const Text(
                         'SIGN IN',
                         style: TextStyle(
                           fontSize: 16,
@@ -173,7 +176,7 @@ class _SignInState extends State<SignIn> {
                       // Handle the tap event (e.g., navigate to sign-up page)
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(builder: (context) => SignUp()),
+                        MaterialPageRoute(builder: (context) => const SignUp()),
                       );
                     },
                     child: const Text(
@@ -198,7 +201,7 @@ class _SignInState extends State<SignIn> {
                           endIndent: screenWidth * 0.03,
                         ),
                       ),
-                      Text(
+                      const Text(
                         'OR',
                         style: TextStyle(
                           color: Colors.white,
@@ -224,12 +227,12 @@ class _SignInState extends State<SignIn> {
                       onPressed: _signInFunc,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.tanText,
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                           borderRadius: BorderRadius.zero, // No rounded corners
                         ),
                         elevation: 0, // No shadow
                       ),
-                      child: Text(
+                      child: const Text(
                         'Sign In with Google',
                         style: TextStyle(
                           fontSize: 16,
@@ -290,6 +293,12 @@ class _SignInState extends State<SignIn> {
           print("Navigating to RenderedPage...");
           if (mounted) {
             // Check if the widget is still in the tree before navigating
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('TOS', true);
+
+            final eventProvider =
+                Provider.of<EventProvider>(context, listen: false);
+            await eventProvider.fetchAllEvents();
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(

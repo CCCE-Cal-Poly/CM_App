@@ -1,9 +1,10 @@
+import 'package:ccce_application/common/collections/company.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:ccce_application/common/widgets/debug_outline.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:ccce_application/common/collections/faculty.dart';
+import 'package:ccce_application/common/collections/job.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class JobBoard extends StatefulWidget {
@@ -15,28 +16,53 @@ class JobBoard extends StatefulWidget {
   State<JobBoard> createState() => _JobBoardState();
 }
 
+  final Company exampleComp = Company(
+  'OpenAI',
+  'San Francisco, CA',
+  'We are an AI research and deployment company.',
+  'Excited to connect with talented individuals!',
+  'Sam Altman',
+  'CEO',
+  'sam.altman@openai.com',
+  'https://example.com/logo.png',
+  {},
+);
+
 class _JobBoardState extends State<JobBoard> {
   
 
   final TextEditingController _searchController = TextEditingController();
   bool _isTextEntered = false;
 
-  static List<Faculty> facultyList = [];
-  static List<Faculty> filteredFaculty = [];
+  static List<Job> jobList = [];
+  static List<Job> filteredJobs = [];
+
+  final Job testJob = Job(
+    id: 'job001',
+    company: exampleComp,
+    title: 'Marketing Intern - Fall 2025',
+    description: '''Join our dynamic marketing team this fall to assist with campaign development, social media engagement, and customer outreach strategies. You'll collaborate with senior strategists, conduct competitor research, and help design promotional content. Ideal candidates are enthusiastic, creative, and eager to learn. Some experience with Canva, Excel, or Adobe tools is preferred but not required. This is a hybrid position based in San Luis Obispo.''',
+    contactName: 'Emily Rivera',
+    contactEmail: 'emily.rivera@company.com',
+    contactPhone: '+1 (805) 555-1234',
+    contactTitle: 'Professional Manager Dude',
+    location: 'San Francisco'
+  );
   @override
   void initState() {
     super.initState();
 
-    fetchDataFromFirestore().then((facultyData) {
+    fetchDataFromFirestore().then((jobData) {
       setState(() {
-        facultyList = facultyData;
-        facultyList.sort();
+        jobList.add(testJob);
+        jobList.sort();
       });
     });
 
     // Fetch company data from a source (e.g., API call, database)
     // and populate the companies list
   }
+  
 
 
   Map<String, bool> buttonStates = {
@@ -49,7 +75,7 @@ class _JobBoardState extends State<JobBoard> {
   Widget build(BuildContext context) {
     void sortAlphabetically() {
       setState(() {
-        facultyList = facultyList.reversed.toList();
+        jobList = jobList.reversed.toList();
       });
     }
 
@@ -116,18 +142,18 @@ class _JobBoardState extends State<JobBoard> {
                         setState(() {
                           _isTextEntered = text.isNotEmpty;
                           // Clear the previously filtered companies
-                          filteredFaculty.clear();
+                          filteredJobs.clear();
 
                           // Iterate through the original list of companies if text is entered
                           if (_isTextEntered) {
-                            for (Faculty faculty in facultyList) {
+                            for (Job job in jobList) {
                               // Check if the company name starts with the entered text substring
-                              String name = faculty.fname + " " + faculty.lname;
+                              String name = job.title;
                               if (name
                                   .toLowerCase()
                                   .startsWith(text.toLowerCase())) {
                                 // If it does, add the company to the filtered list
-                                filteredFaculty.add(faculty);
+                                filteredJobs.add(job);
                               }
                             }
                           }
@@ -186,14 +212,14 @@ class _JobBoardState extends State<JobBoard> {
             Expanded(
               child: Builder(
                 builder: (context) {
-                  final List<Faculty> displayList =
-                      _isTextEntered ? filteredFaculty : facultyList;
+                  final List<Job> displayList =
+                      _isTextEntered ? filteredJobs : jobList;
 
-                  // Split into admin and faculty
-                  final List<Faculty> adminList =
-                      displayList.where((f) => f.administration).toList();
-                  final List<Faculty> facultyOnlyList =
-                      displayList.where((f) => !f.administration).toList();
+                  // Split into admin and job
+                  final List<Job> partTimeList =
+                      displayList.where((j) => j.partTime).toList();
+                  final List<Job> fullTimeList =
+                      displayList.where((j) => !j.partTime).toList();
 
                   // Combine with section headers
                   final List<Widget> sectionedList = [];
@@ -213,7 +239,7 @@ class _JobBoardState extends State<JobBoard> {
         ),
       )) : null;
       if (!(buttonStates['Part Time']!) || (buttonStates['Part Time']!&&buttonStates['Full Time']!)) {
-        if (adminList.isEmpty) {
+        if (fullTimeList.isEmpty) {
           sectionedList.add(
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
@@ -223,19 +249,19 @@ class _JobBoardState extends State<JobBoard> {
         }
         else{
         sectionedList.addAll(
-          adminList.map((f) => GestureDetector(
+          fullTimeList.map((j) => GestureDetector(
             onTap: () {
         showDialog(
           context: context,
           builder: (BuildContext context) {
-            return FacultyPopUp(
-              faculty: f, 
+            return JobPopUp(
+              job: j, 
               onClose: () => Navigator.of(context).pop(),
               );
           }
         );
       },
-      child: FacultyItem(f),
+      child: JobItem(j),
     )).toList(),
           );
       }
@@ -260,7 +286,7 @@ class _JobBoardState extends State<JobBoard> {
         ),
       )) : null;
       if (!(buttonStates['Full Time']!) || (buttonStates['Part Time']! && buttonStates['Full Time']!)){
-        if (facultyOnlyList.isEmpty) {
+        if (partTimeList.isEmpty) {
         sectionedList.add(
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
@@ -270,19 +296,19 @@ class _JobBoardState extends State<JobBoard> {
       } 
       else {
         sectionedList.addAll(
-          facultyOnlyList.map((f) => GestureDetector(
+          partTimeList.map((j) => GestureDetector(
             onTap: () {
         showDialog(
           context: context,
           builder: (BuildContext context) {
-            return FacultyPopUp(
-              faculty: f, 
+            return JobPopUp(
+              job: j, 
               onClose: () => Navigator.of(context).pop(),
               );
           },
         );
       },
-      child: FacultyItem(f),
+      child: JobItem(j),
     )).toList(),
           );
       }
@@ -303,8 +329,8 @@ class _JobBoardState extends State<JobBoard> {
     );
   }
   
-  Future<List<Faculty>> fetchDataFromFirestore() async {
-    List<Faculty> facultyList = [];
-    return facultyList;
+  Future<List<Job>> fetchDataFromFirestore() async {
+    List<Job> jobList = [];
+    return jobList;
   }
 }

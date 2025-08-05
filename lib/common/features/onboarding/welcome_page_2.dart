@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 
@@ -22,7 +23,7 @@ class WelcomePage2 extends StatelessWidget {
                 children: <Widget>[
                   Padding(
                     padding: EdgeInsets.only(
-                        top: screenHeight * 0.12, bottom: screenHeight * .08),
+                        top: screenHeight * 0.10, bottom: screenHeight * 0.075),
                     child: Image.asset(
                       'assets/icons/cal_poly_white.png',
                       scale: 0.8,
@@ -31,25 +32,24 @@ class WelcomePage2 extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: EdgeInsets.only(bottom: screenHeight * 0.05),
+                    padding: EdgeInsets.only(bottom: screenHeight * 0.045),
                     child: Image.asset('assets/icons/hardhat.png'),
                   ),
                   Padding(
-                    padding: EdgeInsets.only(top: screenHeight * 0.05),
-                    child: const Text(
+                    padding: EdgeInsets.only(top: screenHeight * 0.045),
+                    child: Text(
                       'Welcome',
                       style: TextStyle(
                           color: AppColors.tanText,
-                          fontSize: 48,
+                          fontSize: screenHeight*.06,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'SansSerifPro'),
                     ),
                   ),
                   Padding(
                     padding: EdgeInsets.only(top: screenHeight * 0.015),
-                    child: RichText(
-                      textAlign: TextAlign.center,
-                      text: const TextSpan(
+                    child: const AutoSizeText.rich(
+                      TextSpan(
                         style: TextStyle(fontSize: 18, color: Colors.white),
                         children: [
                           TextSpan(
@@ -61,7 +61,7 @@ class WelcomePage2 extends StatelessWidget {
                             style: TextStyle(color: AppColors.tanText),
                           ),
                           TextSpan(
-                            text: 'event reminders,\n',
+                            text: 'event reminders, ',
                             style: TextStyle(color: AppColors.tanText),
                           ),
                           TextSpan(
@@ -69,13 +69,16 @@ class WelcomePage2 extends StatelessWidget {
                           ),
                         ],
                       ),
+                      textAlign: TextAlign.center,
+                      maxLines: 3,
+                      minFontSize: 14,
                     ),
                   ),
                 ],
               ),
             ),
             Positioned(
-              bottom: screenHeight * 0.12,
+              bottom: screenHeight * 0.10,
               child: Column(children: [
                 Image.asset(
                   'assets/icons/two_of_three_dots.png',

@@ -1,3 +1,4 @@
+import 'package:ccce_application/common/providers/event_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ccce_application/rendered_page.dart';
@@ -6,8 +7,12 @@ import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUp extends StatefulWidget {
+  const SignUp({super.key});
+
   @override
   _SignUpState createState() => _SignUpState();
 }
@@ -54,7 +59,7 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ),
 
-                  Text(
+                  const Text(
                     'Cal Poly Construction\nManagement',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -68,7 +73,7 @@ class _SignUpState extends State<SignUp> {
                     height: screenHeight * 0.025,
                     child: Text(
                       errorMsg,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.red,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -80,7 +85,7 @@ class _SignUpState extends State<SignUp> {
                   Container(
                     width: screenWidth * 0.75,
                     height: screenHeight * 0.065,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.white,
                     ),
                     child: TextField(
@@ -100,7 +105,7 @@ class _SignUpState extends State<SignUp> {
                           vertical: screenHeight * 0.015,
                           horizontal: screenWidth * 0.025,
                         ),
-                        hintStyle: TextStyle(
+                        hintStyle: const TextStyle(
                           fontSize: 16,
                           color: Colors.black,
                           fontWeight: FontWeight.bold,
@@ -114,7 +119,7 @@ class _SignUpState extends State<SignUp> {
                   Container(
                     width: screenWidth * 0.75,
                     height: screenHeight * 0.065,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.white,
                     ),
                     child: TextField(
@@ -144,7 +149,7 @@ class _SignUpState extends State<SignUp> {
                   Container(
                     width: screenWidth * 0.75,
                     height: screenHeight * 0.065,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.white,
                     ),
                     child: TextField(
@@ -178,7 +183,7 @@ class _SignUpState extends State<SignUp> {
                       onPressed: _signUpFunc,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.lightGold,
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.zero),
                       ),
                       child: const Text(
@@ -282,6 +287,12 @@ class _SignUpState extends State<SignUp> {
         setState(() {
           errorMsg = "";
         });
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('TOS', true);
+
+        final eventProvider =
+            Provider.of<EventProvider>(context, listen: false);
+        await eventProvider.fetchAllEvents();
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
