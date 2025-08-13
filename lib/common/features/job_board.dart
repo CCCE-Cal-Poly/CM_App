@@ -17,15 +17,15 @@ class JobBoard extends StatefulWidget {
 }
 
   final Company exampleComp = Company(
-  'OpenAI',
-  'San Francisco, CA',
-  'We are an AI research and deployment company.',
-  'Excited to connect with talented individuals!',
-  'Sam Altman',
-  'CEO',
-  'sam.altman@openai.com',
-  'https://example.com/logo.png',
-  {},
+  name: 'CCCE',
+  location: 'San Luis Obispo, CA',
+  aboutMsg: 'We are CCCE.',
+  msg: 'Excited to connect with talented individuals!',
+  recruiterName: 'Jeong Woo',
+  recruiterTitle: 'Bossman',
+  recruiterEmail: 'jeong.woo@CCCE.com',
+  logo: 'https://example.com/logo.png',
+  offeredJobs: {},
 );
 
 class _JobBoardState extends State<JobBoard> {
@@ -48,6 +48,7 @@ class _JobBoardState extends State<JobBoard> {
     contactTitle: 'Professional Manager Dude',
     location: 'San Francisco'
   );
+
   @override
   void initState() {
     super.initState();
@@ -63,7 +64,9 @@ class _JobBoardState extends State<JobBoard> {
     // and populate the companies list
   }
   
-
+  void addJobtoCompany(Job job, Company comp){
+    comp.offeredJobs.add(job);
+  }
 
   Map<String, bool> buttonStates = {
   'Internship': false,
@@ -73,6 +76,7 @@ class _JobBoardState extends State<JobBoard> {
 
   @override
   Widget build(BuildContext context) {
+    addJobtoCompany(testJob, exampleComp);
     void sortAlphabetically() {
       setState(() {
         jobList = jobList.reversed.toList();

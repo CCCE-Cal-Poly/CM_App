@@ -1,3 +1,4 @@
+import 'package:ccce_application/common/features/verification_screen.dart';
 import 'package:ccce_application/common/providers/event_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -286,19 +287,14 @@ class _SignUpState extends State<SignUp> {
       if (userCredential.user != null) {
         setState(() {
           errorMsg = "";
-        });
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('TOS', true);
+        }
+        );
+        
+        await userCredential.user!.sendEmailVerification();
 
-        final eventProvider =
-            Provider.of<EventProvider>(context, listen: false);
-        await eventProvider.fetchAllEvents();
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => const MaterialApp(
-                home: Scaffold(appBar: GoldAppBar(), body: RenderedPage())),
-          ),
+          MaterialPageRoute(builder: (_) => const EmailVerificationScreen()),
         );
       }
     } catch (e) {

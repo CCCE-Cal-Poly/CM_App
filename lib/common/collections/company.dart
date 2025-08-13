@@ -3,7 +3,9 @@ import 'package:ccce_application/common/collections/favoritable.dart';
 import 'package:ccce_application/common/collections/job.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/providers/app_state.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
 class Company extends Favoritable implements Comparable<Company> {
@@ -16,12 +18,37 @@ class Company extends Favoritable implements Comparable<Company> {
   dynamic recruiterEmail;
   String? logo;
   Set<Job> offeredJobs;
-  Company(this.name, this.location, this.aboutMsg, this.msg, this.recruiterName,
-      this.recruiterTitle, this.recruiterEmail, this.logo, this.offeredJobs);
+
+  Company({
+      this.name, 
+      this.location, 
+      this.aboutMsg, 
+      this.msg, 
+      this.recruiterName,
+      this.recruiterTitle, 
+      this.recruiterEmail, 
+      this.logo, 
+      required this.offeredJobs});
 
   @override
   int compareTo(Company other) {
     return (name.toLowerCase().compareTo(other.name.toLowerCase()));
+  }
+
+  factory Company.fromSnapshot(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+
+    return Company(
+      name: data['name'] ?? '',
+      location: data['location'] ?? '',
+      aboutMsg: data['about'] ?? '',
+      msg: data['msg'] ?? '',
+      recruiterName: data['recruiterName'] ?? '',
+      recruiterTitle: data['recruiterTitle'] ?? '',
+      recruiterEmail: data['recruiterEmail'] ?? '',
+      logo: data['logo'] ?? '',
+      offeredJobs: {}
+    );
   }
 }
 
@@ -52,7 +79,6 @@ class CompanyItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double screenHeight = MediaQuery.of(context).size.height;
     double screenWidth = MediaQuery.of(context).size.width;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -400,9 +426,6 @@ class _CompanyPopupState extends State<CompanyPopup> {
                       size: 24, // Adjust the size of the icon as needed
                       color: Colors.white, // Add your desired icon color
                     ),
-                    const SizedBox(
-                      width: 10,
-                    ), // Add space between icon and text
                     Text(
                       widget.company.recruiterEmail ?? 'No Email',
                       style: const TextStyle(
@@ -414,11 +437,11 @@ class _CompanyPopupState extends State<CompanyPopup> {
                 ),
                 // Divider between the first section and the rest
                 SizedBox(
-                  height: screenHeight * .03,
+                  height: screenHeight * .01,
                 ),
                 // Second Section (About)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  padding: const EdgeInsets.only(bottom: 8.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -473,7 +496,31 @@ class _CompanyPopupState extends State<CompanyPopup> {
                     ],
                   ),
                 ),
-                ...(widget.company.offeredJobs.isNotEmpty ? widget.company.offeredJobs.map((job) => buildItemButton(job)).toList() : [])
+                if (widget.company.offeredJobs.isNotEmpty) ...[
+                const Divider(
+                  color: Colors.white,
+                  thickness: 1.1,
+                ),
+                // Third Section (Message)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8.0, bottom: 4.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Job List",
+                        style: TextStyle(
+                          color: AppColors.lightGold,
+                          fontSize: 22.0,
+                          fontWeight: FontWeight.w400,
+                          fontFamily: AppFonts.sansProSemiBold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ), 
+                ...(widget.company.offeredJobs.map((job) => buildItemButton(job)).toList())
+                ]
               ],
             ),
           ),
@@ -486,6 +533,14 @@ class _CompanyPopupState extends State<CompanyPopup> {
     return Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white, // button background
+        foregroundColor: AppColors.calPolyGreen, // text color
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero, // pill shape
+        ),
+      ),
       onPressed: () {
         Navigator.of(context).push(
           MaterialPageRoute(
