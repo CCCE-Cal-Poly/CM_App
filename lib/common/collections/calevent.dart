@@ -25,7 +25,7 @@ class CalEvent {
   DateTime startTime;
   DateTime endTime;
   String eventLocation;
-  String? eventType;
+  String eventType;
   String? logo;
   InfoSessionData? isd;
 
@@ -35,7 +35,7 @@ class CalEvent {
       required this.startTime,
       required this.endTime,
       required this.eventLocation,
-      this.eventType,
+      required this.eventType,
       this.logo,
       this.isd});
 

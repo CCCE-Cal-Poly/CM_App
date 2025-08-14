@@ -7,6 +7,10 @@ import 'package:ccce_application/common/widgets/debug_outline.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import 'package:ccce_application/common/providers/user_provider.dart';
+import 'package:ccce_application/common/collections/user_data.dart';
+import 'package:ccce_application/common/features/edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -18,18 +22,13 @@ class ProfileScreen extends StatefulWidget {
 
 class ProfileScreenState extends State<ProfileScreen> {
   final String title = 'CM Home';
-  static const calPolyGreen = Color(0xFF003831);
-  static const calPolyGold = Color(0xFFFFCC33);
-  static const tanColor = Color(0xFFcecca0);
-  //static const appBackgroundColor = Color(0xFFE4E3D3);
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
-  final _schoolYearController = TextEditingController();
-  final _companyController = TextEditingController();
+  String firstName = '';
+  String lastName = '';
+  String schoolYear = '';
+  String company = '';
+
   static dynamic curUser;
   static dynamic curUserData;
-
-  bool _editMode = false; // Indicates whether the page is in edit mode
 
   @override
   void initState() {
@@ -42,132 +41,28 @@ class ProfileScreenState extends State<ProfileScreen> {
     // Load user data and update the text controllers
     curUser = FirebaseAuth.instance.currentUser;
     if (curUser != null) {
+      // Load user profile via UserProvider
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Provider.of<UserProvider>(context, listen: false)
+              .loadUserProfile(curUser.uid);
+        }
+      });
+
       FirebaseFirestore.instance
           .collection('users')
           .doc(curUser.uid)
           .get()
           .then((snapshot) {
-        if (snapshot.exists) {
+        if (mounted && snapshot.exists) {
           curUserData = snapshot.data() as Map<String, dynamic>;
-          _firstNameController.text = curUserData['firstName'] ?? '';
-          _lastNameController.text = curUserData['lastName'] ?? '';
-          _schoolYearController.text = curUserData['schoolYear'] ?? '';
-          _companyController.text = curUserData['company'] ?? '';
+          firstName = curUserData['firstName'] ?? '';
+          lastName = curUserData['lastName'] ?? '';
+          schoolYear = curUserData['schoolYear'] ?? '';
+          company = curUserData['company'] ?? '';
         }
       });
     }
-  }
-
-  Row editButtonBuild() {
-    List<Widget> children = [
-      ElevatedButton(
-        style: ElevatedButton.styleFrom(backgroundColor: calPolyGreen),
-        onPressed: () async {
-          setState(() {
-            _editMode = !_editMode;
-          });
-          // Retrieve values from form fields
-          final firstName = _firstNameController.text;
-          final lastName = _lastNameController.text;
-          final schoolYear = _schoolYearController.text;
-          final company = _companyController.text;
-
-          // Get the user ID
-          String? userID = curUser.uid;
-          String? email = curUser.email;
-
-          // Check if any field is empty
-          if (firstName.isEmpty ||
-              lastName.isEmpty ||
-              schoolYear.isEmpty ||
-              company.isEmpty) {
-            // Show a popup (dialog)
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: const Text('Error'),
-                  content: const Text('Please fill out all fields.'),
-                  actions: <Widget>[
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop(); // Close the dialog
-                      },
-                      child: const Text('OK'),
-                    ),
-                  ],
-                );
-              },
-            );
-            return;
-          }
-          try {
-            // Get a reference to the users collection
-            final userCollection =
-                FirebaseFirestore.instance.collection('users');
-
-            // Create a new user document with the entered data
-            // Merge: true creates new user if user doesnt exist, modifies if this user already existsLamk
-            await userCollection.doc(userID).set({
-              'email': email,
-              'firstName': firstName,
-              'lastName': lastName,
-              'schoolYear': schoolYear,
-              'company': company,
-            }, SetOptions(merge: true));
-
-            // Show a success message
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('User edited successfully!'),
-            ));
-          } catch (e) {
-            // Handle errors
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Error creating user. Please try again later.'),
-            ));
-          }
-        },
-        child: const Text(
-          'Submit',
-          style: TextStyle(color: Colors.white),
-        ),
-      ),
-      const SizedBox(width: 16), // Adding some space between buttons
-      ElevatedButton(
-        style: ElevatedButton.styleFrom(backgroundColor: calPolyGold),
-        onPressed: () async {
-          await FirebaseAuth.instance.signOut();
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const SignIn()),
-            (route) => false,
-          );
-        },
-        child: const Text('Confirm', style: TextStyle(color: Colors.black)),
-      ),
-    ];
-
-    return Row(
-      children: [
-        for (int i = 0; i < children.length; i++)
-          if ((i != 0 && i != 1) || _editMode)
-            children[i], // Hide first child if flag is true
-      ],
-    );
-  }
-
-  TextFormField createProfileAttributeField(
-      String label, TextEditingController controller) {
-    return TextFormField(
-      controller: controller,
-      enabled: _editMode,
-      decoration: InputDecoration(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
-        labelText: label,
-        border: InputBorder.none,
-      ),
-    );
   }
 
   Container createProfileAttributeContainer(
@@ -176,7 +71,7 @@ class ProfileScreenState extends State<ProfileScreen> {
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(10.0),
-          border: Border.all(color: calPolyGreen),
+          border: Border.all(color: AppColors.calPolyGreen),
         ),
         child: attributeField);
   }
@@ -186,19 +81,18 @@ class ProfileScreenState extends State<ProfileScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
-        backgroundColor: AppColors.calPolyGreen,
-        body: Padding(
-            padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20),
-            child: Column(
-                mainAxisSize: MainAxisSize.max,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
-                  SizedBox(height: screenHeight * 0.04),
-                  Padding(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
-                    child: Column(
+      backgroundColor: AppColors.calPolyGreen,
+      body: Padding(
+        padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20),
+        child: Column(
+            mainAxisSize: MainAxisSize.max,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
+              SizedBox(height: screenHeight * 0.04),
+              Padding(
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
+                  child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
@@ -210,32 +104,100 @@ class ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         SizedBox(height: screenHeight * 0.02),
-                        Divider(
-                          color: Colors.white,
-                          indent: screenWidth * 0.06,
-                          endIndent: screenWidth * 0.06,
-                        ),
-                        SizedBox(height: screenHeight * 0.02),
-                        SizedBox(
-                          height: screenHeight * 0.07,
-                          child: Row(
-                            children: [
-                              CircleAvatar(
+                      ])),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(children: [
+                    Divider(
+                      color: Colors.white,
+                      indent: screenWidth * 0.06,
+                      endIndent: screenWidth * 0.06,
+                    ),
+                    SizedBox(height: screenHeight * 0.02),
+                    SizedBox(
+                      height: screenHeight * 0.07,
+                      child: Row(
+                        children: [
+                          Consumer<UserProvider>(
+                            builder: (context, userProvider, child) {
+                              UserData? userData = userProvider.user;
+                              User? currentUser =
+                                  FirebaseAuth.instance.currentUser;
+
+                              // Determine profile image source
+                              ImageProvider profileImage;
+                              if (userData?.profilePictureUrl != null &&
+                                  userData!.profilePictureUrl!.isNotEmpty) {
+                                profileImage =
+                                    NetworkImage(userData.profilePictureUrl!);
+                              } else if (currentUser?.photoURL != null &&
+                                  currentUser!.photoURL!.isNotEmpty) {
+                                profileImage =
+                                    NetworkImage(currentUser.photoURL!);
+                              } else {
+                                profileImage = AssetImage(
+                                    'assets/icons/default_profile.png');
+                              }
+
+                              return CircleAvatar(
                                 radius: (screenHeight * 0.07) / 2,
-                                backgroundImage: AssetImage(
-                                    'assets/icons/default_profile.png'),
-                              ),
-                              const SizedBox(width: 8.0),
-                              Expanded(
-                                child: SizedBox(
-                                  height: screenHeight * 0.07,
-                                  child: const Column(
+                                backgroundImage: profileImage,
+                                onBackgroundImageError: (_, __) {
+                                  // Fallback to default image on error
+                                },
+                                child: userData?.profilePictureUrl != null ||
+                                        currentUser?.photoURL != null
+                                    ? null
+                                    : null, // Let backgroundImage handle it
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 8.0),
+                          Expanded(
+                            child: SizedBox(
+                              height: screenHeight * 0.07,
+                              child: Consumer<UserProvider>(
+                                builder: (context, userProvider, child) {
+                                  UserData? userData = userProvider.user;
+                                  User? currentUser =
+                                      FirebaseAuth.instance.currentUser;
+
+                                  // Get display name - priority: Firestore name > Firebase Auth name > fallback
+                                  String displayName = '';
+                                  if (userData != null &&
+                                      userData.name.trim().isNotEmpty) {
+                                    displayName = userData.name.trim();
+                                  } else {
+                                    displayName = 'User Name';
+                                  }
+
+                                  String displayRole = '';
+                                  if (userData != null &&
+                                      userData.role.trim().isNotEmpty) {
+                                    displayRole = userData.role.trim();
+                                  } else {
+                                    displayRole = '';
+                                  }
+
+                                  // Get email - priority: Firestore email > Firebase Auth email > fallback
+                                  String displayEmail = '';
+                                  if (userData != null &&
+                                      userData.email.trim().isNotEmpty) {
+                                    displayEmail = userData.email.trim();
+                                  } else if (currentUser?.email != null &&
+                                      currentUser!.email!.trim().isNotEmpty) {
+                                    displayEmail = currentUser.email!.trim();
+                                  } else {
+                                    displayEmail = 'user@example.com';
+                                  }
+
+                                  return Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
                                       Flexible(
                                         child: AutoSizeText(
-                                          "Clark Johnson Cleary Cleary",
+                                          displayName,
                                           maxLines: 2,
                                           minFontSize: 7,
                                           style: TextStyle(
@@ -246,8 +208,15 @@ class ProfileScreenState extends State<ProfileScreen> {
                                               fontSize: 16),
                                         ),
                                       ),
-                                      AutoSizeText(
-                                          "lamkinlamkinlamkinlamkin@gmail.com",
+                                      if (displayRole.isNotEmpty)
+                                        AutoSizeText(displayRole,
+                                            maxLines: 1,
+                                            minFontSize: 7,
+                                            style: TextStyle(
+                                              color: AppColors.tanText,
+                                              fontSize: 12,
+                                            )),
+                                      AutoSizeText(displayEmail,
                                           maxLines: 1,
                                           minFontSize: 7,
                                           style: TextStyle(
@@ -258,45 +227,186 @@ class ProfileScreenState extends State<ProfileScreen> {
                                               decorationColor:
                                                   AppColors.tanText))
                                     ],
-                                  ),
-                                ),
-                              )
-                            ],
-                          ),
-                        ),
-                        ElevatedButton(
+                                  );
+                                },
+                              ),
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: screenHeight * 0.02),
+                    Center(
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.darkGoldText,
-                          ),
+                              backgroundColor: AppColors.yellowButton,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.zero)),
                           onPressed: () {
-                            Navigator.push(
-                              context,
+                            Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (context) => Scaffold(
-                                  appBar: AppBar(
-                                    title: const Text("My Info Sessions",
-                                        style: TextStyle(
-                                            fontFamily:
-                                                AppFonts.sansProSemiBold,
-                                            color: AppColors.welcomeLightYellow,
-                                            fontWeight: FontWeight.w600)),
-                                    backgroundColor: AppColors.calPolyGreen,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  backgroundColor: AppColors.calPolyGreen,
-                                  body: buildInfoSessionDisplay(context),
-                                ),
+                                builder: (context) => const EditProfileScreen(),
                               ),
                             );
                           },
-                          child: const Text(
-                            "My Info Sessions",
-                            style: TextStyle(color: Colors.white),
+                          child: Text(
+                            "EDIT",
+                            style: TextStyle(color: Colors.black),
                           ),
-                        )
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: screenHeight * 0.02),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Divider(
+                            color: Colors.white,
+                            height: 10,
+                            indent: screenWidth * 0.04,
+                            endIndent: screenWidth * 0.04,
+                          ),
+                        ),
+                        Image.asset(
+                          "assets/icons/hardhat.png",
+                          height: screenWidth * 0.06,
+                        ),
+                        Expanded(
+                          child: Divider(
+                            color: Colors.white,
+                            height: 10,
+                            indent: screenWidth * 0.04,
+                            endIndent: screenWidth * 0.04,
+                          ),
+                        ),
                       ],
                     ),
-                  )
-                ])));
+                    SizedBox(height: screenHeight * 0.02),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.yellowButton,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero),
+                        minimumSize:
+                            Size(double.infinity, 48), // Forces full width
+                      ),
+                      onPressed: () async {
+                        await FirebaseAuth.instance.signOut();
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Text("Log Out",
+                              style: TextStyle(color: Colors.black)),
+                          Icon(Icons.arrow_forward, color: Colors.black),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: screenHeight * 0.01),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.yellowButton,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero),
+                        minimumSize:
+                            Size(double.infinity, 48), // Forces full width
+                      ),
+                      onPressed: () => print("hi"),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Text("About", style: TextStyle(color: Colors.black)),
+                          Icon(Icons.arrow_forward, color: Colors.black),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: screenHeight * 0.01),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.yellowButton,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero),
+                        minimumSize:
+                            Size(double.infinity, 48), // Forces full width
+                      ),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => Scaffold(
+                            appBar: AppBar(
+                              title: const Text("My Info Sessions",
+                                  style: TextStyle(
+                                      fontFamily: AppFonts.sansProSemiBold,
+                                      color: AppColors.welcomeLightYellow,
+                                      fontWeight: FontWeight.w600)),
+                              backgroundColor: AppColors.calPolyGreen,
+                              foregroundColor: Colors.white,
+                            ),
+                            backgroundColor: AppColors.calPolyGreen,
+                            body: buildInfoSessionDisplay(context),
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Text("My Info Sessions",
+                              style: TextStyle(color: Colors.black)),
+                          Icon(Icons.arrow_forward, color: Colors.black),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: screenHeight * 0.01),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.yellowButton,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero),
+                        minimumSize:
+                            Size(double.infinity, 48), // Forces full width
+                      ),
+                      onPressed: () => print("hi"),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Text("Club Preferences",
+                              style: TextStyle(color: Colors.black)),
+                          Icon(Icons.arrow_forward, color: Colors.black),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: screenHeight * 0.01),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.yellowButton,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero),
+                        minimumSize:
+                            Size(double.infinity, 48), // Forces full width
+                      ),
+                      onPressed: () => print("hi"),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Text("Industry Preferences",
+                              style: TextStyle(color: Colors.black)),
+                          Icon(Icons.arrow_forward, color: Colors.black),
+                        ],
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ]),
+      ),
+    );
   }
 }

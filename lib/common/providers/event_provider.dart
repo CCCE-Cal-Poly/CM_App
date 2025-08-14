@@ -27,6 +27,7 @@ class EventProvider extends ChangeNotifier {
           print("✅ Loaded event");
           _allEvents.add(event);
         } catch (e) {
+          print(e);
           print("⚠️ Failed to parse event doc");
         }
       }

@@ -1,4 +1,5 @@
 import 'package:ccce_application/common/collections/calevent.dart';
+import 'package:ccce_application/common/features/sign_in.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:ccce_application/rendered_page.dart';
@@ -14,6 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:ccce_application/common/providers/app_state.dart';
 import 'package:ccce_application/common/providers/event_provider.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
+import 'package:ccce_application/common/providers/club_provider.dart';
 
 // import 'package:isar/isar.dart';
 // import 'package:ccce_application/src/screens/profile_screen.dart';
@@ -55,6 +57,7 @@ Future<void> main() async {
         ChangeNotifierProvider<AppState>(create: (_) => AppState()),
         ChangeNotifierProvider<EventProvider>(create: (_) => EventProvider()),
         ChangeNotifierProvider<UserProvider>(create: (_) => UserProvider()),
+        ChangeNotifierProvider<ClubProvider>(create: (_) => ClubProvider()),
       ],
       child: const MyApp(),
     ),
@@ -85,7 +88,6 @@ class MyApp extends StatelessWidget {
           );
         }
         final tosAccepted = snapshot.data!;
-        print("TOS: " + tosAccepted.toString());
         if (!tosAccepted) {
           return const MaterialApp(
             home: Scaffold(
@@ -96,24 +98,36 @@ class MyApp extends StatelessWidget {
         return StreamBuilder<User?>(
           stream: FirebaseAuth.instance.authStateChanges(),
           builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircularProgressIndicator();
+            }
             if (!snapshot.hasData) {
-              // LOOK INTO THIS
+              // User is not signed in, show sign-in screen
               return const MaterialApp(
-                home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
+                home: SignIn(), // <-- Replace with your sign-in screen widget
               );
             }
+            // User is signed in, load user profile data and clubs
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Provider.of<UserProvider>(context, listen: false)
+                  .loadUserProfile(snapshot.data!.uid);
+              Provider.of<ClubProvider>(context, listen: false).loadClubs();
+            });
+
+            // User is signed in, check if eventProvider is loaded
             return Consumer<EventProvider>(
               builder: (context, eventProvider, child) {
                 if (!eventProvider.isLoaded) {
                   return const MaterialApp(
                     home: Scaffold(
-                        backgroundColor: AppColors.calPolyGreen,
-                        body: Center(
-                            child: CircularProgressIndicator(
-                          color: Colors.white,
-                        ))),
+                      backgroundColor: AppColors.calPolyGreen,
+                      body: Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      ),
+                    ),
                   );
                 }
+                // User is signed in and events are loaded, show main app
                 return const MaterialApp(
                   home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
                 );
