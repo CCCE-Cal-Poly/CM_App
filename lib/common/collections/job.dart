@@ -1,145 +1,141 @@
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:ccce_application/common/collections/company.dart';
 import 'package:ccce_application/common/collections/favoritable.dart';
-import 'package:ccce_application/common/collections/job.dart';
-import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/providers/app_state.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ccce_application/common/theme/theme.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
-class Company extends Favoritable implements Comparable<Company> {
-  dynamic name;
-  dynamic location;
-  dynamic aboutMsg;
-  dynamic msg;
-  dynamic recruiterName;
-  dynamic recruiterTitle;
-  dynamic recruiterEmail;
-  String? logo;
-  Set<Job> offeredJobs;
-
-  Company({
-      this.name, 
-      this.location, 
-      this.aboutMsg, 
-      this.msg, 
-      this.recruiterName,
-      this.recruiterTitle, 
-      this.recruiterEmail, 
-      this.logo, 
-      required this.offeredJobs});
-
-  @override
-  int compareTo(Company other) {
-    return (name.toLowerCase().compareTo(other.name.toLowerCase()));
-  }
-
-  factory Company.fromSnapshot(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-
-    return Company(
-      name: data['name'] ?? '',
-      location: data['location'] ?? '',
-      aboutMsg: data['about'] ?? '',
-      msg: data['msg'] ?? '',
-      recruiterName: data['recruiterName'] ?? '',
-      recruiterTitle: data['recruiterTitle'] ?? '',
-      recruiterEmail: data['recruiterEmail'] ?? '',
-      logo: data['logo'] ?? '',
-      offeredJobs: {}
-    );
-  }
-}
-
-class CompanyItem extends StatelessWidget {
-  final Company company;
-
-  const CompanyItem(this.company, {Key? key}) : super(key: key);
-
-  Widget clubLogoImage(String? url, double width, double height) {
+Widget jobLogoImage(String? url, double width, double height) {
     if (url == null || url.isEmpty) {
       return Icon(Icons.broken_image, size: height, color: Colors.grey);
     }
     return ClipOval(
-        child: Container(
-      width: width,
-      height: height,
-      color: Colors.white,
-      child: FittedBox(
-        fit: BoxFit.contain,
-        child: Image.network(
-          url,
-          width: width,
-          height: height,
-        ),
+      child: Image.network(
+        url,
+        width: width,
+        height: height,
+        fit: BoxFit.cover, // Ensures the image fills the circle
       ),
-    ));
+    );
   }
+
+class Job extends Favoritable {
+  final String id;
+  final Company company;
+  final String title;
+  final String description;
+  final String contactName;
+  final String contactEmail;
+  final String contactPhone;
+  final String contactTitle;
+  final String location;
+  final String? logo;
+  final bool partTime;
+  final bool internship;
+
+  Job({
+    required this.id,
+    required this.company,
+    required this.title,
+    required this.description,
+    required this.contactName,
+    required this.contactEmail,
+    required this.contactPhone,
+    required this.contactTitle,
+    required this.location,
+    this.logo,
+    this.partTime = false,
+    this.internship = false,
+  });
+}
+
+class JobItem extends StatelessWidget {
+  final Job job;
+
+  const JobItem(this.job, {Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    double screenHeight = MediaQuery.of(context).size.height;
     double screenWidth = MediaQuery.of(context).size.width;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.black),
-          borderRadius: BorderRadius.zero,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              spreadRadius: 1,
-              blurRadius: 2,
-              offset: const Offset(0, 2), // changes position of shadow
+    return Card(
+      color: Colors.white,
+      shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero,
             ),
-          ],
-        ),
-        child: Column(
+      elevation: 2,
+      margin: const EdgeInsets.all(12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ListTile(
-              leading: Container(
-                width: screenWidth * .11,
-                height: screenWidth * .11,
-                decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.transparent,
-                    border: Border.fromBorderSide(
-                      BorderSide(color: Colors.black, width: .5),
-                    )),
-                child: Padding(
-                  padding: const EdgeInsets.all(1.0),
-                  child: ClipOval(
-                    child: clubLogoImage(
-                        company.logo, screenWidth * .09, screenWidth * .09),
-                  ),
-                ),
-              ),
-              title: AutoSizeText(
-                company.name,
-                style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600),
-                minFontSize: 12,
-                maxLines: 1,
-              ),
-              subtitle: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+            // Left: Logo
+            jobLogoImage(
+              job.logo, screenWidth*.1, screenWidth*.1
+            ),
+            const SizedBox(width: 12),
+    
+            // Center: Job Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.location_on,
-                      color: AppColors.lightGold, size: 16),
-                  const SizedBox(width: 2),
-                  AutoSizeText(
-                    company.location,
-                    style: const TextStyle(
-                        color: AppColors.lightGold,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600),
-                    minFontSize: 10,
-                    maxLines: 1,
+                  // Top row: Title and arrow
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        job.title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const Icon(Icons.arrow_forward),
+                    ],
                   ),
+                  const SizedBox(height: 4),
+                  
+                  // Pay + Location
+                  const Text(
+                    "\$20–25/hr | Austin, TX",
+                   style: TextStyle(
+                      color: AppColors.darkGoldText,
+                      fontSize: 12,
+                      fontFamily: AppFonts.sansProSemiBold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+    
+                  // Description (truncated)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16, bottom: 6),
+                    child: Text(
+                      job.description,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 14,
+                        fontFamily: AppFonts.sansProSemiBold,
+                        fontWeight: FontWeight.w500
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 3,
+                    ),
+                  ),
+                   job.internship ? Padding(
+                     padding: const EdgeInsets.symmetric(vertical: 6.0),
+                     child: Container(
+                       color: AppColors.kennedyGreen,
+                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
+                       child: const Text('Internship',
+                       style: TextStyle(
+                         color: Colors.black,
+                         fontSize: 11,
+                         fontWeight: FontWeight.w500,
+                         fontFamily: AppFonts.sansProSemiBold
+                       ),
+                       ),
+                     ),
+                   ) : const SizedBox.shrink(),
                 ],
               ),
             ),
@@ -150,45 +146,23 @@ class CompanyItem extends StatelessWidget {
   }
 }
 
-class CompanyPopup extends StatefulWidget {
-  final Company company;
+class JobPopUp extends StatefulWidget {
+  final Job job;
+
   final VoidCallback onClose;
 
-  const CompanyPopup({required this.company, required this.onClose, Key? key})
+  const JobPopUp({required this.job, required this.onClose, Key? key})
       : super(key: key);
-
+  
   @override
-  State<CompanyPopup> createState() => _CompanyPopupState();
+  JobPopUpState createState() => JobPopUpState();
 }
 
-class _CompanyPopupState extends State<CompanyPopup> {
-  String getRecName() {
-    return widget.company.recruiterName;
-  }
-
-  Widget clubLogoImage(String? url, double width, double height) {
-    if (url == null || url.isEmpty) {
-      return Icon(Icons.broken_image, size: height, color: Colors.grey);
-    }
-    return ClipOval(
-      child: Container(
-        width: width,
-        height: height,
-        color: Colors.white,
-        child: FittedBox(
-          fit: BoxFit.contain,
-          child: Image.network(
-            url,
-            width: width,
-            height: height,
-          ),
-        ),
-      ),
-    );
-  }
+class JobPopUpState extends State<JobPopUp>{
 
   @override
   Widget build(BuildContext context) {
+    final job = widget.job;
     double screenHeight = MediaQuery.of(context).size.height;
     double screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
@@ -216,7 +190,7 @@ class _CompanyPopupState extends State<CompanyPopup> {
                             IconButton(
                               icon: const Icon(Icons.arrow_back,
                                   color: Colors.black),
-                              onPressed: widget.onClose,
+                              onPressed: () {Navigator.of(context).pop();},
                             ),
                           ],
                         ),
@@ -237,7 +211,7 @@ class _CompanyPopupState extends State<CompanyPopup> {
                                     Border.all(color: Colors.black, width: 1),
                               ),
                               child: Center(
-                                child: clubLogoImage(widget.company.logo,
+                                child: jobLogoImage(job.logo,
                                     screenWidth * .1, screenWidth * .1),
                               ),
                             ),
@@ -250,7 +224,7 @@ class _CompanyPopupState extends State<CompanyPopup> {
                         child: Column(
                           children: [
                             Text(
-                              widget.company.name,
+                              job.company.name,
                               style: const TextStyle(
                                 fontSize: 24.0,
                                 fontWeight: FontWeight.bold,
@@ -258,7 +232,7 @@ class _CompanyPopupState extends State<CompanyPopup> {
                               ),
                             ),
                             Text(
-                              widget.company.location,
+                              job.title,
                               style: const TextStyle(
                                 fontSize: 16.0,
                                 color: AppColors.darkGoldText,
@@ -270,11 +244,12 @@ class _CompanyPopupState extends State<CompanyPopup> {
                               child: SizedBox(
                                 width: screenWidth * .5,
                                 height: screenHeight * .05,
-                                child: ElevatedButton(
+                                child: Consumer<AppState>(
+                                  builder: (context, appState, child) {
+                                  final isFavorite = appState.isFavorite(job);
+                                  return ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: context
-                                            .read<AppState>()
-                                            .isFavorite(widget.company)
+                                    backgroundColor: isFavorite
                                         ? Colors.grey
                                         : AppColors.calPolyGreen,
                                     shape: const RoundedRectangleBorder(
@@ -283,24 +258,17 @@ class _CompanyPopupState extends State<CompanyPopup> {
                                     elevation: 0,
                                   ),
                                   onPressed: () {
-                                    // Interact with provider to add/remove favorite
-                                    setState(() {
-                                      if (context
-                                          .read<AppState>()
-                                          .isFavorite(widget.company)) {
+                                    if (isFavorite) {
                                         context
                                             .read<AppState>()
-                                            .removeFavorite(widget.company);
+                                            .removeFavorite(job);
                                       } else {
                                         context
                                             .read<AppState>()
-                                            .addFavorite(widget.company);
+                                            .addFavorite(job);
                                       }
-                                    });
-                                  },
-                                  child: context
-                                          .read<AppState>()
-                                          .isFavorite(widget.company)
+                                },
+                                child: isFavorite
                                       ? const Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
@@ -334,9 +302,33 @@ class _CompanyPopupState extends State<CompanyPopup> {
                                           minFontSize: 10,
                                           maxLines: 1,
                                         ),
+                                  );
+                                  }
                                 ),
                               ),
                             ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => CompanyPopup(company: job.company, onClose: () {Navigator.of(context).pop();},),
+                                  ),
+                                );
+                              },
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero, // Removes extra padding
+                                minimumSize: const Size(0, 0),  // Prevents fixed height
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap, // Shrinks hitbox
+                              ),
+                              child: const Text(
+                                'View Company',
+                                style: TextStyle(
+                                  decoration: TextDecoration.underline,
+                                  color: Color.fromARGB(255, 149, 188, 220), // Or any color you want
+                                  fontSize: 14,
+                                ),
+                              ),
+                            )
                           ],
                         ),
                       ),
@@ -392,7 +384,7 @@ class _CompanyPopupState extends State<CompanyPopup> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               AutoSizeText(
-                                widget.company.recruiterName,
+                                job.contactName,
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 18.0,
@@ -402,7 +394,7 @@ class _CompanyPopupState extends State<CompanyPopup> {
                                 maxLines: 1,
                               ),
                               AutoSizeText(
-                                widget.company.recruiterTitle,
+                                job.contactTitle,
                                 style: const TextStyle(
                                   color: AppColors.darkGoldText,
                                   fontSize: 14.0,
@@ -418,36 +410,59 @@ class _CompanyPopupState extends State<CompanyPopup> {
                     ),
                   ),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Column(
                   children: [
-                    const Icon(
-                      Icons.mail,
-                      size: 24, // Adjust the size of the icon as needed
-                      color: Colors.white, // Add your desired icon color
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.mail,
+                          size: 24, // Adjust the size of the icon as needed
+                          color: Colors.white, // Add your desired icon color
+                        ),
+                        const SizedBox(
+                          width: 10,
+                        ), // Add space between icon and text
+                        Text(
+                          job.contactEmail ?? 'No Email',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18.0,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      widget.company.recruiterEmail ?? 'No Email',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18.0,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.phone,
+                          size: 24, // Adjust the size of the icon as needed
+                          color: Colors.white, // Add your desired icon color
+                        ),
+                        const SizedBox(
+                          width: 10,
+                        ), // Add space between icon and text
+                        Text(
+                          job.contactPhone ?? 'No Phone Number',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18.0,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                // Divider between the first section and the rest
-                SizedBox(
-                  height: screenHeight * .01,
-                ),
                 // Second Section (About)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
-                        "About",
+                        "Description",
                         style: TextStyle(
                           color: AppColors.lightGold,
                           fontSize: 22.0,
@@ -457,7 +472,7 @@ class _CompanyPopupState extends State<CompanyPopup> {
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        widget.company.aboutMsg,
+                        job.description,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16.0,
@@ -477,7 +492,7 @@ class _CompanyPopupState extends State<CompanyPopup> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "Message",
+                        "Company Message",
                         style: TextStyle(
                           color: AppColors.lightGold,
                           fontSize: 22.0,
@@ -487,7 +502,7 @@ class _CompanyPopupState extends State<CompanyPopup> {
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        widget.company.msg,
+                        job.company.msg,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16.0,
@@ -496,60 +511,11 @@ class _CompanyPopupState extends State<CompanyPopup> {
                     ],
                   ),
                 ),
-                if (widget.company.offeredJobs.isNotEmpty) ...[
-                const Divider(
-                  color: Colors.white,
-                  thickness: 1.1,
-                ),
-                // Third Section (Message)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8.0, bottom: 4.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Job List",
-                        style: TextStyle(
-                          color: AppColors.lightGold,
-                          fontSize: 22.0,
-                          fontWeight: FontWeight.w400,
-                          fontFamily: AppFonts.sansProSemiBold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ), 
-                ...(widget.company.offeredJobs.map((job) => buildItemButton(job)).toList())
-                ]
               ],
             ),
           ),
         ],
       ),
     );
-  }
-  
-  Widget buildItemButton(Job job) {
-    return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white, // button background
-        foregroundColor: AppColors.calPolyGreen, // text color
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero, // pill shape
-        ),
-      ),
-      onPressed: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => JobPopUp(job: job, onClose: () {Navigator.of(context).pop();}),
-          ),
-        );
-      },
-      child: Text(job.title),
-    ),
-  );
   }
 }

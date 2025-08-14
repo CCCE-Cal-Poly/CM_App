@@ -1,3 +1,5 @@
+import 'package:ccce_application/common/collections/favoritable.dart';
+import 'package:ccce_application/common/collections/job.dart';
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/company.dart';
 import 'package:ccce_application/common/collections/club.dart';
@@ -5,32 +7,45 @@ import 'package:ccce_application/common/collections/calevent.dart';
 
 class AppState extends ChangeNotifier {
   Set<Company>? favoriteCompanies;
+  Set<Job>? favoriteJobs;
   Set<Club>? joinedClubs;
   Set<CalEvent>? checkedInSessions;
   Set<CalEvent>? calendarEvents;
 
   AppState({
     Set<Company>? favoriteCompanies,
+    Set<Job>? favoriteJobs,
     Set<Club>? joinedClubs,
     Set<CalEvent>? checkedInSessions,
     Set<CalEvent>? calendarEvents,
   })  : favoriteCompanies = favoriteCompanies ?? <Company>{},
+        favoriteJobs = favoriteJobs ?? <Job>{},
         joinedClubs = joinedClubs ?? <Club>{},
         checkedInSessions = checkedInSessions ?? <CalEvent>{},
         calendarEvents = calendarEvents ?? <CalEvent>{};
 
-  void addFavorite(Company company) {
-    favoriteCompanies ??= <Company>{};
-    favoriteCompanies!.add(company);
+  void addFavorite(Favoritable item) {
+    if (item is Company) {
+      favoriteCompanies ??= <Company>{};
+      favoriteCompanies!.add(item);
+    }
+    if (item is Job) {
+      favoriteJobs ??= <Job>{};
+      favoriteJobs!.add(item);
+    }
     notifyListeners();
   }
 
-  bool isFavorite(Company company) {
-    return favoriteCompanies?.contains(company) ?? false;
+  bool isFavorite(Favoritable item) {
+     // ignore: curly_braces_in_flow_control_structures
+     if (item is Company) return favoriteCompanies?.contains(item) ?? false;
+     // ignore: curly_braces_in_flow_control_structures
+     else return favoriteJobs?.contains(item) ?? false;
   }
 
-  void removeFavorite(Company company) {
-    favoriteCompanies?.remove(company);
+  void removeFavorite(Favoritable item) {
+    if (item is Company) favoriteCompanies?.remove(item);
+    if (item is Job) favoriteJobs?.remove(item);
     notifyListeners();
   }
 

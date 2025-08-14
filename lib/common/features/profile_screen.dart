@@ -172,9 +172,21 @@ class ProfileScreenState extends State<ProfileScreen> {
                                   }
 
                                   String displayRole = '';
-                                  if (userData != null &&
-                                      userData.role.trim().isNotEmpty) {
-                                    displayRole = userData.role.trim();
+                                  if (userData != null) {
+                                    switch (userData.role) {
+                                      case UserRole.admin:
+                                        displayRole = 'Admin';
+                                        break;
+                                      case UserRole.clubAdmin:
+                                        displayRole = 'Club Admin';
+                                        break;
+                                      case UserRole.student:
+                                        displayRole = 'Student';
+                                        break;
+                                      case UserRole.faculty:
+                                        displayRole = 'Faculty';
+                                        break;
+                                    }
                                   } else {
                                     displayRole = '';
                                   }

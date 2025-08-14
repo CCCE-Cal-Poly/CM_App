@@ -22,7 +22,7 @@ class WelcomePage1 extends StatelessWidget {
                 children: <Widget>[
                   Padding(
                     padding: EdgeInsets.only(
-                        top: screenHeight * 0.12, bottom: screenHeight * .08),
+                        top: screenHeight * 0.10, bottom: screenHeight * 0.075),
                     child: Image.asset(
                       'assets/icons/cal_poly_white.png',
                       scale: 0.8,
@@ -31,16 +31,16 @@ class WelcomePage1 extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: EdgeInsets.only(bottom: screenHeight * 0.05),
+                    padding: EdgeInsets.only(bottom: screenHeight * 0.045),
                     child: Image.asset('assets/icons/hardhat.png'),
                   ),
                   Padding(
-                    padding: EdgeInsets.only(top: screenHeight * 0.05),
-                    child: const Text(
+                    padding: EdgeInsets.only(top: screenHeight * 0.045),
+                    child: Text(
                       'Welcome',
                       style: TextStyle(
                           color: AppColors.tanText,
-                          fontSize: 48,
+                          fontSize: screenHeight*.06,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'SansSerifPro'),
                     ),
@@ -51,7 +51,7 @@ class WelcomePage1 extends StatelessWidget {
                       'Cal Poly Construction\nManagement',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.w600,
                           color: Colors.white),
                     ),
@@ -60,7 +60,7 @@ class WelcomePage1 extends StatelessWidget {
               ),
             ),
             Positioned(
-              bottom: screenHeight * 0.12, // 30 pixels from the bottom
+              bottom: screenHeight * 0.10, // 30 pixels from the bottom
               child: Image.asset(
                 'assets/icons/one_of_three_dots.png',
               ),

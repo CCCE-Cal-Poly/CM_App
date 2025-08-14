@@ -1,8 +1,10 @@
+import 'package:ccce_application/common/providers/company_provider.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/company.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 
 class MemberDirectory extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -14,64 +16,17 @@ class MemberDirectory extends StatefulWidget {
 }
 
 class _MemberDirectoryState extends State<MemberDirectory> {
-  Future<List<Company>> fetchDataFromFirestore() async {
-    List<Company> companies = [];
+  
 
-    try {
-      // Get a reference to the Firestore database
-      FirebaseFirestore firestore = FirebaseFirestore.instance;
-
-      // Query the "companies" collection
-      QuerySnapshot querySnapshot =
-          await firestore.collection('companies').get();
-
-      // Iterate through the documents in the query snapshot
-      querySnapshot.docs.forEach((doc) {
-        // Convert each document to a Map and add it to the list
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        Map<String, String> companyData = {};
-        data.forEach((key, value) {
-          // Convert each value to String and add it to companyData
-          companyData[key] = value.toString();
-        });
-        Company newComp = Company(
-            companyData['name'],
-            companyData['location'],
-            companyData['about'],
-            companyData['msg'],
-            companyData['recruiterName'],
-            companyData['recruiterTitle'],
-            companyData['recruiterEmail'],
-            companyData['logo']);
-        companies.add(newComp);
-      });
-    } catch (e) {
-      // Handle any errors that occur
-      print('Error fetching data: $e');
-    }
-
-    return companies;
-  }
 
   final TextEditingController _searchController = TextEditingController();
   bool _isTextEntered = false;
 
-  static List<Company> companies = [];
   static List<Company> filteredCompanies = [];
   @override
   void initState() {
     super.initState();
-
-    fetchDataFromFirestore().then((companiesData) {
-      setState(() {
-        companies = companiesData;
-        companies.sort();
-      });
-    });
-
-    // Fetch company data from a source (e.g., API call, database)
-    // and populate the companies list
-  }
+}
   Map<String, bool> buttonStates = {
   'A-Z': true,
   'Admin': false,
@@ -80,9 +35,13 @@ class _MemberDirectoryState extends State<MemberDirectory> {
 
   @override
   Widget build(BuildContext context) {
+    return Consumer<CompanyProvider>(builder: (context, companyProvider, child) {
+
+    bool _isAscending = true;
+
     void sortAlphabetically() {
       setState(() {
-        companies = companies.reversed.toList();
+        companyProvider.sortAlphabetically();
       });
     }
 
@@ -153,7 +112,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
 
                           // Iterate through the original list of companies if text is entered
                           if (_isTextEntered) {
-                            for (Company company in companies) {
+                            for (Company company in companyProvider.allCompanies) {
                               // Check if the company name starts with the entered text substring
                               String name = company.name;
                               if (name
@@ -220,10 +179,10 @@ class _MemberDirectoryState extends State<MemberDirectory> {
               child: ListView.builder(
                 scrollDirection: Axis.vertical,
                 itemCount:
-                    _isTextEntered ? filteredCompanies.length : companies.length,
+                    _isTextEntered ? filteredCompanies.length : companyProvider.allCompanies.length,
                 itemBuilder: (context, index) {
                   final List<Company> displayList =
-                      _isTextEntered ? filteredCompanies : companies;
+                      _isTextEntered ? filteredCompanies : companyProvider.allCompanies;
                   return GestureDetector(
                     onTap: () {
                       Company companyData = displayList[index];
@@ -248,5 +207,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
         ),
       ),
     );
+  }
+  );
   }
 }

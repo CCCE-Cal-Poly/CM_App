@@ -10,6 +10,7 @@ class AppColors {
   static const yellowButton = Color(0xFFEDBD49);
   static const calPolyGold = Color(0xFFFFCC33);
   static const tanColor = Color(0xFFcecca0);
+  static const kennedyGreen = Color(0xFF8b9987);
 
   // Text Colors
   static const tanText = Color(0xFFF6D78B);

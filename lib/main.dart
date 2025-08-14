@@ -1,5 +1,6 @@
 import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/features/sign_in.dart';
+import 'package:ccce_application/common/providers/company_provider.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:ccce_application/rendered_page.dart';
@@ -56,6 +57,8 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider<AppState>(create: (_) => AppState()),
         ChangeNotifierProvider<EventProvider>(create: (_) => EventProvider()),
+        ChangeNotifierProvider<CompanyProvider>(
+            create: (_) => CompanyProvider()),
         ChangeNotifierProvider<UserProvider>(create: (_) => UserProvider()),
         ChangeNotifierProvider<ClubProvider>(create: (_) => ClubProvider()),
       ],
@@ -74,6 +77,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final companyProvider = context.watch<CompanyProvider>();
     return FutureBuilder<bool>(
       future: _isTOSAccepted(),
       builder: (context, snapshot) {

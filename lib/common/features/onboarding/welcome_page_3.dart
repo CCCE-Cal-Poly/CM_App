@@ -24,7 +24,7 @@ class WelcomePage3 extends StatelessWidget {
                 children: <Widget>[
                   Padding(
                     padding: EdgeInsets.only(
-                        top: screenHeight * 0.12, bottom: screenHeight * 0.08),
+                        top: screenHeight * 0.10, bottom: screenHeight * 0.075),
                     child: Image.asset(
                       'assets/icons/cal_poly_white.png',
                       scale: 0.8,
@@ -33,16 +33,16 @@ class WelcomePage3 extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: EdgeInsets.only(bottom: screenHeight * 0.05),
+                    padding: EdgeInsets.only(bottom: screenHeight * 0.045),
                     child: Image.asset('assets/icons/hardhat.png'),
                   ),
                   Padding(
-                    padding: EdgeInsets.only(top: screenHeight * 0.05),
-                    child: const Text(
+                    padding: EdgeInsets.only(top: screenHeight * 0.045),
+                    child: Text(
                       'Welcome',
                       style: TextStyle(
                           color: AppColors.tanText,
-                          fontSize: 48,
+                          fontSize: screenHeight*.06,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'SansSerifPro'),
                     ),
@@ -75,10 +75,10 @@ class WelcomePage3 extends StatelessWidget {
               ),
             ),
             Positioned(
-              bottom: screenHeight * 0.12,
+              bottom: screenHeight * 0.10,
               child: Column(children: [
                 Padding(
-                  padding: EdgeInsets.symmetric(vertical: screenHeight * 0.03),
+                  padding: EdgeInsets.symmetric(vertical: screenHeight * 0.025),
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.push(
@@ -91,7 +91,7 @@ class WelcomePage3 extends StatelessWidget {
                       backgroundColor: AppColors.darkGold,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 40,
-                        vertical: 15,
+                        vertical: 14,
                       ),
                       shape:
                           const RoundedRectangleBorder(), // No argument in RoundedRectangleBorder is Square border

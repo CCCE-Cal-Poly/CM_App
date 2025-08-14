@@ -22,31 +22,30 @@ class WelcomeSignIn extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.start,
             children: <Widget>[
               Padding(
-                padding: EdgeInsets.only(
-                  top: screenHeight * 0.12,
-                  bottom: screenHeight * 0.08,
-                ),
-                child: Image.asset(
-                  'assets/icons/cal_poly_white.png',
-                  scale: 0.8,
-                  height: smallerSide * 0.1,
-                  width: smallerSide * 0.9,
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.only(
-                    top: screenHeight * .09, bottom: screenHeight * 0.03),
-                child: Image.asset('assets/icons/hardhat.png'),
-              ),
-              const Text(
-                'WELCOME',
-                style: TextStyle(
-                  color: AppColors.tanText,
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'SansSerifPro',
-                ),
-              ),
+                    padding: EdgeInsets.only(
+                        top: screenHeight * 0.10, bottom: screenHeight * 0.075),
+                    child: Image.asset(
+                      'assets/icons/cal_poly_white.png',
+                      scale: 0.8,
+                      height: smallerSide * 0.1,
+                      width: smallerSide * 0.9,
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(bottom: screenHeight * 0.045),
+                    child: Image.asset('assets/icons/hardhat.png'),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: screenHeight * 0.045),
+                    child: Text(
+                      'Welcome',
+                      style: TextStyle(
+                          color: AppColors.tanText,
+                          fontSize: screenHeight*.06,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'SansSerifPro'),
+                    ),
+                  ),
               Padding(
                 padding: EdgeInsets.only(top: screenHeight * 0.015),
                 child: const Text(
