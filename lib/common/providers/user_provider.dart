@@ -6,7 +6,6 @@ class UserProvider with ChangeNotifier {
   UserData? _user;
 
   UserData? get user => _user;
-  bool get isAppAdmin => _user?.isAppAdmin ?? false;
   bool isClubAdmin(String clubId) => _user?.isClubAdmin(clubId) ?? false;
 
   Future<void> loadUserProfile(String uid) async {

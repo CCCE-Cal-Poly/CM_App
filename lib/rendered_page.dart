@@ -1,4 +1,7 @@
+import 'package:ccce_application/common/collections/user_data.dart';
+import 'package:ccce_application/common/features/admin_control_panel.dart';
 import 'package:ccce_application/common/features/job_board.dart';
+import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:flutter/material.dart';
 // Import your feature files
 import 'package:ccce_application/common/features/faculty_directory.dart';
@@ -8,6 +11,7 @@ import 'package:ccce_application/common/features/info_sessions_screen.dart';
 import 'package:ccce_application/common/features/club_directory.dart';
 import 'package:ccce_application/common/features/home_screen.dart';
 import 'package:ccce_application/common/widgets/debug_outline.dart';
+import 'package:provider/provider.dart';
 
 class RenderedPage extends StatefulWidget {
   const RenderedPage({Key? key}) : super(key: key);
@@ -37,6 +41,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
       () => InfoSessionsScreen(scaffoldKey: _scaffoldKey),
       () => JobBoard(scaffoldKey: _scaffoldKey),
       () => ProfileScreen(scaffoldKey: _scaffoldKey),
+      () => AdminPanelScreen(scaffoldKey: _scaffoldKey)
     ];
     _pages = List<Widget?>.filled(_pageBuilders.length, null);
   }
@@ -64,6 +69,9 @@ class _MyRenderedPageState extends State<RenderedPage> {
 
   @override
   Widget build(BuildContext context) {
+  // Get user role from provider
+  final userProvider = Provider.of<UserProvider>(context);
+  final isAdmin = userProvider.user?.role == 'admin';
     // Build the selected page if it hasn't been built yet
     if (_pages[_selectedIndex] == null) {
       _pages[_selectedIndex] = _pageBuilders[_selectedIndex]();
@@ -113,6 +121,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
                       ),
                     ],
                   ),
+                  if (isAdmin) createListItem("Admin Control Panel", 7),
                   createListItem("Home", 0),
                   createListItem("Member Directory", 1),
                   createListItem("Club Directory", 2),

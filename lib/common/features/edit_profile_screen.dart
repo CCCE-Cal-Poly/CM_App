@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/providers/club_provider.dart';
 import 'package:ccce_application/common/theme/theme.dart';
+import 'package:ccce_application/common/collections/user_data.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -78,7 +79,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           if (doc.exists) {
             final data = doc.data() as Map<String, dynamic>;
             setState(() {
-              _roleController.text = data['role'] ?? '';
+              _roleController.text = (data['role'].toString());
               _isInitialized = true;
             });
           } else {
@@ -121,56 +122,54 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         throw Exception('No authenticated user');
       }
 
+      final role = _roleController.text.trim();
       // Prepare data for Firestore
       final userData = {
         'firstName': _firstNameController.text.trim(),
         'lastName': _lastNameController.text.trim(),
         'email': _emailController.text.trim(),
-        'role': _roleController.text.trim(),
+        'role': role,
         'profilePictureUrl': _profilePictureUrlController.text.trim().isEmpty
             ? null
             : _profilePictureUrlController.text.trim(),
       };
 
-      // Save to Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .set(userData, SetOptions(merge: true));
+      if (role.toLowerCase() == "admin") {
+        // Instead of setting them as admin directly, request admin
+        await FirebaseFirestore.instance
+            .collection('adminRequests')
+            .doc(currentUser.uid)
+            .set({
+          'uid': currentUser.uid,
+          'name': "${_firstNameController.text} ${_lastNameController.text}",
+          'email': _emailController.text.trim(),
+          'requestedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        // Save non-admin role directly
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .set({'role': role}, SetOptions(merge: true));
+      }
 
-      // Reload user data in UserProvider
+      // Refresh UI
       if (mounted) {
         await Provider.of<UserProvider>(context, listen: false)
             .loadUserProfile(currentUser.uid);
-
-        // Show success message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Profile updated successfully!'),
-              backgroundColor: AppColors.calPolyGreen,
-            ),
-          );
-
-          // Navigate back
-          Navigator.of(context).pop();
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully!')),
+        );
+        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error updating profile: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error updating profile: $e')),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -415,9 +414,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           floatingLabelBehavior: FloatingLabelBehavior.never,
           fillColor: Colors.white,
           filled: true,
-          border: OutlineInputBorder(
+          border: const OutlineInputBorder(
             borderRadius: BorderRadius.zero,
           )),
     ));
+  }
+  Future<void> requestAdminRole(String uid) async {
+    await FirebaseFirestore.instance.collection('adminRequests').doc(uid).set({
+      'uid': uid,
+      'requestedAt': FieldValue.serverTimestamp(),
+    });
   }
 }

@@ -1,0 +1,13 @@
+# Exclude local dev files
+venv/
+__pycache__/
+*.pyc
+
+# Exclude git metadata
+.git/
+.gitignore
+
+node_modules/
+.firebase/
+.DS_Store
+*.log
