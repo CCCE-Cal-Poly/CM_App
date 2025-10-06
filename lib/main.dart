@@ -95,8 +95,8 @@ class MyApp extends StatelessWidget {
         if (!tosAccepted) {
           return const MaterialApp(
             home: Scaffold(
-                appBar: GoldAppBar(),
-                body: OnboardingScreen()), // Show TOS/Onboarding screen
+              appBar: GoldAppBar(),
+              body: OnboardingScreen()), 
           );
         }
         return StreamBuilder<User?>(
@@ -106,19 +106,16 @@ class MyApp extends StatelessWidget {
               return const CircularProgressIndicator();
             }
             if (!snapshot.hasData) {
-              // User is not signed in, show sign-in screen
               return const MaterialApp(
-                home: SignIn(), // <-- Replace with your sign-in screen widget
+                home: SignIn(),
               );
             }
-            // User is signed in, load user profile data and clubs
             WidgetsBinding.instance.addPostFrameCallback((_) {
               Provider.of<UserProvider>(context, listen: false)
                   .loadUserProfile(snapshot.data!.uid);
               Provider.of<ClubProvider>(context, listen: false).loadClubs();
             });
 
-            // User is signed in, check if eventProvider is loaded
             return Consumer<EventProvider>(
               builder: (context, eventProvider, child) {
                 if (!eventProvider.isLoaded) {
@@ -131,7 +128,6 @@ class MyApp extends StatelessWidget {
                     ),
                   );
                 }
-                // User is signed in and events are loaded, show main app
                 return const MaterialApp(
                   home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
                 );

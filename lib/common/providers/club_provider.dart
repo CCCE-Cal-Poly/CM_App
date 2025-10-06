@@ -32,22 +32,18 @@ class ClubProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // First, try to load from cache
       await _loadFromCache();
 
-      // Check if we need to refresh from server
       final prefs = await SharedPreferences.getInstance();
       final lastFetch = prefs.getInt('clubs_last_fetch') ?? 0;
       final now = DateTime.now().millisecondsSinceEpoch;
       final cacheAge = now - lastFetch;
 
-      // Refresh if cache is older than 1 hour (3600000 ms) or if we have no clubs
       if (cacheAge > 3600000 || _clubs.isEmpty) {
         await _fetchFromFirestore();
         await _saveToCache();
       }
 
-      // Only mark as loaded if we actually have clubs
       if (_clubs.isNotEmpty) {
         _isLoaded = true;
       }
@@ -68,12 +64,13 @@ class ClubProvider with ChangeNotifier {
         final List<dynamic> clubList = jsonDecode(cachedData);
         _clubs = clubList
             .map((data) => Club(
-                  data['name'] ?? '',
-                  data['aboutMsg'] ?? '',
-                  data['email'] ?? '',
-                  data['acronym'] ?? '',
-                  data['instagram'] ?? '',
-                  data['logo'],
+                  id: data['id'] ?? '',
+                  name: data['name'] ?? '',
+                  aboutMsg: data['aboutMsg'] ?? '',
+                  email: data['email'] ?? '',
+                  acronym: data['acronym'] ?? '',
+                  instagram: data['instagram'] ?? '',
+                  logo: data['logo'],
                 ))
             .toList();
       }
@@ -90,12 +87,13 @@ class ClubProvider with ChangeNotifier {
       _clubs = querySnapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         return Club(
-          data['name'] ?? '',
-          data['aboutMsg'] ?? '',
-          data['email'] ?? '',
-          data['acronym'] ?? '',
-          data['instagram'] ?? '',
-          data['logo'],
+          id: doc.id,
+          name: data['name'] ?? '',
+          aboutMsg: data['aboutMsg'] ?? '',
+          email: data['email'] ?? '',
+          acronym: data['acronym'] ?? '',
+          instagram: data['instagram'] ?? '',
+          logo: data['logo'],
         );
       }).toList();
     } catch (e) {
