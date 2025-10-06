@@ -2,8 +2,8 @@ import 'package:ccce_application/common/collections/user_data.dart';
 import 'package:ccce_application/common/features/admin_control_panel.dart';
 import 'package:ccce_application/common/features/job_board.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
+import 'package:ccce_application/common/collections/user_data.dart' show UserRole;
 import 'package:flutter/material.dart';
-// Import your feature files
 import 'package:ccce_application/common/features/faculty_directory.dart';
 import 'package:ccce_application/common/features/profile_screen.dart';
 import 'package:ccce_application/common/features/member_directory.dart';
@@ -41,7 +41,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
       () => InfoSessionsScreen(scaffoldKey: _scaffoldKey),
       () => JobBoard(scaffoldKey: _scaffoldKey),
       () => ProfileScreen(scaffoldKey: _scaffoldKey),
-      () => AdminPanelScreen(scaffoldKey: _scaffoldKey)
+      () => AdminPanelScreen(scaffoldKey: _scaffoldKey),
     ];
     _pages = List<Widget?>.filled(_pageBuilders.length, null);
   }
@@ -69,22 +69,17 @@ class _MyRenderedPageState extends State<RenderedPage> {
 
   @override
   Widget build(BuildContext context) {
-  // Get user role from provider
   final userProvider = Provider.of<UserProvider>(context);
-  final isAdmin = userProvider.user?.role == 'admin';
-    // Build the selected page if it hasn't been built yet
+  final isAdmin = userProvider.user?.role == UserRole.admin;
     if (_pages[_selectedIndex] == null) {
       _pages[_selectedIndex] = _pageBuilders[_selectedIndex]();
     }
     return Scaffold(
-      key: _scaffoldKey, // Assign the key to the Scaffold
+      key: _scaffoldKey,
       body: LayoutBuilder(
-        // Use LayoutBuilder
         builder: (context, constraints) {
           return Stack(
-            // Use Stack to overlay the button
             children: [
-              // Position the main content (IndexedStack) below the AppBar
               IndexedStack(
                 index: _selectedIndex,
                 children: List.generate(

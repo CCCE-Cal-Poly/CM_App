@@ -187,3 +187,76 @@ Widget build(BuildContext context) {
   );
 }
 }
+
+class AdminControlPanelRequests extends StatelessWidget {
+  const AdminControlPanelRequests({super.key});
+
+  Future<void> _approve(BuildContext context, String requestId) async {
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('approveClubEvent');
+      await callable.call(<String, dynamic>{'requestId': requestId});
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Approved')));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Approve failed: $e')));
+    }
+  }
+
+  Future<void> _deny(BuildContext context, String requestId) async {
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('denyClubEvent');
+      await callable.call(<String, dynamic>{'requestId': requestId});
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Denied')));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Deny failed: $e')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final stream = FirebaseFirestore.instance
+        .collection('clubEventRequests')
+        .where('status', isEqualTo: 'pending')
+        .orderBy('submittedAt', descending: false)
+        .snapshots();
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: stream,
+      builder: (context, snap) {
+        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+        final docs = snap.data!.docs;
+        if (docs.isEmpty) return const Center(child: Text('No pending requests'));
+        return ListView.builder(
+          shrinkWrap: true,
+          itemCount: docs.length,
+          itemBuilder: (context, i) {
+            final data = docs[i].data() as Map<String, dynamic>;
+            final id = docs[i].id;
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+              child: ListTile(
+                title: Text('${data['eventName'] ?? 'Unnamed event'} — ${data['clubName'] ?? ''}'),
+                subtitle: Text('Requested by ${data['requestedByName'] ?? data['requestedByEmail'] ?? ''}\n${data['description'] ?? ''}'),
+                isThreeLine: true,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => _approve(context, id),
+                      child: const Text('Approve'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      onPressed: () => _deny(context, id),
+                      child: const Text('Deny'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}

@@ -248,6 +248,26 @@ class ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     SizedBox(height: screenHeight * 0.02),
+                    // Show clubs the user administers (if any)
+                    Consumer<UserProvider>(builder: (context, userProvider, child) {
+                      final clubs = userProvider.clubsAdminOf;
+                      if (clubs.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Clubs you administer', style: TextStyle(color: AppColors.tanText)),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: clubs.map((c) => Chip(label: Text(c), backgroundColor: Colors.white)).toList(),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
                     Center(
                       child: SizedBox(
                         width: double.infinity,

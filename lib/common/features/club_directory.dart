@@ -1,3 +1,4 @@
+import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:flutter/material.dart';
@@ -17,35 +18,17 @@ class _ClubDirectoryState extends State<ClubDirectory> {
   Future<List<Club>> fetchDataFromFirestore() async {
     List<Club> clubs = [];
 
-    try {
-      // Get a reference to the Firestore database
-      FirebaseFirestore firestore = FirebaseFirestore.instance;
+      try {
+    FirebaseFirestore firestore = FirebaseFirestore.instance;
+    QuerySnapshot querySnapshot = await firestore.collection('clubs').get();
 
-      // Query the "companies" collection
-      QuerySnapshot querySnapshot = await firestore.collection('clubs').get();
-
-      // Iterate through the documents in the query snapshot
-      querySnapshot.docs.forEach((doc) {
-        // Convert each document to a Map and add it to the list
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        Map<String, String> clubData = {};
-        data.forEach((key, value) {
-          // Convert each value to String and add it to companyData
-          clubData[key] = value.toString();
-        });
-        Club newClub = Club(
-            clubData['Name'],
-            clubData['About'],
-            clubData['Email'],
-            clubData['Acronym'],
-            clubData['Instagram'],
-            clubData['Logo']);
-        clubs.add(newClub);
-      });
-    } catch (e) {
-      // Handle any errors that occur
-      print('Error fetching data: $e');
-    }
+    querySnapshot.docs.forEach((doc) {
+      Club newClub = Club.fromDocument(doc);
+      clubs.add(newClub);
+    });
+  } catch (e) {
+    print('Error fetching data: $e');
+  }
 
     return clubs;
   }

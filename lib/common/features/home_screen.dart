@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'dart:collection';
 import 'package:intl/intl.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 class HomeScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -162,8 +163,11 @@ class CalendarScreenState extends State<HomeScreen> {
       Color boxColor = Colors.white;
       it = it + 1;
       eventContainers.add(Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 3.0),
+        child: SizedBox(
+          height: 65, 
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch, // Ensures children fill the row's height
             children: [
               Container(
                   height: 65,
@@ -202,19 +206,26 @@ class CalendarScreenState extends State<HomeScreen> {
                       child: Center(
                           child: Column(
                         children: [
-                          Text(ev.eventName,
+                          AutoSizeText(ev.eventName,
                               style: const TextStyle(
                                   fontFamily: "AppFonts.sansProSemiBold",
-                                  fontSize: 13)),
+                                  fontSize: 13),
+                                minFontSize: 10,
+                                maxLines: 1),
                           Text(ev.eventLocation,
                               style: const TextStyle(
-                                  fontFamily: "SansSerifPro", fontSize: 10))
+                                  fontFamily: "SansSerifPro", fontSize: 10)
+                          )
                         ],
-                      ))) // Content for the second box
-                  // Optional padding
+                      )
+                    )
                   ),
-            ],
-          )));
+                ),
+              ],
+            ),
+          )
+        )
+      );
     }
     return eventContainers;
   }
@@ -223,54 +234,65 @@ class CalendarScreenState extends State<HomeScreen> {
     List<Widget> eventContainers = [];
     List<CalEvent> evs = eventMap[day] ?? [];
 
-    int it = 0;
     for (var ev in evs) {
       Color boxColor = Colors.white;
-      it = it + 1;
       eventContainers.add(Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 3.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 3.0),
+      child: SizedBox(
+        height: 65, 
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch, // Ensures children fill the row's height
           children: [
             Container(
-                height: 65,
-                width: 80,
-                decoration: BoxDecoration(
-                  color: boxColor, // Adjust background color
-                ),
-                child: Center(
-                  child: Text(
-                    "${DateFormat('hh:mm a').format(ev.startTime)}\n-\n${DateFormat('hh:mm a').format(ev.endTime)}",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: "SansSerifPro",
-                      fontSize: 11,
-                    ),
+              height: 65,
+              width: 80,
+              decoration: BoxDecoration(
+                color: boxColor,
+              ),
+              child: Center(
+                child: Text(
+                  "${DateFormat('hh:mm a').format(ev.startTime)}\n-\n${DateFormat('hh:mm a').format(ev.endTime)}",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: "SansSerifPro",
+                    fontSize: 11,
                   ),
-                )),
-            const SizedBox(width: 1), // Spacing between boxes
+                ),
+              ),
+            ),
             const SizedBox(width: 1),
             Expanded(
-                child: Container(
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: boxColor, // Adjust background color
-                    ),
-                    child: Center(
-                        child: Column(
-                      children: [
-                        Text(ev.eventName,
-                            style: const TextStyle(
-                                fontFamily: "AppFonts.sansProSemiBold",
-                                fontSize: 13)),
-                        Text(ev.eventLocation,
-                            style: const TextStyle(
-                                fontFamily: "SansSerifPro", fontSize: 10))
-                      ],
-                    ))) // Content for the second box
-                // Optional padding
+              child: Container(
+                height: 65,
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: boxColor,
                 ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AutoSizeText(
+                        ev.eventName,
+                        style: const TextStyle(
+                            fontFamily: "AppFonts.sansProSemiBold",
+                            fontSize: 13),
+                        minFontSize: 10,
+                        maxLines: 1,
+                      ),
+                      Text(
+                        ev.eventLocation,
+                        style: const TextStyle(
+                            fontFamily: "SansSerifPro", fontSize: 10),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
+      )
       ));
     }
     return eventContainers;
@@ -402,19 +424,24 @@ class CalendarScreenState extends State<HomeScreen> {
         ),
         SizedBox(height: screenHeight * 0.01),
         Container(
-            height: screenHeight * 0.08,
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-            ),
-            child: const Center(
-                child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10),
-                    child: Text(
-                        "There are no events today.\nCheckout upcoming events below:",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontFamily: "SansSerifProItalic", fontSize: 14))))),
+          height: screenHeight * 0.08,
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+          ),
+          child: const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: Text(
+                "There are no events today.\nCheckout upcoming events below:",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                fontFamily: "SansSerifProItalic", fontSize: 14
+                )
+              )
+            )
+          )
+        ),
         const SizedBox(height: 3.0),
         ..._getNextEvents(_focusedDay),
         const SizedBox(height: 20.0),
