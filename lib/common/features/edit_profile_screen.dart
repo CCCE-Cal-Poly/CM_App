@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/providers/club_provider.dart';
 import 'package:ccce_application/common/theme/theme.dart';
-import 'package:ccce_application/common/collections/user_data.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -36,12 +35,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
   }
 
+  String _toTitleCase(String input) {
+    if (input.isEmpty) return input;
+    return input
+        .split(RegExp(r"\s+"))
+        .map((word) => word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}')
+        .join(' ');
+  }
+
   void _loadUserData() {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final currentUser = FirebaseAuth.instance.currentUser;
 
     if (userProvider.user != null) {
-      // Load data from UserProvider
       final userData = userProvider.user!;
       final nameParts = userData.name.trim().split(' ');
 
@@ -51,7 +57,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _emailController.text = userData.email;
       _profilePictureUrlController.text = userData.profilePictureUrl ?? '';
     } else if (currentUser != null) {
-      // Fallback to Firebase Auth data
       _emailController.text = currentUser.email ?? '';
       if (currentUser.displayName != null) {
         final nameParts = currentUser.displayName!.split(' ');
@@ -62,7 +67,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _profilePictureUrlController.text = currentUser.photoURL ?? '';
     }
 
-    // Load additional fields from Firestore
     _loadAdditionalFields();
   }
 
@@ -83,7 +87,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               _isInitialized = true;
             });
           } else {
-            // Document doesn't exist, still initialize
             setState(() {
               _isInitialized = true;
             });
@@ -98,7 +101,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         }
       }
     } else {
-      // No current user, still initialize
       if (mounted) {
         setState(() {
           _isInitialized = true;
@@ -123,8 +125,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
 
       final role = _roleController.text.trim();
-      // Prepare data for Firestore
-      final userData = {
+      final userUpdate = <String, dynamic>{
         'firstName': _firstNameController.text.trim(),
         'lastName': _lastNameController.text.trim(),
         'email': _emailController.text.trim(),
@@ -135,7 +136,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       };
 
       if (role.toLowerCase() == "admin") {
-        // Instead of setting them as admin directly, request admin
         await FirebaseFirestore.instance
             .collection('adminRequests')
             .doc(currentUser.uid)
@@ -146,14 +146,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           'requestedAt': FieldValue.serverTimestamp(),
         });
       } else {
-        // Save non-admin role directly
         await FirebaseFirestore.instance
             .collection('users')
             .doc(currentUser.uid)
-            .set({'role': role}, SetOptions(merge: true));
+            .set(userUpdate, SetOptions(merge: true));
       }
 
-      // Refresh UI
       if (mounted) {
         await Provider.of<UserProvider>(context, listen: false)
             .loadUserProfile(currentUser.uid);
@@ -209,7 +207,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     children: [
                       SizedBox(height: screenHeight * 0.02),
 
-                      // Profile Icon with Edit Badge
                       Stack(
                         children: [
                           Consumer<UserProvider>(
@@ -272,9 +269,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                       ),
 
-                      SizedBox(height: screenHeight * 0.04),
+                      SizedBox(height: screenHeight * 0.01),
 
-                      // First Name
+                      Center(
+                        child: Text(
+                          _roleController.text.isNotEmpty ? _toTitleCase(_roleController.text) : 'Student',
+                          style: const TextStyle(
+                            color: AppColors.tanText,
+                            fontFamily: AppFonts.sansProSemiBold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: screenHeight * 0.03),
+
                       _buildTextField(
                         controller: _firstNameController,
                         label: 'First Name',
@@ -288,7 +297,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Last Name
                       _buildTextField(
                         controller: _lastNameController,
                         label: 'Last Name',
@@ -302,7 +310,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Email
                       _buildTextField(
                         controller: _emailController,
                         label: 'Email',
@@ -319,24 +326,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 20),
 
-                      // Role
-                      _buildTextField(
-                        controller: _roleController,
-                        label: 'Role',
-                        screenHeight: screenHeight,
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      Divider(
+                      SizedBox(height: screenHeight * 0.025),
+                      const Divider(
                         color: Colors.white,
-                        indent: screenWidth * 0.04,
-                        endIndent: screenWidth * 0.04,
                       ),
-                      SizedBox(height: screenHeight * 0.02),
+                      SizedBox(height: screenHeight * 0.025),
 
                       Container(
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                               color: AppColors.calPolyGold,
                               borderRadius: BorderRadius.zero),
                           child: Consumer<ClubProvider>(
@@ -354,9 +352,140 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             },
                           )),
 
-                      SizedBox(height: screenHeight * 0.05),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.calPolyGold,
+                            foregroundColor: Colors.black,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                          ),
+                            onPressed: () async {
+                            final navigatorContext = context; 
+                            final clubProvider = Provider.of<ClubProvider>(navigatorContext, listen: false);
+                            await clubProvider.loadClubs();
+                            if (!mounted) return;
 
-                      // Save Button (moved to bottom, full width)
+                            final clubs = clubProvider.clubs;
+                            final selected = <String>[];
+
+                            await showDialog(
+                              context: navigatorContext,
+                              builder: (context) {
+                                return AlertDialog(
+                                  title: const Text('Request Club Admin'),
+                                  content: StatefulBuilder(builder: (context, setState) {
+                                    if (clubs.isEmpty) {
+                                      return const SizedBox(height: 80, child: Center(child: Text('No clubs available')));
+                                    }
+                                    return SizedBox(
+                                      width: double.maxFinite,
+                                      child: ListView.builder(
+                                        shrinkWrap: true,
+                                        itemCount: clubs.length,
+                                        itemBuilder: (context, i) {
+                                          final club = clubs[i];
+                                          final clubId = club.id?.toString() ?? '';
+                                          final clubLabel = (club.name != null && club.name.toString().isNotEmpty) ? club.name.toString() : (club.acronym?.toString() ?? clubId);
+                                          final checked = selected.contains(clubId);
+                                          return CheckboxListTile(
+                                            title: Text(clubLabel),
+                                            value: checked,
+                                            onChanged: (v) => setState(() {
+                                              if (v == true) {
+                                                if (!selected.contains(clubId)) selected.add(clubId);
+                                              } else {
+                                                selected.remove(clubId);
+                                              }
+                                            }),
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  }),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        final user = FirebaseAuth.instance.currentUser;
+                                        if (user != null && selected.isNotEmpty) {
+                                          final existing = await FirebaseFirestore.instance.collection('clubAdminRequests').where('uid', isEqualTo: user.uid).get();
+                                            final Set<String> alreadyRequested = {};
+                                            for (final doc in existing.docs) {
+                                              final data = doc.data();
+                                              if (data.containsKey('clubs')) {
+                                                final clubsField = data['clubs'];
+                                                if (clubsField is List) {
+                                                  for (final c in clubsField) {
+                                                    if (c == null) continue;
+                                                    if (c is String) {
+                                                      alreadyRequested.add(c);
+                                                    } else if (c is Map) {
+                                                      final idVals = [];
+                                                      idVals.add(c['id'] ?? c['clubId'] ?? c['club_id'] ?? c['club']);
+                                                      if (idVals != null) alreadyRequested.add(idVals.toString());
+                                                    } else {
+                                                      alreadyRequested.add(c.toString());
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+
+                                            final Map<String, String> idToName = { for (final c in clubs) (c.id?.toString() ?? ''): (c.name?.toString() ?? c.acronym?.toString() ?? '') };
+
+                                            final toRequestIds = selected.where((id) => !alreadyRequested.contains(id)).toList();
+
+                                            if (toRequestIds.isEmpty) {
+                                              Navigator.pop(context);
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('You already have requests for the selected clubs'))
+                                              );
+                                              return;
+                                            }
+
+                                            final toRequest = toRequestIds.map((id) => {
+                                              'id': id,
+                                              'name': idToName[id] ?? id,
+                                            }).toList();
+
+                                            final userName = "${_firstNameController.text} ${_lastNameController.text}";
+
+                                            await FirebaseFirestore.instance.collection('clubAdminRequests').add({
+                                              'uid': user.uid,
+                                              'name': userName ?? '',
+                                              'email': user.email,
+                                              'requestedAt': FieldValue.serverTimestamp(),
+                                              'clubs': toRequest,
+                                              'status': 'pending',
+                                            });
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Club admin request submitted')));
+                                          }
+                                        }
+                                        Navigator.pop(context);
+                                      },
+                                      child: const Text('Submit Request'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                          child: const Text('Request Club Admin'),
+                        ),
+                      ),
+
+                      SizedBox(height: screenHeight * 0.025),
+                      const Divider(
+                        color: Colors.white,
+                      ),
+
+                      SizedBox(height: screenHeight * 0.025),
+
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -364,8 +493,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.yellowButton,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
                             ),
                           ),
                           child: _isLoading
@@ -405,19 +534,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     TextInputType? keyboardType,
     String? Function(String?)? validator,
   }) {
-    return Container(
-        child: TextField(
-      style: TextStyle(color: Colors.black),
-      controller: controller,
-      decoration: InputDecoration(
-          labelText: label,
-          floatingLabelBehavior: FloatingLabelBehavior.never,
-          fillColor: Colors.white,
-          filled: true,
-          border: const OutlineInputBorder(
-            borderRadius: BorderRadius.zero,
-          )),
-    ));
+    return TextField(
+          style: const TextStyle(color: Colors.black),
+          controller: controller,
+          decoration: InputDecoration(
+      labelText: label,
+      floatingLabelBehavior: FloatingLabelBehavior.never,
+      fillColor: Colors.white,
+      filled: true,
+      border: const OutlineInputBorder(
+        borderRadius: BorderRadius.zero,
+      )),
+        );
   }
   Future<void> requestAdminRole(String uid) async {
     await FirebaseFirestore.instance.collection('adminRequests').doc(uid).set({

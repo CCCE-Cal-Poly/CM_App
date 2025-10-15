@@ -15,7 +15,6 @@ class ClubProvider with ChangeNotifier {
   bool get isLoaded => _isLoaded;
   bool get isLoading => _isLoading;
 
-  // Get list of club names for dropdowns
   List<String> get clubAcronyms {
     if (_clubs.isEmpty) {
       return [];
@@ -25,7 +24,7 @@ class ClubProvider with ChangeNotifier {
 
   Future<void> loadClubs() async {
     if (_isLoaded || _isLoading) {
-      return; // Prevent duplicate loading
+      return;
     }
 
     _isLoading = true;
@@ -48,7 +47,7 @@ class ClubProvider with ChangeNotifier {
         _isLoaded = true;
       }
     } catch (e) {
-      // Handle error silently or log if needed
+      // Handle error silently
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -75,7 +74,7 @@ class ClubProvider with ChangeNotifier {
             .toList();
       }
     } catch (e) {
-      // Handle error silently or log if needed
+      // Handle error silently
     }
   }
 
@@ -83,21 +82,10 @@ class ClubProvider with ChangeNotifier {
     try {
       FirebaseFirestore firestore = FirebaseFirestore.instance;
       QuerySnapshot querySnapshot = await firestore.collection('clubs').get();
-
-      _clubs = querySnapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        return Club(
-          id: doc.id,
-          name: data['name'] ?? '',
-          aboutMsg: data['aboutMsg'] ?? '',
-          email: data['email'] ?? '',
-          acronym: data['acronym'] ?? '',
-          instagram: data['instagram'] ?? '',
-          logo: data['logo'],
-        );
-      }).toList();
+      // Use the Club.fromDocument factory so field name variants are handled consistently
+      _clubs = querySnapshot.docs.map((doc) => Club.fromDocument(doc)).toList();
     } catch (e) {
-      // Handle error silently or log if needed
+      // Handle error silently
       rethrow;
     }
   }
@@ -107,6 +95,7 @@ class ClubProvider with ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final clubData = _clubs
           .map((club) => {
+                'id': club.id,
                 'name': club.name,
                 'aboutMsg': club.aboutMsg,
                 'email': club.email,
@@ -120,11 +109,10 @@ class ClubProvider with ChangeNotifier {
       await prefs.setInt(
           'clubs_last_fetch', DateTime.now().millisecondsSinceEpoch);
     } catch (e) {
-      // Handle error silently or log if needed
+      // Handle error silently
     }
   }
 
-  // Method to get club by name
   Club? getClubByName(String name) {
     try {
       return _clubs.firstWhere((club) => club.name == name);
@@ -133,7 +121,6 @@ class ClubProvider with ChangeNotifier {
     }
   }
 
-  // Method to force refresh data
   Future<void> refreshClubs() async {
     _isLoaded = false;
     _clubs.clear();
@@ -143,7 +130,6 @@ class ClubProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Method to clear cache
   Future<void> clearCache() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('cached_clubs');

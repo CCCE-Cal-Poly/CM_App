@@ -1,112 +1,143 @@
-const {onRequest} = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
+const functions = require("firebase-functions");
 
-admin.initializeApp({});
 
-const ALLOWED_ROLES = new Set(["admin", "student", "faculty", "club admin"]);
+admin.initializeApp();
 
-async function getAuthTokenFromRequest(req) {
-  const authHeader = req.headers && req.headers.authorization;
-  if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
-    const idToken = authHeader.split("Bearer ")[1].trim();
-    if (idToken) {
-      try {
-        return await admin.auth().verifyIdToken(idToken);
-      } catch (e) {
-        console.error("Failed to verify id token:", e);
-        return null;
-      }
-    }
+const {onCall, HttpsError} = require("firebase-functions/v2/https");
+
+const ALLOWED_ROLES = new Set(["student", "faculty", "club admin", "admin"]);
+
+exports.setUserRole = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
   }
 
-  if (req.auth && req.auth.token) {
-    return req.auth.token;
+  const callerUid = request.auth.uid;
+  const callerRecord = await admin.auth().getUser(callerUid);
+  const callerRole = (callerRecord.customClaims && callerRecord.customClaims.role);
+
+  if (callerRole !== "admin") {
+    throw new HttpsError("permission-denied", "Only admins can set user roles");
   }
 
-  return null;
-}
-
-exports.setUserRole = onRequest(async (req, res) => {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed. Use POST." });
-    return;
-  }
-
-  const authToken = await getAuthTokenFromRequest(req);
-  if (!authToken) {
-    res.status(401).json({ error: "Unauthorized. No valid auth token provided." });
-    return;
-  }
-
-  if (authToken.role !== "admin") {
-    res.status(403).json({ error: "Only admins can set user roles." });
-    return;
-  }
-
-  const { uid, role } = req.body || {};
+  const {uid, role, clubs} = request.data;
 
   if (!uid || typeof uid !== "string") {
-    res.status(400).json({ error: "Must provide a valid uid." });
-    return;
+    throw new HttpsError("invalid-argument", "Must provide a valid uid");
   }
 
   if (!role || typeof role !== "string") {
-    res.status(400).json({ error: "Must provide a valid role string." });
-    return;
+    throw new HttpsError("invalid-argument", "Must provide a valid role string");
   }
 
   const normalizedRole = role.trim().toLowerCase();
   if (!ALLOWED_ROLES.has(normalizedRole)) {
-    res.status(400).json({ error: `Invalid role. Allowed roles: ${[...ALLOWED_ROLES].join(", ")}` });
-    return;
+    throw new HttpsError(
+      "invalid-argument",
+      `Invalid role. Allowed roles: ${[...ALLOWED_ROLES].join(", ")}`,
+    );
+  }
+
+  if (clubs !== undefined) {
+    if (!Array.isArray(clubs) || !clubs.every((c) => typeof c === "string")) {
+      throw new HttpsError(
+        "invalid-argument",
+        "If provided, 'clubs' must be an array of club id strings",
+      );
+    }
   }
 
   try {
-    await admin.auth().setCustomUserClaims(uid, {role: normalizedRole});
+    const claims = {role: normalizedRole};
+    let mergedClubs = [];
 
-    await admin.firestore().collection("users").doc(uid).update({role: normalizedRole});
+    if (normalizedRole === "club admin") {
+      const userDoc = await admin.firestore().collection("users").doc(uid).get();
+      const existing =
+        userDoc.exists &&
+        userDoc.data() &&
+        Array.isArray(userDoc.data().clubsAdminOf) ? userDoc.data().clubsAdminOf : [];
+      const newClubs = Array.isArray(clubs) ? clubs : [];
+      const set = new Set([...(existing || []), ...newClubs]);
+      mergedClubs = Array.from(set);
+      claims.clubsAdminOf = mergedClubs;
+    }
 
-    res.json({
+    const userUpdate = {role: normalizedRole};
+    if (normalizedRole === "club admin") {
+      userUpdate.clubsAdminOf = mergedClubs;
+    } else {
+      userUpdate.clubsAdminOf = [];
+    }
+
+    await Promise.all([
+      admin.auth().setCustomUserClaims(uid, claims),
+      admin
+        .firestore()
+        .collection("users")
+        .doc(uid)
+        .set(userUpdate, {merge: true}),
+    ]);
+
+    return {
       success: true,
       message: `User ${uid} is now a ${normalizedRole}`,
-    });
+      clubs: userUpdate.clubsAdminOf,
+    };
   } catch (error) {
     console.error("Error setting custom claim:", error);
-    res.status(500).json({ error: error.message || "Internal server error" });
+    throw new HttpsError("internal", error.message || "Internal server error");
   }
 });
 
 exports.approveClubEvent = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'Request not authenticated');
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "Request not authenticated",
+    );
   }
+
   const callerClaims = context.auth.token || {};
-  if (callerClaims.role !== 'admin') {
-    throw new functions.https.HttpsError('permission-denied', 'Only admins can approve events');
+  if (callerClaims.role !== "admin") {
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      "Only admins can approve events",
+    );
   }
+
   const requestId = data.requestId;
   if (!requestId) {
-    throw new functions.https.HttpsError('invalid-argument', 'requestId is required');
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "requestId is required",
+    );
   }
 
   const db = admin.firestore();
-  const reqRef = db.collection('clubEventRequests').doc(requestId);
+  const reqRef = db.collection("clubEventRequests").doc(requestId);
   const reqSnap = await reqRef.get();
-  if (!reqSnap.exists) {
-    throw new functions.https.HttpsError('not-found', 'Request not found');
-  }
-  const reqData = reqSnap.data() || {};
 
+  if (!reqSnap.exists) {
+    throw new functions.https.HttpsError("not-found", "Request not found");
+  }
+
+  const reqData = reqSnap.data() || {};
   const eventDoc = {
-    company: reqData.clubName || '',
-    eventName: reqData.eventName || '',
-    startTime: reqData.startTime || admin.firestore.FieldValue.serverTimestamp(),
-    endTime: reqData.endTime || reqData.startTime || admin.firestore.FieldValue.serverTimestamp(),
-    mainLocation: reqData.eventLocation || '',
-    eventType: (reqData.eventType || 'club').toString().trim().toLowerCase(),
-    logo: reqData.logoUrl || reqData.logo || '',
-    Status: 'approved',
-    description: reqData.description || '',
+    company: reqData.clubName || "",
+    eventName: reqData.eventName || "",
+    startTime:
+      reqData.startTime || admin.firestore.FieldValue.serverTimestamp(),
+    endTime:
+      reqData.endTime ||
+      reqData.startTime ||
+      admin.firestore.FieldValue.serverTimestamp(),
+    mainLocation: reqData.eventLocation || "",
+    eventType: (reqData.eventType || "club").toString().trim().toLowerCase(),
+    logo: reqData.logoUrl || reqData.logo || "",
+    Status: "approved",
+    description: reqData.description || "",
     submittedBy: {
       uid: reqData.requestedByUid || null,
       name: reqData.requestedByName || null,
@@ -116,45 +147,61 @@ exports.approveClubEvent = functions.https.onCall(async (data, context) => {
   };
 
   try {
-    const newEventRef = await db.collection('events').add(eventDoc);
+    const newEventRef = await db.collection("events").add(eventDoc);
     await reqRef.delete();
-    return { success: true, eventId: newEventRef.id };
+    return {success: true, eventId: newEventRef.id};
   } catch (err) {
-    console.error('approveClubEvent error', err);
-    throw new functions.https.HttpsError('internal', 'Failed to approve request');
+    console.error("approveClubEvent error", err);
+    throw new functions.https.HttpsError(
+      "internal",
+      "Failed to approve request",
+    );
   }
 });
 
 exports.denyClubEvent = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'Request not authenticated');
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "Request not authenticated",
+    );
   }
+
   const callerClaims = context.auth.token || {};
-  if (callerClaims.role !== 'admin') {
-    throw new functions.https.HttpsError('permission-denied', 'Only admins can deny events');
+  if (callerClaims.role !== "admin") {
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      "Only admins can deny events",
+    );
   }
+
   const requestId = data.requestId;
-  const reason = data.reason || '';
+  const reason = data.reason || "";
   if (!requestId) {
-    throw new functions.https.HttpsError('invalid-argument', 'requestId is required');
+    throw new functions.https.HttpsError(
+        "invalid-argument",
+        "requestId is required",
+    );
   }
+
   const db = admin.firestore();
-  const reqRef = db.collection('clubEventRequests').doc(requestId);
+  const reqRef = db.collection("clubEventRequests").doc(requestId);
   const reqSnap = await reqRef.get();
+
   if (!reqSnap.exists) {
-    throw new functions.https.HttpsError('not-found', 'Request not found');
+    throw new functions.https.HttpsError("not-found", "Request not found");
   }
 
   try {
     await reqRef.update({
-      status: 'denied',
+      status: "denied",
       reviewedBy: context.auth.uid || null,
       reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
       adminComment: reason,
     });
-    return { success: true };
+    return {success: true};
   } catch (err) {
-    console.error('denyClubEvent error', err);
-    throw new functions.https.HttpsError('internal', 'Failed to deny request');
+    console.error("denyClubEvent error", err);
+    throw new functions.https.HttpsError("internal", "Failed to deny request");
   }
 });

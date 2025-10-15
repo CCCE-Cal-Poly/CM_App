@@ -2,9 +2,10 @@ import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ccce_application/common/collections/user_data.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -18,72 +19,129 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
   void _showChangeUserRoleDialog() async {
     final usersSnapshot = await FirebaseFirestore.instance.collection('users').get();
     final users = usersSnapshot.docs;
+    final clubsSnapshot = await FirebaseFirestore.instance.collection('clubs').get();
+    final clubs = clubsSnapshot.docs;
+
+    final outerContext = context;
 
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         String? selectedUserId;
         String? selectedRole;
+        final Set<String> selectedClubIds = {}; 
 
-        return AlertDialog(
-          title: const Text("Change User Role"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                hint: const Text("Select User"),
-                items: users.map((doc) {
-                  final user = doc.data();
-                  return DropdownMenuItem(
-                    value: doc.id,
-                    child: Text("${user['firstName']} ${user['lastName']}"),
-                  );
-                }).toList(),
-                onChanged: (value) => selectedUserId = value,
+        return StatefulBuilder(builder: (context, setState) {
+          return AlertDialog(
+            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+            title: const Text("Change User Role"),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    hint: const Text("Select User"),
+                    items: users.map((doc) {
+                      final user = doc.data();
+                      return DropdownMenuItem(
+                        value: doc.id,
+                        child: Text("${user['firstName'] ?? ''} ${user['lastName'] ?? ''}"),
+                      );
+                    }).toList(),
+                    onChanged: (value) => selectedUserId = value,
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    hint: const Text("Select Role"),
+                    items: ['Student', 'Faculty', 'Club Admin', 'Admin']
+                        .map((role) => DropdownMenuItem(value: role, child: Text(role)))
+                        .toList(),
+                    onChanged: (value) => setState(() => selectedRole = value),
+                  ),
+
+                  if ((selectedRole ?? '').toLowerCase() == 'club admin') ...[
+                    const SizedBox(height: 12),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Assign Clubs', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 200,
+                      width: double.maxFinite,
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: clubs.length,
+                        itemBuilder: (context, index) {
+                          final c = clubs[index];
+                          final clubData = c.data();
+                          final clubName = clubData['Name'] ?? c.id;
+                          final clubId = c.id;
+                          final checked = selectedClubIds.contains(clubId);
+                          return CheckboxListTile(
+                            title: Text(clubName),
+                            value: checked,
+                            onChanged: (v) {
+                              setState(() {
+                                if (v == true) selectedClubIds.add(clubId);
+                                else selectedClubIds.remove(clubId);
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                hint: const Text("Select Role"),
-                items: ['Student', 'Faculty', 'Club Admin', 'Admin']
-                    .map((role) => DropdownMenuItem(value: role, child: Text(role)))
-                    .toList(),
-                onChanged: (value) => selectedRole = value,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (selectedUserId != null && selectedRole != null) {
+                    final clubsToAssign = (selectedRole!.toLowerCase() == 'club admin') ? selectedClubIds.toList() : null;
+                    await FirebaseFunctions.instance
+                      .httpsCallable('setUserRole')
+                      .call(<String, dynamic>{
+                        'uid': selectedUserId!,
+                        'role': selectedRole!.toLowerCase(),
+                        if (clubsToAssign != null) 'clubs': clubsToAssign,
+                      });
+                    Navigator.of(dialogContext).pop();
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(outerContext).showSnackBar(
+                      SnackBar(content: Text("User role updated to $selectedRole")),
+                    );
+                  }
+                },
+                child: const Text("Update Role"),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (selectedUserId != null && selectedRole != null) {
-                  await setUserRole(selectedUserId!, selectedRole!.toLowerCase());
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("User role updated to $selectedRole")),
-                  );
-                }
-              },
-              child: const Text("Update Role"),
-            ),
-          ],
-        );
+          );
+        });
       },
     );
   }
 
   void _showAdminRequestsDialog() {
+    // Capture outer context for safe UI operations after async work
+    final outerContext = context;
+
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
-          title: const Text("Pending Admin Requests"),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          title: const Text("Club Admin Requests"),
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
           content: SizedBox(
             width: double.maxFinite,
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('adminRequests').snapshots(),
+              stream: FirebaseFirestore.instance.collection('clubAdminRequests').where('status', isEqualTo: 'pending').snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -96,38 +154,121 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                   shrinkWrap: true,
                   itemCount: requests.length,
                   itemBuilder: (context, index) {
-                    final request = requests[index].data() as Map<String, dynamic>;
-                    final uid = request['uid'];
-                    return ListTile(
-                      title: Text("${request['name']} (${request['email']})"),
-                      subtitle: Text("Requested at: ${request['requestedAt']?.toDate()}"),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () async {
-                              final callable =
-                                  FirebaseFunctions.instance.httpsCallable('makeAdmin');
-                              await callable.call({'uid': uid});
-                              await FirebaseFirestore.instance
-                                  .collection('adminRequests')
-                                  .doc(uid)
-                                  .delete();
-                            },
-                            child: const Text("Approve"),
+                    final doc = requests[index];
+                    final request = doc.data() as Map<String, dynamic>;
+                    final uid = request['uid']?.toString() ?? '';
+                    final requestedAt = request['requestedAt'] is Timestamp ? (request['requestedAt'] as Timestamp).toDate() : null;
+                    final clubsField = request['clubs'];
+                    final List<Map<String,String>> clubs = [];
+                    if (clubsField is List) {
+                      for (final c in clubsField) {
+                        if (c == null) continue;
+                        if (c is String) {
+                          clubs.add({'id': c, 'name': c});
+                        } else if (c is Map) {
+                          final idv = c['id'] ?? c['clubId'] ?? c['club'] ?? '';
+                          final namev = c['name'] ?? c['clubName'] ?? idv;
+                          clubs.add({'id': idv.toString(), 'name': namev.toString()});
+                        }
+                      }
+                    }
+
+                    return Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AutoSizeText('${request['name'] ?? ''} - ${request['email'] ?? ''}'),
+                            if (requestedAt != null) Text('Requested at: $requestedAt'),
+                            const SizedBox(height: 2),
+                            SizedBox(
+                              height: 28,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: clubs.asMap().entries.map((entry) {
+                                    final idx = entry.key;
+                                    final c = entry.value;
+                                    final name = (c['name'] ?? c['id'] ?? '').toString();
+                                    final hasSeparator = idx < clubs.length - 1;
+                                    return Row(
+                                      children: [
+                                        AutoSizeText(name, style: const TextStyle(fontSize: 14)),
+                                        if (hasSeparator) const Padding(
+                                          padding: EdgeInsets.symmetric(horizontal: 6.0),
+                                          child: Text(',', style: TextStyle(fontSize: 14)),
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                            Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ElevatedButton(
+                                onPressed: () async {
+                                  try {
+                                    final clubIds = clubs.map((c) => c['id'] ?? '').where((s) => s.isNotEmpty).toList();
+                                    if (clubIds.isEmpty) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(outerContext).showSnackBar(const SnackBar(content: Text('No valid clubs in request')));
+                                      return;
+                                    }
+                                    await FirebaseFunctions.instance
+                                        .httpsCallable('setUserRole')
+                                        .call(<String, dynamic>{
+                                          'uid': uid,
+                                          'role': 'club admin',
+                                          'clubs': clubIds,
+                                        });
+                                    
+                                    await FirebaseFirestore.instance
+                                        .collection('clubAdminRequests')
+                                        .doc(doc.id)
+                                        .update({
+                                      'status': 'approved',
+                                      'reviewedBy':
+                                          FirebaseAuth.instance.currentUser?.uid,
+                                      'reviewedAt': FieldValue.serverTimestamp(),
+                                      'approvedAt': FieldValue.serverTimestamp(),
+                                    });
+
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(outerContext).showSnackBar(const SnackBar(content: Text('Approved')));
+                                  } catch (e) {
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(outerContext).showSnackBar(SnackBar(content: Text('Approve failed: $e')));
+                                  }
+                                },
+                                child: const Text('Approve'),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, ),
+                                onPressed: () async {
+                                  try {
+                                    final adminUser = FirebaseAuth.instance.currentUser;
+                                    await FirebaseFirestore.instance.collection('clubAdminRequests').doc(doc.id).update({
+                                      'status': 'denied',
+                                      'reviewedBy': adminUser?.uid ?? null,
+                                      'reviewedAt': FieldValue.serverTimestamp(),
+                                    });
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(outerContext).showSnackBar(const SnackBar(content: Text('Denied')));
+                                  } catch (e) {
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(outerContext).showSnackBar(SnackBar(content: Text('Deny failed: $e')));
+                                  }
+                                },
+                                child: const Text('Deny', style: TextStyle(color: Colors.white),),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                            onPressed: () async {
-                              await FirebaseFirestore.instance
-                                  .collection('adminRequests')
-                                  .doc(uid)
-                                  .delete();
-                            },
-                            child: const Text("Deny"),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -160,10 +301,10 @@ Widget build(BuildContext context) {
           ElevatedButton(
             onPressed: _showChangeUserRoleDialog,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white, // white background
-              foregroundColor: AppColors.darkGold, // text color
+              backgroundColor: Colors.white,
+              foregroundColor: AppColors.darkGold, 
               shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero, // sharp edges
+                borderRadius: BorderRadius.zero,
               ),
             ),
             child: const Text("Change User Role"),
@@ -179,7 +320,7 @@ Widget build(BuildContext context) {
                 borderRadius: BorderRadius.zero,
               ),
             ),
-            child: const Text("View Admin Requests"),
+            child: const Text("Pending Club Admin Requests"),
           ),
         ],
       ),
@@ -248,7 +389,7 @@ class AdminControlPanelRequests extends StatelessWidget {
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                       onPressed: () => _deny(context, id),
-                      child: const Text('Deny'),
+                      child: const Text('Deny', style: TextStyle(color: Colors.white),),
                     ),
                   ],
                 ),

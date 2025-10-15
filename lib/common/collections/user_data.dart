@@ -25,7 +25,6 @@ class UserData {
   final String name;
   final String email;
   final String? profilePictureUrl;
-  final bool isAppAdmin;
   final List<String> clubsAdminOf;
   final UserRole role;
 
@@ -34,7 +33,6 @@ class UserData {
     required this.name,
     required this.email,
     this.profilePictureUrl,
-    required this.isAppAdmin,
     required this.clubsAdminOf,
     required this.role,
   });
@@ -45,7 +43,6 @@ class UserData {
       name: '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}',
       email: data['email'] ?? '',
       profilePictureUrl: data['profilePictureUrl'],
-      isAppAdmin: data['isAppAdmin'] ?? false,
       clubsAdminOf: List<String>.from(data['clubsAdminOf'] ?? []),
       role: (data['role'] is String) ? (data['role'] as String).toEnum() : data['role'] ?? 'unknown role',
     );
@@ -61,16 +58,15 @@ extension on String {
       case('admin') : return UserRole.admin;
       case('faculty') : return UserRole.faculty;
       case('club admin') : return UserRole.clubAdmin;
-      default : return UserRole.student; //default to student I think makes sense for now depending on how we decide roles
+      default : return UserRole.student;
     }
   }
 }
 
-Future<void> setUserRole(String uid, String role) async {
+Future<void> setUserRole(String uid, String role, [List<String>? clubs]) async {
   final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('setUserRole');
-  final result = await callable.call(<String, dynamic>{
-    'uid': uid,
-    'role': role,
-  });
+  final payload = <String, dynamic>{'uid': uid, 'role': role};
+  if (clubs != null) payload['clubs'] = clubs;
+  final result = await callable.call(payload);
   print(result.data);
 }

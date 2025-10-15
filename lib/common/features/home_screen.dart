@@ -151,11 +151,10 @@ class CalendarScreenState extends State<HomeScreen> {
     for (var events in sortedEntries) {
       final eventDate = events.key;
       if (eventDate.isAfter(day) && nextEvents.length < 3) {
-        // Check for future dates and limit to 3 events
-        nextEvents.addAll(events.value); // Add all events for the current date
+        nextEvents.addAll(events.value);
       }
       if (nextEvents.length >= 3) {
-        break; // Stop iterating if we already found 3 events
+        break;
       }
     }
     int it = 0;
@@ -167,13 +166,13 @@ class CalendarScreenState extends State<HomeScreen> {
         child: SizedBox(
           height: 65, 
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch, // Ensures children fill the row's height
+            crossAxisAlignment: CrossAxisAlignment.stretch, 
             children: [
               Container(
                   height: 65,
                   width: 80,
                   decoration: BoxDecoration(
-                    color: boxColor, // Adjust background color
+                    color: boxColor,
                   ),
                   child: Center(
                     child: Column(
@@ -201,7 +200,7 @@ class CalendarScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.all(16.0),
                       decoration: BoxDecoration(
                           color:
-                              boxColor // Adjust background color, // Adjust border radius
+                              boxColor
                           ),
                       child: Center(
                           child: Column(
@@ -328,7 +327,6 @@ class CalendarScreenState extends State<HomeScreen> {
       startingDayOfWeek: StartingDayOfWeek.monday,
       onFormatChanged: (format) {
         if (_calendarFormat != format) {
-          // Call `setState()` when updating calendar format
           setState(() {
             _calendarFormat = format;
           });
@@ -481,7 +479,6 @@ class CalendarScreenState extends State<HomeScreen> {
         .where(
             (n) => !n.dateTime.isBefore(DateTime(now.year, now.month, now.day)))
         .toList();
-    // Only show past notifications within a month of the current date
     final oneMonthAgo = DateTime(now.year, now.month - 1, now.day);
     List<NotificationItem> past = mockNotifications
         .where((n) =>
@@ -527,7 +524,7 @@ class CalendarScreenState extends State<HomeScreen> {
                     height: 65,
                     width: 80,
                     decoration: const BoxDecoration(
-                      color: Colors.white, // Match event display
+                      color: Colors.white,
                     ),
                     child: Center(
                       child: Column(
@@ -557,7 +554,7 @@ class CalendarScreenState extends State<HomeScreen> {
                     child: Container(
                         padding: const EdgeInsets.only(left: 12.0, top: 6.0),
                         decoration: const BoxDecoration(
-                          color: Colors.white, // Match event display
+                          color: Colors.white,
                         ),
                         child: Center(
                             child: Column(
@@ -565,8 +562,9 @@ class CalendarScreenState extends State<HomeScreen> {
                           children: [
                             Text(n.title,
                                 style: const TextStyle(
-                                    fontFamily: "AppFonts.sansProSemiBold",
-                                    fontSize: 13)),
+                                  fontFamily: "AppFonts.sansProSemiBold",
+                                  fontSize: 13)
+                                ),
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -580,7 +578,7 @@ class CalendarScreenState extends State<HomeScreen> {
                                     padding: const EdgeInsets.only(left: 2.0),
                                     child: SizedBox(
                                       height:
-                                          32, // fits 2 lines, adjust as needed
+                                          32, 
                                       child: SingleChildScrollView(
                                         scrollDirection: Axis.vertical,
                                         child: Text(
@@ -634,7 +632,7 @@ class CalendarScreenState extends State<HomeScreen> {
           indent: 20,
           endIndent: 60,
           color: Colors.white,
-          thickness: 1, // You can adjust the thickness
+          thickness: 1,
         ),
         ...buildSection('Past', past),
       ],

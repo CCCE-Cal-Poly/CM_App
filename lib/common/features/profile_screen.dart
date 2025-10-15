@@ -1,9 +1,7 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/features/my_info_sessions.dart';
-import 'package:ccce_application/common/features/sign_in.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
-import 'package:ccce_application/common/widgets/debug_outline.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -110,8 +108,8 @@ class ProfileScreenState extends State<ProfileScreen> {
                   child: Column(children: [
                     Divider(
                       color: Colors.white,
-                      indent: screenWidth * 0.06,
-                      endIndent: screenWidth * 0.06,
+                      indent: screenWidth * 0.03,
+                      endIndent: screenWidth * 0.03,
                     ),
                     SizedBox(height: screenHeight * 0.02),
                     SizedBox(
@@ -124,7 +122,6 @@ class ProfileScreenState extends State<ProfileScreen> {
                               User? currentUser =
                                   FirebaseAuth.instance.currentUser;
 
-                              // Determine profile image source
                               ImageProvider profileImage;
                               if (userData?.profilePictureUrl != null &&
                                   userData!.profilePictureUrl!.isNotEmpty) {
@@ -135,7 +132,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                                 profileImage =
                                     NetworkImage(currentUser.photoURL!);
                               } else {
-                                profileImage = AssetImage(
+                                profileImage = const AssetImage(
                                     'assets/icons/default_profile.png');
                               }
 
@@ -162,13 +159,16 @@ class ProfileScreenState extends State<ProfileScreen> {
                                   User? currentUser =
                                       FirebaseAuth.instance.currentUser;
 
-                                  // Get display name - priority: Firestore name > Firebase Auth name > fallback
                                   String displayName = '';
                                   if (userData != null &&
                                       userData.name.trim().isNotEmpty) {
                                     displayName = userData.name.trim();
                                   } else {
-                                    displayName = 'User Name';
+                                    if (currentUser?.email != null && currentUser!.email!.isNotEmpty) {
+                                      displayName = currentUser.email!.split('@')[0];
+                                    } else {
+                                      displayName = '';
+                                    }
                                   }
 
                                   String displayRole = '';
@@ -191,7 +191,6 @@ class ProfileScreenState extends State<ProfileScreen> {
                                     displayRole = '';
                                   }
 
-                                  // Get email - priority: Firestore email > Firebase Auth email > fallback
                                   String displayEmail = '';
                                   if (userData != null &&
                                       userData.email.trim().isNotEmpty) {
@@ -212,7 +211,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                                           displayName,
                                           maxLines: 2,
                                           minFontSize: 7,
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                               color: Colors.white,
                                               fontFamily:
                                                   AppFonts.sansProSemiBold,
@@ -224,14 +223,14 @@ class ProfileScreenState extends State<ProfileScreen> {
                                         AutoSizeText(displayRole,
                                             maxLines: 1,
                                             minFontSize: 7,
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               color: AppColors.tanText,
                                               fontSize: 12,
                                             )),
                                       AutoSizeText(displayEmail,
                                           maxLines: 1,
                                           minFontSize: 7,
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                               color: AppColors.tanText,
                                               fontSize: 12,
                                               decoration:
@@ -248,7 +247,6 @@ class ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     SizedBox(height: screenHeight * 0.02),
-                    // Show clubs the user administers (if any)
                     Consumer<UserProvider>(builder: (context, userProvider, child) {
                       final clubs = userProvider.clubsAdminOf;
                       if (clubs.isEmpty) return const SizedBox.shrink();
@@ -274,7 +272,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.yellowButton,
-                              shape: RoundedRectangleBorder(
+                              shape: const RoundedRectangleBorder(
                                   borderRadius: BorderRadius.zero)),
                           onPressed: () {
                             Navigator.of(context).push(
@@ -283,7 +281,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                               ),
                             );
                           },
-                          child: Text(
+                          child: const Text(
                             "EDIT",
                             style: TextStyle(color: Colors.black),
                           ),
@@ -298,7 +296,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                           child: Divider(
                             color: Colors.white,
                             height: 10,
-                            indent: screenWidth * 0.04,
+                            indent: screenWidth * 0.03,
                             endIndent: screenWidth * 0.04,
                           ),
                         ),
@@ -311,7 +309,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                             color: Colors.white,
                             height: 10,
                             indent: screenWidth * 0.04,
-                            endIndent: screenWidth * 0.04,
+                            endIndent: screenWidth * 0.03,
                           ),
                         ),
                       ],
@@ -320,15 +318,15 @@ class ProfileScreenState extends State<ProfileScreen> {
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.yellowButton,
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.zero),
                         minimumSize:
-                            Size(double.infinity, 48), // Forces full width
+                            const Size(double.infinity, 48), // Forces full width
                       ),
                       onPressed: () async {
                         await FirebaseAuth.instance.signOut();
                       },
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         mainAxisSize: MainAxisSize.max,
                         children: [
@@ -342,13 +340,13 @@ class ProfileScreenState extends State<ProfileScreen> {
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.yellowButton,
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.zero),
                         minimumSize:
-                            Size(double.infinity, 48), // Forces full width
+                            const Size(double.infinity, 48), // Forces full width
                       ),
                       onPressed: () => print("hi"),
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         mainAxisSize: MainAxisSize.max,
                         children: [
@@ -361,10 +359,10 @@ class ProfileScreenState extends State<ProfileScreen> {
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.yellowButton,
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.zero),
                         minimumSize:
-                            Size(double.infinity, 48), // Forces full width
+                            const Size(double.infinity, 48), // Forces full width
                       ),
                       onPressed: () => Navigator.push(
                         context,
@@ -384,7 +382,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         mainAxisSize: MainAxisSize.max,
                         children: [
@@ -398,13 +396,13 @@ class ProfileScreenState extends State<ProfileScreen> {
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.yellowButton,
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.zero),
                         minimumSize:
-                            Size(double.infinity, 48), // Forces full width
+                            const Size(double.infinity, 48), // Forces full width
                       ),
                       onPressed: () => print("hi"),
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         mainAxisSize: MainAxisSize.max,
                         children: [
@@ -418,13 +416,13 @@ class ProfileScreenState extends State<ProfileScreen> {
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.yellowButton,
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.zero),
                         minimumSize:
-                            Size(double.infinity, 48), // Forces full width
+                            const Size(double.infinity, 48), // Forces full width
                       ),
                       onPressed: () => print("hi"),
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         mainAxisSize: MainAxisSize.max,
                         children: [
