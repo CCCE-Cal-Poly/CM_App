@@ -12,15 +12,13 @@ import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:ccce_application/services/notification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:ccce_application/common/providers/app_state.dart';
 import 'package:ccce_application/common/providers/event_provider.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/providers/club_provider.dart';
 
-// import 'package:isar/isar.dart';
-// import 'package:ccce_application/src/screens/profile_screen.dart';
-// import 'package:ccce_application/src/screens/home_screen.dart';
 Future<void> _requestNotificationPermissions() async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
 
@@ -49,8 +47,10 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Request notification permissions when the app starts
-  _requestNotificationPermissions();
+  FirebaseMessaging.onBackgroundMessage(
+      NotificationService.firebaseMessagingBackgroundHandler);
+
+  await _requestNotificationPermissions();
 
   runApp(
     MultiProvider(
@@ -114,6 +114,8 @@ class MyApp extends StatelessWidget {
               Provider.of<UserProvider>(context, listen: false)
                   .loadUserProfile(snapshot.data!.uid);
               Provider.of<ClubProvider>(context, listen: false).loadClubs();
+              // Initialize notification service for this signed-in user
+              NotificationService.initForUid(snapshot.data!.uid);
             });
 
             return Consumer<EventProvider>(

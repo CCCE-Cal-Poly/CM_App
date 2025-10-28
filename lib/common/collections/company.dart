@@ -6,7 +6,9 @@ import 'package:ccce_application/common/providers/app_state.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class Company extends Favoritable implements Comparable<Company> {
   dynamic name;
@@ -423,14 +425,33 @@ class _CompanyPopupState extends State<CompanyPopup> {
                   children: [
                     const Icon(
                       Icons.mail,
-                      size: 24, // Adjust the size of the icon as needed
-                      color: Colors.white, // Add your desired icon color
+                      size: 24,
+                      color: Colors.white,
                     ),
-                    Text(
-                      widget.company.recruiterEmail ?? 'No Email',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18.0,
+                    const SizedBox(width: 10),
+                    InkWell(
+                      onTap: () async {
+                        final email = widget.company.recruiterEmail;
+                        if (email != null && email.isNotEmpty) {
+                          final uri = Uri(scheme: 'mailto', path: email);
+                          try {
+                            await launchUrl(uri);
+                          } catch (e) {
+                            await Clipboard.setData(ClipboardData(text: email));
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Email copied to clipboard')),
+                            );
+                          }
+                        }
+                      },
+                      child: Text(
+                        widget.company.recruiterEmail ?? 'No Email',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18.0,
+                          decoration: TextDecoration.underline,
+                        ),
                       ),
                     ),
                   ],

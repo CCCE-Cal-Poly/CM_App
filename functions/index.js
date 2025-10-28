@@ -1,10 +1,9 @@
 const admin = require("firebase-admin");
-const functions = require("firebase-functions");
-
 
 admin.initializeApp();
 
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
+const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 
 const ALLOWED_ROLES = new Set(["student", "faculty", "club admin", "admin"]);
 
@@ -91,25 +90,25 @@ exports.setUserRole = onCall(async (request) => {
   }
 });
 
-exports.approveClubEvent = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
+exports.approveClubEvent = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError(
       "unauthenticated",
       "Request not authenticated",
     );
   }
 
-  const callerClaims = context.auth.token || {};
+  const callerClaims = request.auth.token || {};
   if (callerClaims.role !== "admin") {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "permission-denied",
       "Only admins can approve events",
     );
   }
 
-  const requestId = data.requestId;
+  const requestId = request.data.requestId;
   if (!requestId) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "invalid-argument",
       "requestId is required",
     );
@@ -120,7 +119,7 @@ exports.approveClubEvent = functions.https.onCall(async (data, context) => {
   const reqSnap = await reqRef.get();
 
   if (!reqSnap.exists) {
-    throw new functions.https.HttpsError("not-found", "Request not found");
+    throw new HttpsError("not-found", "Request not found");
   }
 
   const reqData = reqSnap.data() || {};
@@ -134,7 +133,7 @@ exports.approveClubEvent = functions.https.onCall(async (data, context) => {
       reqData.startTime ||
       admin.firestore.FieldValue.serverTimestamp(),
     mainLocation: reqData.eventLocation || "",
-    eventType: (reqData.eventType || "club").toString().trim().toLowerCase(),
+    eventType: ("club").toString().trim().toLowerCase(),
     logo: reqData.logoUrl || reqData.logo || "",
     Status: "approved",
     description: reqData.description || "",
@@ -152,33 +151,33 @@ exports.approveClubEvent = functions.https.onCall(async (data, context) => {
     return {success: true, eventId: newEventRef.id};
   } catch (err) {
     console.error("approveClubEvent error", err);
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "internal",
       "Failed to approve request",
     );
   }
 });
 
-exports.denyClubEvent = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
+exports.denyClubEvent = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError(
       "unauthenticated",
       "Request not authenticated",
     );
   }
 
-  const callerClaims = context.auth.token || {};
+  const callerClaims = request.auth.token || {};
   if (callerClaims.role !== "admin") {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "permission-denied",
       "Only admins can deny events",
     );
   }
 
-  const requestId = data.requestId;
-  const reason = data.reason || "";
+  const requestId = request.data.requestId;
+  const reason = request.data.reason || "";
   if (!requestId) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
         "invalid-argument",
         "requestId is required",
     );
@@ -189,19 +188,97 @@ exports.denyClubEvent = functions.https.onCall(async (data, context) => {
   const reqSnap = await reqRef.get();
 
   if (!reqSnap.exists) {
-    throw new functions.https.HttpsError("not-found", "Request not found");
+    throw new HttpsError("not-found", "Request not found");
   }
 
   try {
     await reqRef.update({
       status: "denied",
-      reviewedBy: context.auth.uid || null,
+      reviewedBy: request.auth.uid || null,
       reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
       adminComment: reason,
     });
     return {success: true};
   } catch (err) {
     console.error("denyClubEvent error", err);
-    throw new functions.https.HttpsError("internal", "Failed to deny request");
+    throw new HttpsError("internal", "Failed to deny request");
+  }
+});
+
+exports.sendNotificationOnCreate = onDocumentCreated("notifications/{notificationId}", async (event) => {
+  const snapshot = event.data;
+  if (!snapshot) {
+    console.log("No data associated with the event");
+    return;
+  }
+
+  const notification = snapshot.data();
+  const uid = notification.uid;
+  
+  if (!uid) {
+    console.error("No uid found in notification document");
+    return;
+  }
+
+  try {
+    const tokensSnapshot = await admin.firestore()
+      .collection("users")
+      .doc(uid)
+      .collection("fcmTokens")
+      .get();
+
+    if (tokensSnapshot.empty) {
+      console.log("No FCM tokens found for user:", uid);
+      return;
+    }
+
+    const tokens = tokensSnapshot.docs.map(doc => doc.data().token);
+
+    const message = {
+      notification: {
+        title: notification.title || "New Notification",
+        body: notification.message || "",
+      },
+      data: {
+        notificationId: event.params.notificationId,
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
+      },
+      tokens: tokens,
+    };
+
+    const response = await admin.messaging().sendMulticast(message);
+
+    if (response.failureCount > 0) {
+      const invalidTokens = [];
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          invalidTokens.push(tokens[idx]);
+        }
+      });
+
+      const deletePromises = invalidTokens.map(token => {
+        return admin.firestore()
+          .collection("users")
+          .doc(uid)
+          .collection("fcmTokens")
+          .where("token", "==", token)
+          .get()
+          .then(querySnapshot => {
+            const batch = admin.firestore().batch();
+            querySnapshot.forEach(doc => {
+              batch.delete(doc.ref);
+            });
+            return batch.commit();
+          });
+      });
+
+      await Promise.all(deletePromises);
+      console.log(`Removed ${invalidTokens.length} invalid tokens`);
+    }
+
+    console.log(`Successfully sent notifications to ${response.successCount} devices`);
+    
+  } catch (error) {
+    console.error("Error sending notification:", error);
   }
 });

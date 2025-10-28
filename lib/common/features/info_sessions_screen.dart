@@ -29,8 +29,7 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
     var screenHeight = MediaQuery.of(context).size.height;
 
     return Consumer<EventProvider>(builder: (context, eventProvider, child) {
-      // Update infoSessions whenever the provider changes
-      final infoSessions = eventProvider.isLoaded
+            final infoSessions = eventProvider.isLoaded
           ? eventProvider.getEventsByType('infoSession')
           : <CalEvent>[];
 
@@ -66,21 +65,16 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
                   children: [
                     Expanded(
                       child: TextField(
-                        //controller: _searchController,
                         onChanged: (text) {
                           setState(() {
                             _isTextEntered = text.isNotEmpty;
-                            // Clear the previously filtered companies
                             filteredInfoSessions.clear();
 
-                            // Iterate through the original list of companies if text is entered
                             if (_isTextEntered) {
                               for (CalEvent infoSession in infoSessions) {
-                                // Check if the company name starts with the entered text substring
                                 if (infoSession.eventName
                                     .toLowerCase()
                                     .startsWith(text.toLowerCase())) {
-                                  // If it does, add the company to the filtered list
                                   filteredInfoSessions.add(infoSession);
                                 }
                               }
@@ -89,7 +83,6 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
                         },
                         decoration: const InputDecoration(
                           prefixIcon: Icon(Icons.search, color: Colors.grey),
-                          // contentPadding: EdgeInsets.all(2.0),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.zero,
                             borderSide: BorderSide(
@@ -110,12 +103,8 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
                             ),
                           ),
                           hintText: 'Info Session Directory',
-                          // border: OutlineInputBorder(
-                          //   borderRadius: BorderRadius.circular(10.0),
-                          // ),
                           fillColor: Colors.white,
                           filled: true,
-                          // Add Container with colored background for the button
                         ),
                       ),
                     )
@@ -140,13 +129,13 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
                             return InfoSessionPopUp(
                               infoSession: infoSessionData,
                               onClose: () =>
-                                  Navigator.pop(context), // Close popup on tap
+                                  Navigator.pop(context), 
                             );
                           },
                         );
                       },
                       child: InfoSessionItem(
-                          displayList[index]), // Existing CompanyItem widget
+                          displayList[index]),
                     );
                   },
                 ),

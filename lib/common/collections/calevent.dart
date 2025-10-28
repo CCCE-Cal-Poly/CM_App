@@ -3,7 +3,9 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/providers/app_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 Widget eventLogoImage(String? url, double width, double height) {
   if (url == null || url.isEmpty) {
@@ -48,16 +50,61 @@ class CalEvent {
   }
 
   factory CalEvent.fromSnapshot(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    String openPositions = data["isHiring"] == "No" ? "" : data["position"];
-    String? theLogo = data.containsKey("logo") ? data["logo"] : null;
+    final dataRaw = doc.data();
+    if (dataRaw == null) {
+      throw Exception("Document ${doc.id} has no data");
+    }
+    final data = dataRaw as Map<String, dynamic>;
+
+  final eventType = data["eventType"] ?? "";
+  
+    if (eventType == "club") {
+    final clubName = data["clubName"] ?? data["company"] ?? "";
+    final eventName = data["eventName"] ?? "";
+    final displayName = clubName.isNotEmpty && eventName.isNotEmpty 
+        ? "$clubName - $eventName" 
+        : (eventName.isNotEmpty ? eventName : clubName);
+    
+    final start = (data["startTime"] is Timestamp)
+        ? data["startTime"].toDate()
+        : DateTime.now();
+
+    final end = (data["endTime"] is Timestamp)
+        ? data["endTime"].toDate()
+        : start.add(const Duration(hours: 1));
+    
     return CalEvent(
       id: doc.id,
-      eventName: data["company"],
-      startTime: data["startTime"].toDate(),
-      endTime: data["startTime"].toDate().add(const Duration(hours: 1)),
-      eventLocation: data["mainLocation"],
-      eventType: data["eventType"],
+      eventName: displayName,
+      startTime: start,
+      endTime: end,
+      eventLocation: data["mainLocation"] ?? data["eventLocation"] ?? "",
+      eventType: eventType,
+      logo: data.containsKey("logo") ? data["logo"] : null,
+      status: data["Status"] ?? data["status"] ?? "pending",
+      isd: null, 
+    );
+  } else {
+    String openPositions = data["isHiring"] == "No" ? "" : (data["position"] ?? "");
+    String? theLogo = data.containsKey("logo") ? data["logo"] : null;
+
+    final displayName = data["company"] ?? data["eventName"] ?? "";
+    
+    final start = (data["startTime"] is Timestamp)
+        ? data["startTime"].toDate()
+        : DateTime.now();
+
+    final end = (data["endTime"] is Timestamp)
+        ? data["endTime"].toDate()
+        : start.add(const Duration(hours: 1));
+
+    return CalEvent(
+      id: doc.id,
+      eventName: displayName,
+      startTime: start,
+      endTime: end,
+      eventLocation: data["mainLocation"] ?? data["eventLocation"] ?? "",
+      eventType: eventType,
       logo: theLogo,
       status: data["Status"] ?? "pending",
       isd: InfoSessionData(
@@ -71,6 +118,7 @@ class CalEvent {
       ),
     );
   }
+}
 
   factory CalEvent.clubEventfromMap(Map<String, dynamic> data) {
     return CalEvent(
@@ -193,12 +241,13 @@ class InfoSessionItem extends StatelessWidget {
                   screenWidth * .1,
                 ),
                 title: AutoSizeText(
-                  infoSession.eventName ?? 'No Company Name',
+                              infoSession.eventName,
                   style: const TextStyle(
                     color: Colors.black,
                     fontSize: 13.0,
                     fontWeight: FontWeight.w600,
                   ),
+                  overflow: TextOverflow.ellipsis,
                   minFontSize: 11,
                   maxLines: 2,
                 ),
@@ -226,10 +275,42 @@ class InfoSessionPopUp extends StatefulWidget {
 }
 
 class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
+  Future<void> _copyToClipboard(String label, String value) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: value));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label copied to clipboard')));
+    } catch (e) {
+    }
+  }
+
+  Future<void> _launchUriOrCopy(Uri uri, String fallbackLabel) async {
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await Clipboard.setData(ClipboardData(text: uri.toString()));
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$fallbackLabel copied to clipboard')));
+      }
+    } catch (e) {
+      try {
+        await Clipboard.setData(ClipboardData(text: uri.toString()));
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$fallbackLabel copied to clipboard')));
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _openEmailOrCopy(String email) async {
+    final mailUri = Uri(scheme: 'mailto', path: email);
+    await _launchUriOrCopy(mailUri, 'Email');
+  }
+
   @override
   Widget build(BuildContext context) {
     double screenHeight = MediaQuery.of(context).size.height;
     double screenWidth = MediaQuery.of(context).size.width;
+    final hiring = (widget.infoSession.isd?.openPositions != null && widget.infoSession.isd!.openPositions!.trim().isNotEmpty);
     return Scaffold(
       backgroundColor: AppColors.calPolyGreen,
       body: ListView(
@@ -291,17 +372,57 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                             SizedBox(
                               width: screenWidth * 0.7,
                               child: AutoSizeText(
-                                widget.infoSession.eventName ?? 'No Company Name',
+                                widget.infoSession.eventName,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontSize: 19,
                                   fontWeight: FontWeight.bold,
                                 ),
+                                overflow: TextOverflow.ellipsis,
                                 minFontSize: 16,
                                 maxLines: 2,
                               ),
                             ),
                             SizedBox(height: screenHeight * .0015),
+                            // Show event time (start - end)
+                            Builder(builder: (context) {
+                              final start = widget.infoSession.startTime;
+                              final end = widget.infoSession.endTime;
+                              String formatTime(DateTime d) {
+                                final hour = d.hour % 12 == 0 ? 12 : d.hour % 12;
+                                final minute = d.minute.toString().padLeft(2, '0');
+                                final ampm = d.hour < 12 ? 'AM' : 'PM';
+                                return '$hour:$minute $ampm';
+                              }
+                              String formatDate(DateTime d) => '${d.month}/${d.day}/${d.year}';
+                final when = '${formatDate(start)} • ${formatTime(start)} - ${formatTime(end)}';
+                              return Column(
+                                children: [
+                                  Text(
+                                    when,
+                                    style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                  ),
+                                  SizedBox(height: screenHeight * 0.006),
+                                  if ((widget.infoSession.isd?.website ?? '').isNotEmpty)
+                                    InkWell(
+                                      onTap: () {
+                                        final uri = Uri.tryParse(widget.infoSession.isd!.website!);
+                                        if (uri != null) _launchUriOrCopy(uri, 'Website');
+                                      },
+                                      onLongPress: () => _copyToClipboard('Website', widget.infoSession.isd!.website!),
+                                      child: Text(
+                                        widget.infoSession.isd!.website!,
+                                        style: const TextStyle(
+                                          color: Colors.blue,
+                                          decoration: TextDecoration.underline,
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            }),
                             Padding(
                               padding: EdgeInsets.only(top: screenHeight * 0.015),
                               child: ElevatedButton(
@@ -356,66 +477,55 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                                       ),
                               ),
                             ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                vertical: screenHeight * 0.01,
-                              ),
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    if (context.read<AppState>().isInCalendar(widget.infoSession)) {
-                                      context.read<AppState>().removeFromCalendar(widget.infoSession);
-                                    } else {
-                                      context.read<AppState>().addToCalendar(widget.infoSession);
-                                    }
-                                  });
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  fixedSize: Size(
-                                    screenWidth * 0.5,
-                                    screenHeight * 0.05,
-                                  ),
-                                  backgroundColor: context.read<AppState>().isInCalendar(widget.infoSession)
-                                      ? Colors.grey
-                                      : AppColors.calPolyGreen,
-                                  shape: const RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.zero,
-                                  ),
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: screenWidth * .03,
-                                    vertical: screenHeight * .008,
-                                  ),
+
+                            if ((widget.infoSession.isd?.interviewLink ?? '').isNotEmpty)
+                              Padding(
+                                padding: EdgeInsets.only(top: screenHeight * 0.01),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    TextButton.icon(
+                                      icon: const Icon(Icons.link, size: 18),
+                                      label: const Text('Open interview link'),
+                                      onPressed: () async {
+                                        final link = widget.infoSession.isd!.interviewLink!;
+                                        final uri = Uri.tryParse(link);
+                                        if (uri != null) {
+                                          await _launchUriOrCopy(uri, 'Interview link');
+                                        } else {
+                                          // fallback: copy to clipboard
+                                          await Clipboard.setData(ClipboardData(text: link));
+                                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Interview link copied to clipboard')));
+                                        }
+                                      },
+                                      onLongPress: () async {
+                                        final link = widget.infoSession.isd!.interviewLink!;
+                                        await Clipboard.setData(ClipboardData(text: link));
+                                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Interview link copied to clipboard')));
+                                      },
+                                    ),
+                                  ],
                                 ),
-                                child: context.read<AppState>().isInCalendar(widget.infoSession)
-                                    ? const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.check, color: Colors.black),
-                                          SizedBox(width: 6),
-                                          Text(
-                                            'ADDED TO CALENDAR',
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : const Text(
-                                        'ADD TO CALENDAR',
-                                        style: TextStyle(
-                                          color: AppColors.welcomeLightYellow,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
                               ),
-                            ),
                           ],
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ),
+              Positioned(
+                right: screenWidth * 0.06,
+                top: screenHeight * 0.02,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: hiring ? Colors.green : Colors.grey,
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  child: Text(
+                    hiring ? 'HIRING' : 'NOT HIRING',
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -431,69 +541,80 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "Contacts",
+                      "Contact Information",
                       style: TextStyle(
                         color: AppColors.lightGold,
                         fontSize: 22.0,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
+                    const SizedBox(height: 8),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 6.0,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Container(
                         width: screenWidth * .85,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Colors.black),
-                          borderRadius: BorderRadius.zero,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 2.0,
-                            horizontal: 6.0,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.only(
-                              left: 18.0,
-                              top: 4.0,
-                              bottom: 8.0,
+                        color: Colors.white,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                              child: Text(
+                                widget.infoSession.isd?.recruiterName ?? 'No Listed Contact Name',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.infoSession.isd?.recruiterName ?? 'No Listed Contact Name',
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
+                            if ((widget.infoSession.isd?.recruiterEmail ?? '').isNotEmpty)
+                              GestureDetector(
+                                onLongPress: () => _copyToClipboard('Email', widget.infoSession.isd!.recruiterEmail!),
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: InkWell(
+                                          onTap: () => _openEmailOrCopy(widget.infoSession.isd!.recruiterEmail!),
+                                          child: Text(
+                                            widget.infoSession.isd!.recruiterEmail!,
+                                            style: const TextStyle(
+                                              color: AppColors.darkGoldText,
+                                              fontWeight: FontWeight.w400,
+                                              fontSize: 13,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.email_outlined),
+                                        onPressed: () => _openEmailOrCopy(widget.infoSession.isd!.recruiterEmail!),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.copy, size: 18),
+                                        onPressed: () => _copyToClipboard('Email', widget.infoSession.isd!.recruiterEmail!),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                Text(
-                                  widget.infoSession.isd?.recruiterEmail ?? 'No Listed Contact Email',
-                                  style: const TextStyle(
-                                    color: AppColors.darkGoldText,
-                                    fontWeight: FontWeight.w400,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                              ),
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
                 const Divider(),
+                const SizedBox(height: 4),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "About",
+                            const Text(
+                      "Positions Available",
                       style: TextStyle(
                         color: AppColors.lightGold,
                         fontSize: 22.0,
@@ -501,13 +622,39 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                       ),
                     ),
                     const SizedBox(height: 5),
-                    Text(
-                      widget.infoSession.isd?.openPositions ?? 'No Position Info',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14.0,
-                      ),
-                    ),
+                    Builder(builder: (_) {
+                      final raw = widget.infoSession.isd?.openPositions ?? '';
+                      final items = raw.split('|').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+                      if (items.isEmpty) {
+                        return const Text('No Position Info', style: TextStyle(color: Colors.white, fontSize: 14.0));
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: items.map((p) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6.0),
+                          child: Text(p, style: const TextStyle(color: Colors.white, fontSize: 14.0)),
+                        )).toList(),
+                      );
+                    }),
+                    const SizedBox(height: 4),
+                    const Divider(),
+                    const SizedBox(height: 4),
+                    Builder(builder: (_) {
+                      final rawLoc = widget.infoSession.isd?.jobLocations ?? '';
+                      final locs = rawLoc.split('|').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+                      if (locs.isEmpty) return const SizedBox.shrink();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Location(s)', style: TextStyle(color: AppColors.lightGold, fontSize: 18.0, fontWeight: FontWeight.w500)),
+                          const SizedBox(height: 6),
+                          ...locs.map((l) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4.0),
+                            child: Text(l, style: const TextStyle(color: Colors.white, fontSize: 14.0)),
+                          )),
+                        ],
+                      );
+                    }),
                   ],
                 ),
               ],

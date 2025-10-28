@@ -2,6 +2,7 @@ import 'package:ccce_application/common/collections/user_data.dart';
 import 'package:ccce_application/common/features/admin_control_panel.dart';
 import 'package:ccce_application/common/features/job_board.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
+import 'package:ccce_application/common/features/club_event_request_screen.dart';
 import 'package:ccce_application/common/collections/user_data.dart' show UserRole;
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/features/faculty_directory.dart';
@@ -42,6 +43,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
       () => JobBoard(scaffoldKey: _scaffoldKey),
       () => ProfileScreen(scaffoldKey: _scaffoldKey),
       () => AdminPanelScreen(scaffoldKey: _scaffoldKey),
+      () => ClubEventRequestScreen(scaffoldKey: _scaffoldKey),
     ];
     _pages = List<Widget?>.filled(_pageBuilders.length, null);
   }
@@ -71,6 +73,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
   Widget build(BuildContext context) {
   final userProvider = Provider.of<UserProvider>(context);
   final isAdmin = userProvider.user?.role == UserRole.admin;
+  final isClubAdmin = userProvider.user?.role == UserRole.clubAdmin;
     if (_pages[_selectedIndex] == null) {
       _pages[_selectedIndex] = _pageBuilders[_selectedIndex]();
     }
@@ -124,6 +127,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
                   createListItem("Job Board", 5),
                   createListItem("Profile", 6),
                   if (isAdmin) createListItem("Admin Control Panel", 7),
+                  if (isClubAdmin || isAdmin) createListItem("Request Club Event", 8),
                 ],
               ),
             ),

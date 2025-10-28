@@ -1,14 +1,17 @@
 import 'package:ccce_application/common/collections/calevent.dart';
+import 'package:ccce_application/common/collections/club.dart';
 import 'package:ccce_application/common/providers/event_provider.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:ccce_application/main.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'dart:collection';
 import 'package:intl/intl.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:ccce_application/common/providers/user_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -103,19 +106,58 @@ class CalendarScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<EventProvider>(context, listen: false);
       if (provider.isLoaded) {
-        final events = getEventsGroupedByDate(provider);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final provider = Provider.of<EventProvider>(context, listen: false);
-          if (provider.isLoaded) {
-            final events = getEventsGroupedByDate(provider);
-            setState(() {
-              eventMap = events;
-            });
-          }
-        });
-      }
-    });
+        setState(() {
+                eventMap = getEventsGroupedByDate(provider);
+      });
+    }
+  });
   }
+
+  Future<void> _handleEventTap(CalEvent event) async {
+    if (event.eventType.toLowerCase() == "club") {
+      try {
+        final clubName = event.eventName.split(' - ').first;
+        
+        final clubQuery = await FirebaseFirestore.instance
+            .collection('clubs')
+            .where('Acronym', isEqualTo: clubName)
+            .limit(1)
+            .get();
+        
+        if (clubQuery.docs.isNotEmpty) {
+          final club = Club.fromDocument(clubQuery.docs.first);
+          
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ClubPopUp(
+                club: club,
+                onClose: () => Navigator.of(context).pop(),
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Club details not found')),
+          );
+        }
+      } catch (e) {
+        print('Error fetching club: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error loading club details')),
+        );
+      }
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => InfoSessionPopUp(
+            infoSession: event,
+            onClose: () => Navigator.of(context).pop(),
+          ),
+        ),
+      );
+    }
+  }
+
 
   void updateFocusedDates(day) {
     _focusedDay = day;
@@ -157,18 +199,19 @@ class CalendarScreenState extends State<HomeScreen> {
         break;
       }
     }
-    int it = 0;
     for (var ev in nextEvents) {
-      Color boxColor = Colors.white;
-      it = it + 1;
-      eventContainers.add(Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 3.0),
-        child: SizedBox(
-          height: 65, 
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch, 
-            children: [
-              Container(
+    Color boxColor = Colors.white;
+    eventContainers.add(
+      InkWell(
+        onTap: () => _handleEventTap(ev),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 3.0),
+          child: SizedBox(
+            height: 65,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
                   height: 65,
                   width: 80,
                   decoration: BoxDecoration(
@@ -193,109 +236,120 @@ class CalendarScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                  )),
-              const SizedBox(width: 1),
-              Expanded(
+                  ),
+                ),
+                const SizedBox(width: 1),
+                Expanded(
                   child: Container(
-                      padding: const EdgeInsets.all(16.0),
-                      decoration: BoxDecoration(
-                          color:
-                              boxColor
-                          ),
-                      child: Center(
-                          child: Column(
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(color: boxColor),
+                    child: Center(
+                      child: Column(
                         children: [
-                          AutoSizeText(ev.eventName,
-                              style: const TextStyle(
-                                  fontFamily: "AppFonts.sansProSemiBold",
-                                  fontSize: 13),
-                                minFontSize: 10,
-                                maxLines: 1),
-                          Text(ev.eventLocation,
-                              style: const TextStyle(
-                                  fontFamily: "SansSerifPro", fontSize: 10)
+                          AutoSizeText(
+                            ev.eventName,
+                            style: const TextStyle(
+                                fontFamily: "AppFonts.sansProSemiBold",
+                                fontSize: 13),
+                            minFontSize: 10,
+                            maxLines: 1,
+                          ),
+                          AutoSizeText(
+                            ev.eventLocation,
+                            style: const TextStyle(
+                                fontFamily: "SansSerifPro", fontSize: 10),
+                            minFontSize: 8,
+                            maxLines: 1,
                           )
                         ],
-                      )
-                    )
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
-          )
-        )
-      );
-    }
+          ),
+        ),
+      ),
+    );
+  }
     return eventContainers;
   }
 
   List<Widget> _getDayEvents(DateTime day) {
-    List<Widget> eventContainers = [];
-    List<CalEvent> evs = eventMap[day] ?? [];
-
-    for (var ev in evs) {
-      Color boxColor = Colors.white;
-      eventContainers.add(Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 3.0),
-      child: SizedBox(
-        height: 65, 
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch, // Ensures children fill the row's height
-          children: [
-            Container(
-              height: 65,
-              width: 80,
-              decoration: BoxDecoration(
-                color: boxColor,
-              ),
-              child: Center(
-                child: Text(
-                  "${DateFormat('hh:mm a').format(ev.startTime)}\n-\n${DateFormat('hh:mm a').format(ev.endTime)}",
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: "SansSerifPro",
-                    fontSize: 11,
+  List<Widget> eventContainers = [];
+  List<CalEvent> evs = eventMap[day] ?? [];
+  
+  for (var ev in evs) {
+    Color boxColor = Colors.white;
+    eventContainers.add(
+      InkWell(
+        onTap: () => _handleEventTap(ev),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 3.0),
+          child: SizedBox(
+            height: 65,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  height: 65,
+                  width: 80,
+                  decoration: BoxDecoration(
+                    color: boxColor,
                   ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 1),
-            Expanded(
-              child: Container(
-                height: 65,
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: boxColor,
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      AutoSizeText(
-                        ev.eventName,
-                        style: const TextStyle(
-                            fontFamily: "AppFonts.sansProSemiBold",
-                            fontSize: 13),
-                        minFontSize: 10,
-                        maxLines: 1,
+                  child: Center(
+                    child: Text(
+                      "${DateFormat('hh:mm a').format(ev.startTime)}\n-\n${DateFormat('hh:mm a').format(ev.endTime)}",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: "SansSerifPro",
+                        fontSize: 11,
                       ),
-                      Text(
-                        ev.eventLocation,
-                        style: const TextStyle(
-                            fontFamily: "SansSerifPro", fontSize: 10),
-                      )
-                    ],
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 1),
+                Expanded(
+                  child: Container(
+                    height: 65,
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: boxColor,
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AutoSizeText(
+                            ev.eventName,
+                            style: const TextStyle(
+                                fontFamily: "AppFonts.sansProSemiBold",
+                                fontSize: 13),
+                            minFontSize: 10,
+                            maxLines: 1,
+                          ),
+                          AutoSizeText(
+                            ev.eventLocation,
+                            style: const TextStyle(
+                                fontFamily: "SansSerifPro", fontSize: 10),
+                            minFontSize: 8,
+                            maxLines: 1,
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      )
-      ));
-    }
-    return eventContainers;
+      ),
+    );
   }
+  return eventContainers;
+}
 
   Widget buildCalendar(context) {
     return TableCalendar<CalEvent>(
@@ -474,168 +528,330 @@ class CalendarScreenState extends State<HomeScreen> {
   }
 
   Widget buildAnnouncementList(context) {
-    final now = DateTime.now();
-    List<NotificationItem> upcoming = mockNotifications
-        .where(
-            (n) => !n.dateTime.isBefore(DateTime(now.year, now.month, now.day)))
-        .toList();
-    final oneMonthAgo = DateTime(now.year, now.month - 1, now.day);
-    List<NotificationItem> past = mockNotifications
-        .where((n) =>
-            n.dateTime.isBefore(DateTime(now.year, now.month, now.day)) &&
-            n.dateTime.isAfter(oneMonthAgo))
-        .toList();
-    upcoming.sort((a, b) => a.dateTime.compareTo(b.dateTime));
-    past.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+    final userProvider = Provider.of<UserProvider>(context);
+    final uid = userProvider.user?.uid;
 
-    Widget sectionHeader(String text, {bool italic = false}) => Padding(
-          padding: const EdgeInsets.only(left: 16, top: 12, bottom: 8),
-          child: Text(
-            text,
-            style: TextStyle(
-              color: Colors.white,
-              fontFamily: italic ? "SansSerifProItalic" : "SansSerifPro",
-              fontSize: 24,
-              fontStyle: italic ? FontStyle.italic : FontStyle.normal,
+    if (uid == null) {
+      // Fallback to local mockNotifications if user not loaded
+      final now = DateTime.now();
+      List<NotificationItem> upcoming = mockNotifications
+          .where((n) =>
+              !n.dateTime.isBefore(DateTime(now.year, now.month, now.day)))
+          .toList();
+      final oneMonthAgo = DateTime(now.year, now.month - 1, now.day);
+      List<NotificationItem> past = mockNotifications
+          .where((n) =>
+              n.dateTime.isBefore(DateTime(now.year, now.month, now.day)) &&
+              n.dateTime.isAfter(oneMonthAgo))
+          .toList();
+      upcoming.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+      past.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+
+      Widget sectionHeader(String text, {bool italic = false}) => Padding(
+            padding: const EdgeInsets.only(left: 16, top: 12, bottom: 8),
+            child: Text(
+              text,
+              style: TextStyle(
+                color: Colors.white,
+                fontFamily: italic ? "SansSerifProItalic" : "SansSerifPro",
+                fontSize: 24,
+                fontStyle: italic ? FontStyle.italic : FontStyle.normal,
+              ),
             ),
-          ),
-        );
+          );
 
-    Widget dateHeader(DateTime date) => Padding(
-          padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
-          child: Text(
-            DateFormat('EEEE, MMMM d').format(date),
-            style: const TextStyle(
-              color: AppColors.tanText,
-              fontFamily: "SansSerifPro",
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
+      Widget dateHeader(DateTime date) => Padding(
+            padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
+            child: Text(
+              DateFormat('EEEE, MMMM d').format(date),
+              style: const TextStyle(
+                color: AppColors.tanText,
+                fontFamily: "SansSerifPro",
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-        );
+          );
 
-    Widget notificationRow(NotificationItem n) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
-          child: SizedBox(
-            height: 65,
-            child: Row(
-              children: [
-                Container(
-                    height: 65,
-                    width: 80,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            DateFormat('MMM d').format(n.dateTime),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                                fontFamily: "AppFonts.sansProSemiBold",
-                                fontSize: 11,
-                                color: AppColors.darkGoldText),
-                          ),
-                          Text(
-                            DateFormat('hh:mm a').format(n.dateTime),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                                fontFamily: "SansSerifPro",
-                                fontSize: 10,
-                                color: AppColors.darkGoldText),
-                          ),
-                        ],
+      Widget notificationRow(NotificationItem n) => Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
+            child: SizedBox(
+              height: 65,
+              child: Row(
+                children: [
+                  Container(
+                      height: 65,
+                      width: 80,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
                       ),
-                    )),
-                const SizedBox(width: 1),
-                Expanded(
-                    child: Container(
-                        padding: const EdgeInsets.only(left: 12.0, top: 6.0),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                        ),
-                        child: Center(
-                            child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(n.title,
-                                style: const TextStyle(
+                            Text(
+                              DateFormat('MMM d').format(n.dateTime),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
                                   fontFamily: "AppFonts.sansProSemiBold",
-                                  fontSize: 13)
-                                ),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Padding(
-                                  padding: EdgeInsets.only(top: 2.0),
-                                  child: Icon(Icons.notifications,
-                                      size: 10, color: AppColors.darkGoldText),
-                                ),
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(left: 2.0),
-                                    child: SizedBox(
-                                      height:
-                                          32, 
-                                      child: SingleChildScrollView(
-                                        scrollDirection: Axis.vertical,
-                                        child: Text(
-                                          n.message,
-                                          style: const TextStyle(
-                                              fontFamily: "SansSerifPro",
-                                              fontSize: 10,
-                                              color: AppColors.darkGoldText),
-                                          softWrap: true,
+                                  fontSize: 11,
+                                  color: AppColors.darkGoldText),
+                            ),
+                            Text(
+                              DateFormat('hh:mm a').format(n.dateTime),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  fontFamily: "SansSerifPro",
+                                  fontSize: 10,
+                                  color: AppColors.darkGoldText),
+                            ),
+                          ],
+                        ),
+                      )),
+                  const SizedBox(width: 1),
+                  Expanded(
+                      child: Container(
+                          padding: const EdgeInsets.only(left: 12.0, top: 6.0),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                          ),
+                          child: Center(
+                              child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(n.title,
+                                  style: const TextStyle(
+                                    fontFamily: "AppFonts.sansProSemiBold",
+                                    fontSize: 13)
+                                  ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 2.0),
+                                    child: Icon(Icons.notifications,
+                                        size: 10, color: AppColors.darkGoldText),
+                                  ),
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(left: 2.0),
+                                      child: SizedBox(
+                                        height:
+                                            32, 
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.vertical,
+                                          child: Text(
+                                            n.message,
+                                            style: const TextStyle(
+                                                fontFamily: "SansSerifPro",
+                                                fontSize: 10,
+                                                color: AppColors.darkGoldText),
+                                            softWrap: true,
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
+                                ],
+                              ),
+                            ],
+                          ))))
+                ],
+              ),
+            ),
+          );
+
+      List<Widget> buildSection(
+          String sectionTitle, List<NotificationItem> items) {
+        if (items.isEmpty) return [sectionHeader(sectionTitle, italic: true)];
+        final grouped = groupNotifications(items);
+        final sortedKeys = grouped.keys.toList()
+          ..sort((a, b) => DateTime.parse(a).compareTo(DateTime.parse(b)));
+        return [sectionHeader(sectionTitle, italic: true)] +
+            [
+              for (final dateKey in sortedKeys) ...[
+                dateHeader(DateTime.parse(dateKey)),
+                ...grouped[dateKey]!.map(notificationRow).toList(),
+              ]
+            ];
+      }
+
+      return ListView(
+        padding: const EdgeInsets.only(bottom: 24),
+        children: [
+          const Divider(
+            color: Colors.white,
+            thickness: 1,
+            indent: 20,
+            endIndent: 60,
+          ),
+          ...buildSection('Upcoming', upcoming),
+          const SizedBox(height: 12),
+          const Divider(
+            indent: 20,
+            endIndent: 60,
+            color: Colors.white,
+            thickness: 1,
+          ),
+          ...buildSection('Past', past),
+        ],
+      );
+    }
+
+    // If user is signed in, stream notifications from Firestore
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('notifications')
+          .where('uid', isEqualTo: uid)
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final docs = snapshot.data?.docs ?? [];
+        final List<NotificationItem> items = docs.map((d) {
+          final data = d.data() as Map<String, dynamic>;
+          final title = data['title'] ?? 'Notification';
+          final message = data['message'] ?? '';
+          final ts = data['createdAt'];
+          DateTime dateTime;
+          if (ts is Timestamp) {
+            dateTime = ts.toDate();
+          } else {
+            dateTime = DateTime.now();
+          }
+          return NotificationItem(title: title, message: message, dateTime: dateTime);
+        }).toList();
+
+        final now = DateTime.now();
+        List<NotificationItem> upcoming = items
+            .where((n) => !n.dateTime.isBefore(DateTime(now.year, now.month, now.day)))
+            .toList();
+        final oneMonthAgo = DateTime(now.year, now.month - 1, now.day);
+        List<NotificationItem> past = items
+            .where((n) => n.dateTime.isBefore(DateTime(now.year, now.month, now.day)) && n.dateTime.isAfter(oneMonthAgo))
+            .toList();
+        upcoming.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+        past.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+
+        List<Widget> sectionWidgets(String title, List<NotificationItem> list) {
+          if (list.isEmpty) return [Padding(padding: EdgeInsets.all(12), child: Text('No $title notifications', style: TextStyle(color: Colors.white)) )];
+          final grouped = groupNotifications(list);
+          final sortedKeys = grouped.keys.toList()..sort((a, b) => DateTime.parse(a).compareTo(DateTime.parse(b)));
+          final widgets = <Widget>[];
+          widgets.add(Padding(padding: const EdgeInsets.only(left: 16, top: 12, bottom: 8), child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 24))));
+          for (final key in sortedKeys) {
+            widgets.add(Padding(
+                padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
+                child: Text(
+                    DateFormat('EEEE, MMMM d').format(DateTime.parse(key)),
+                    style: const TextStyle(color: AppColors.tanText, fontSize: 18))));
+
+            final mapped = grouped[key]!.map((n) => Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
+                  child: SizedBox(
+                    height: 65,
+                    child: Row(
+                      children: [
+                        Container(
+                          height: 65,
+                          width: 80,
+                          decoration:
+                              const BoxDecoration(color: Colors.white),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                    DateFormat('MMM d')
+                                        .format(n.dateTime),
+                                    style: const TextStyle(
+                                        fontFamily:
+                                            "AppFonts.sansProSemiBold",
+                                        fontSize: 11,
+                                        color: AppColors.darkGoldText)),
+                                Text(
+                                    DateFormat('hh:mm a')
+                                        .format(n.dateTime),
+                                    style: const TextStyle(
+                                        fontFamily: "SansSerifPro",
+                                        fontSize: 10,
+                                        color: AppColors.darkGoldText)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 1),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.only(
+                                left: 12.0, top: 6.0),
+                            decoration:
+                                const BoxDecoration(color: Colors.white),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(n.title,
+                                    style: const TextStyle(
+                                        fontFamily:
+                                            "AppFonts.sansProSemiBold",
+                                        fontSize: 13)),
+                                Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    const Padding(
+                                        padding: EdgeInsets.only(top: 2.0),
+                                        child: Icon(Icons.notifications,
+                                            size: 10,
+                                            color: AppColors.darkGoldText)),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                            left: 2.0),
+                                        child: SizedBox(
+                                          height: 32,
+                                          child: SingleChildScrollView(
+                                              scrollDirection:
+                                                  Axis.vertical,
+                                              child: Text(n.message,
+                                                  style: const TextStyle(
+                                                      fontFamily:
+                                                          "SansSerifPro",
+                                                      fontSize: 10,
+                                                      color: AppColors
+                                                          .darkGoldText)))),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ))))
-              ],
-            ),
-          ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )).toList();
+
+            widgets.addAll(mapped);
+          }
+          return widgets;
+        }
+
+        return ListView(
+          padding: const EdgeInsets.only(bottom: 24),
+          children: [
+            const Divider(color: Colors.white, thickness: 1, indent: 20, endIndent: 60),
+            ...sectionWidgets('Upcoming', upcoming),
+            const SizedBox(height: 12),
+            const Divider(indent: 20, endIndent: 60, color: Colors.white, thickness: 1),
+            ...sectionWidgets('Past', past),
+          ],
         );
-
-    List<Widget> buildSection(
-        String sectionTitle, List<NotificationItem> items) {
-      if (items.isEmpty) return [sectionHeader(sectionTitle, italic: true)];
-      final grouped = groupNotifications(items);
-      final sortedKeys = grouped.keys.toList()
-        ..sort((a, b) => DateTime.parse(a).compareTo(DateTime.parse(b)));
-      return [sectionHeader(sectionTitle, italic: true)] +
-          [
-            for (final dateKey in sortedKeys) ...[
-              dateHeader(DateTime.parse(dateKey)),
-              ...grouped[dateKey]!.map(notificationRow).toList(),
-            ]
-          ];
-    }
-
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
-      children: [
-        const Divider(
-          color: Colors.white,
-          thickness: 1,
-          indent: 20,
-          endIndent: 60,
-        ),
-        ...buildSection('Upcoming', upcoming),
-        const SizedBox(height: 12),
-        const Divider(
-          indent: 20,
-          endIndent: 60,
-          color: Colors.white,
-          thickness: 1,
-        ),
-        ...buildSection('Past', past),
-      ],
+      },
     );
   }
 

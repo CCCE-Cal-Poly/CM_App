@@ -287,6 +287,182 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
     );
   }
 
+  void _showClubEventRequestsDialog() {
+    final outerContext = context;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          title: const Text("Club Event Requests"),
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('clubEventRequests')
+                  .where('status', isEqualTo: 'pending')
+                  .orderBy('submittedAt', descending: false)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final requests = snapshot.data!.docs;
+                if (requests.isEmpty) {
+                  return const Text("No pending event requests");
+                }
+                return ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: requests.length,
+                  itemBuilder: (context, index) {
+                    final doc = requests[index];
+                    final request = doc.data() as Map<String, dynamic>;
+                    final submittedAt = request['submittedAt'] is Timestamp 
+                        ? (request['submittedAt'] as Timestamp).toDate() 
+                        : null;
+                    final startTime = request['startTime'] is Timestamp 
+                        ? (request['startTime'] as Timestamp).toDate() 
+                        : null;
+                    final endTime = request['endTime'] is Timestamp 
+                        ? (request['endTime'] as Timestamp).toDate() 
+                        : null;
+
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${request['eventName'] ?? 'Unnamed Event'}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text('Club: ${request['clubName'] ?? 'Unknown'}'),
+                            Text('Requested by: ${request['requestedByName'] ?? request['requestedByEmail'] ?? 'Unknown'}'),
+                            if (submittedAt != null) 
+                              Text('Submitted: ${submittedAt.toString().substring(0, 16)}'),
+                            if (startTime != null)
+                              Text('Start: ${startTime.toString().substring(0, 16)}'),
+                            if (endTime != null)
+                              Text('End: ${endTime.toString().substring(0, 16)}'),
+                            if (request['eventLocation'] != null)
+                              Text('Location: ${request['eventLocation']}'),
+                            if (request['description'] != null && request['description'].toString().isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'Description: ${request['description']}',
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    try {
+                                      // Check if user is authenticated
+                                      final currentUser = FirebaseAuth.instance.currentUser;
+                                      if (currentUser == null) {
+                                        if (!mounted) return;
+                                        ScaffoldMessenger.of(outerContext).showSnackBar(
+                                          const SnackBar(content: Text('Not authenticated. Please log in again.'))
+                                        );
+                                        return;
+                                      }
+
+                                      // Get fresh token
+                                      await currentUser.getIdToken(true);
+                                      
+                                      await FirebaseFunctions.instance
+                                          .httpsCallable('approveClubEvent')
+                                          .call(<String, dynamic>{
+                                            'requestId': doc.id,
+                                          });
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(outerContext).showSnackBar(
+                                        const SnackBar(content: Text('Event approved and added to calendar'))
+                                      );
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(outerContext).showSnackBar(
+                                        SnackBar(content: Text('Approve failed: $e'))
+                                      );
+                                    }
+                                  },
+                                  child: const Text('Approve'),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                  ),
+                                  onPressed: () async {
+                                    try {
+                                      // Check if user is authenticated
+                                      final currentUser = FirebaseAuth.instance.currentUser;
+                                      if (currentUser == null) {
+                                        if (!mounted) return;
+                                        ScaffoldMessenger.of(outerContext).showSnackBar(
+                                          const SnackBar(content: Text('Not authenticated. Please log in again.'))
+                                        );
+                                        return;
+                                      }
+
+                                      // Get fresh token
+                                      await currentUser.getIdToken(true);
+                                      
+                                      await FirebaseFunctions.instance
+                                          .httpsCallable('denyClubEvent')
+                                          .call(<String, dynamic>{
+                                            'requestId': doc.id,
+                                          });
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(outerContext).showSnackBar(
+                                        const SnackBar(content: Text('Event request denied'))
+                                      );
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(outerContext).showSnackBar(
+                                        SnackBar(content: Text('Deny failed: $e'))
+                                      );
+                                    }
+                                  },
+                                  child: const Text(
+                                    'Deny',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Close"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
 Widget build(BuildContext context) {
   var screenHeight = MediaQuery.of(context).size.height;
@@ -321,6 +497,19 @@ Widget build(BuildContext context) {
               ),
             ),
             child: const Text("Pending Club Admin Requests"),
+          ),
+          const SizedBox(height: 20),
+
+          ElevatedButton(
+            onPressed: _showClubEventRequestsDialog,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: AppColors.darkGold,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+              ),
+            ),
+            child: const Text("Pending Club Event Requests"),
           ),
         ],
       ),

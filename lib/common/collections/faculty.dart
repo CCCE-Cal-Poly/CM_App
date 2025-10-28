@@ -1,7 +1,8 @@
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class Faculty implements Comparable<Faculty> {
   dynamic fname;
@@ -65,14 +66,18 @@ class FacultyItem extends StatelessWidget {
   }
 }
 
-class FacultyPopUp extends StatelessWidget {
+class FacultyPopUp extends StatefulWidget {
   final Faculty faculty;
-
   final VoidCallback onClose;
 
   const FacultyPopUp({required this.faculty, required this.onClose, Key? key})
       : super(key: key);
 
+  @override
+  State<FacultyPopUp> createState() => _FacultyPopUpState();
+}
+
+class _FacultyPopUpState extends State<FacultyPopUp> {
   String expandDayAcronyms(String hours) {
     // You can expand this map as needed
     const dayMap = {
@@ -131,7 +136,7 @@ class FacultyPopUp extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              '${faculty.lname}, ${faculty.fname}',
+                              '${widget.faculty.lname}, ${widget.faculty.fname}',
                               style: const TextStyle(
                                   fontSize: 17, fontWeight: FontWeight.bold),
                             ),
@@ -149,7 +154,7 @@ class FacultyPopUp extends StatelessWidget {
                     const Padding(padding: EdgeInsets.only(left: 48.0)),
                     Expanded(
                       child: AutoSizeText(
-                        faculty.title ?? '',
+                        widget.faculty.title ?? '',
                         style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.darkGoldText,
@@ -181,7 +186,7 @@ class FacultyPopUp extends StatelessWidget {
                         size: 16,
                       ),
                       Text(
-                        ' ' + (faculty.office ?? 'N/A'),
+                        ' ' + (widget.faculty.office ?? 'N/A'),
                         style: const TextStyle(
                             fontSize: 12, color: AppColors.darkGoldText),
                       ),
@@ -204,7 +209,7 @@ class FacultyPopUp extends StatelessWidget {
                       ),
                       Text(
                         expandDayAcronyms(
-                            (faculty.hours ?? 'N/A').replaceAll(';', '\n')),
+                            (widget.faculty.hours ?? 'N/A').replaceAll(';', '\n')),
                         style: const TextStyle(
                             fontSize: 11, color: AppColors.darkGoldText),
                       ),
@@ -240,12 +245,31 @@ class FacultyPopUp extends StatelessWidget {
                         const Padding(
                           padding: EdgeInsets.only(right: 5.0),
                         ),
-                        AutoSizeText(
-                          faculty.email ?? '',
-                          style: const TextStyle(
-                              fontSize: 12, color: AppColors.darkGoldText),
-                          minFontSize: 9,
-                          maxLines: 1,
+                        InkWell(
+                          onTap: () async {
+                            final email = widget.faculty.email;
+                            if (email != null && email.isNotEmpty) {
+                              final uri = Uri(scheme: 'mailto', path: email);
+                              try {
+                                await launchUrl(uri);
+                              } catch (e) {
+                                await Clipboard.setData(ClipboardData(text: email));
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Email copied to clipboard')),
+                                );
+                              }
+                            }
+                          },
+                          child: AutoSizeText(
+                            widget.faculty.email ?? '',
+                            style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.darkGoldText,
+                                decoration: TextDecoration.underline),
+                            minFontSize: 9,
+                            maxLines: 1,
+                          ),
                         ),
                         const Padding(padding: EdgeInsets.only(right: 5.0)),
                       ],
@@ -272,12 +296,31 @@ class FacultyPopUp extends StatelessWidget {
                         const Padding(
                           padding: EdgeInsets.only(right: 5.0),
                         ),
-                        AutoSizeText(
-                          faculty.phone ?? '',
-                          style: const TextStyle(
-                              fontSize: 12, color: AppColors.darkGoldText),
-                          minFontSize: 9,
-                          maxLines: 1,
+                        InkWell(
+                          onTap: () async {
+                            final phone = widget.faculty.phone;
+                            if (phone != null && phone.isNotEmpty) {
+                              final uri = Uri(scheme: 'tel', path: phone);
+                              try {
+                                await launchUrl(uri);
+                              } catch (e) {
+                                await Clipboard.setData(ClipboardData(text: phone));
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Phone number copied to clipboard')),
+                                );
+                              }
+                            }
+                          },
+                          child: AutoSizeText(
+                            widget.faculty.phone ?? '',
+                            style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.darkGoldText,
+                                decoration: TextDecoration.underline),
+                            minFontSize: 9,
+                            maxLines: 1,
+                          ),
                         ),
                       ],
                     ),

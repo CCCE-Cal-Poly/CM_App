@@ -81,19 +81,4 @@ class AppState extends ChangeNotifier {
     checkedInSessions?.remove(session);
     notifyListeners();
   }
-
-  void addToCalendar(CalEvent event) {
-    calendarEvents ??= <CalEvent>{};
-    calendarEvents!.add(event);
-    notifyListeners();
-  }
-
-  void removeFromCalendar(CalEvent event) {
-    calendarEvents?.remove(event);
-    notifyListeners();
-  }
-
-  bool isInCalendar(CalEvent event) {
-    return calendarEvents?.contains(event) ?? false;
-  }
 }

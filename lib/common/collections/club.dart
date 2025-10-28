@@ -4,9 +4,11 @@ import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/providers/app_state.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/features/club_event_request_form.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class Club implements Comparable<Club> {
   dynamic id;
@@ -156,11 +158,16 @@ class _ClubPopUpState extends State<ClubPopUp> {
     double screenWidth = MediaQuery.of(context).size.width;
     // Check whether current user is a club admin for this club
     final isClubAdmin = Provider.of<UserProvider>(context).isClubAdmin(widget.club.id?.toString() ?? '');
-    // Prepare club-only events list (filter by eventType)
+    // Prepare club-only events list (filter by eventType and date)
+    final now = DateTime.now();
+    final twoWeeksFromNow = now.add(const Duration(days: 14));
     final clubEvents = widget.club.events.where((e) {
       final t = e.eventType.toLowerCase();
-      return t == 'club' || t == 'club event' || t == 'clubevent' || t == 'club_event';
-    }).toList();
+      final isClubEvent = t == 'club' || t == 'club event' || t == 'clubevent' || t == 'club_event';
+      final isUpcoming = e.startTime.isAfter(now) && e.startTime.isBefore(twoWeeksFromNow);
+      return isClubEvent && isUpcoming;
+    }).toList()
+    ..sort((a, b) => a.startTime.compareTo(b.startTime));
     return Scaffold(
       backgroundColor: AppColors.calPolyGreen,
       body: ListView(
@@ -397,11 +404,29 @@ class _ClubPopUpState extends State<ClubPopUp> {
                           color: Colors.white,
                         ),
                         const SizedBox(width: 10),
-                        Text(
-                          widget.club.email ?? 'No Email',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18.0,
+                        InkWell(
+                          onTap: () async {
+                            final email = widget.club.email;
+                            if (email != null && email.isNotEmpty) {
+                              final uri = Uri(scheme: 'mailto', path: email);
+                              try {
+                                await launchUrl(uri);
+                              } catch (e) {
+                                if (!mounted) return;
+                                await Clipboard.setData(ClipboardData(text: email));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Email copied to clipboard')),
+                                );
+                              }
+                            }
+                          },
+                          child: Text(
+                            widget.club.email ?? 'No Email',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18.0,
+                              decoration: TextDecoration.underline,
+                            ),
                           ),
                         ),
                       ],
@@ -424,20 +449,39 @@ class _ClubPopUpState extends State<ClubPopUp> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              (widget.club.instagram != null)
-                                  ? '@' + widget.club.instagram
-                                  : 'No Instagram',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18.0,
-                              ),
+                        InkWell(
+                          onTap: () async {
+                            final instagram = widget.club.instagram;
+                            if (instagram != null && instagram.isNotEmpty) {
+                              // Try to extract handle and build full URL
+                              String url = instagram;
+                              if (!url.startsWith('http')) {
+                                // Remove @ if present
+                                final handle = instagram.startsWith('@') ? instagram.substring(1) : instagram;
+                                url = 'https://instagram.com/$handle';
+                              }
+                              final uri = Uri.parse(url);
+                              try {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              } catch (e) {
+                                if (!mounted) return;
+                                await Clipboard.setData(ClipboardData(text: url));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Instagram link copied to clipboard')),
+                                );
+                              }
+                            }
+                          },
+                          child: Text(
+                            (widget.club.instagram != null && widget.club.instagram!.isNotEmpty)
+                                ? '@${widget.club.instagram}'
+                                : 'No Instagram',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18.0,
+                              decoration: TextDecoration.underline,
                             ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
