@@ -541,28 +541,32 @@ exports.scheduleEventReminder = onDocumentCreated("events/{eventId}", async (eve
       return;
     }
 
+    // Use company name as the event name (for info sessions)
+    const eventName = eventData.eventName || eventData.company || "Upcoming Event";
+    const eventLocation = eventData.mainLocation || "No Listed Location";
+    const eventDescription = eventData.description || "";
+
     const notification = {
       targetType: "event",
       targetId: eventId,
-      title: `${eventData.eventName || "Upcoming Event"} starts in 1 hour`,
-      message: `${eventData.eventName || "Event"} at ` +
-        `${eventData.mainLocation || "TBD"}. ` +
-        `${eventData.description || ""}`.trim(),
+      title: `${eventName} starts in 1 hour`,
+      message: `${eventName} at ${eventLocation}. ${eventDescription}`.trim(),
       sendAt: admin.firestore.Timestamp.fromMillis(sendAtMillis),
       createdBy: "system",
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       status: "pending",
       eventData: {
         eventId: eventId,
-        eventName: eventData.eventName,
+        eventName: eventName,
+        company: eventData.company || null,
         startTime: startTime,
-        location: eventData.mainLocation,
+        location: eventLocation,
       },
     };
 
     await admin.firestore().collection("notifications").add(notification);
     console.log(
-        `Scheduled reminder for event ${eventId} (${eventData.eventName})` +
+        `Scheduled reminder for event ${eventId} (${eventName})` +
         ` at ${new Date(sendAtMillis).toISOString()}`,
     );
   } catch (err) {

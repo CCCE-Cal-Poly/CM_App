@@ -274,12 +274,7 @@ class AppState extends ChangeNotifier {
       joinedClubs!.add(club);
       notifyListeners();
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('joinedClubs')
-          .doc(club.id?.toString())
-          .set({
+      final clubData = {
         'clubId': club.id,
         'name': club.name,
         'aboutMsg': club.aboutMsg,
@@ -288,9 +283,32 @@ class AppState extends ChangeNotifier {
         'instagram': club.instagram,
         'logo': club.logo,
         'joinedAt': FieldValue.serverTimestamp(),
-      });
+      };
 
-      print('✅ Joined club: ${club.name}');
+      // Dual-write: Write to both user's joinedClubs AND club's members collection
+      // This ensures club notifications can efficiently find all members
+      await Future.wait([
+        // User's personal club list (full club data)
+        FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('joinedClubs')
+            .doc(club.id?.toString())
+            .set(clubData),
+        
+        // Club's member list (for notifications - minimal data)
+        FirebaseFirestore.instance
+            .collection('clubs')
+            .doc(club.id?.toString())
+            .collection('members')
+            .doc(user.uid)
+            .set({
+          'uid': user.uid,
+          'joinedAt': FieldValue.serverTimestamp(),
+        }),
+      ]);
+
+      print('✅ Joined club: ${club.name} (dual-write completed)');
     } catch (e) {
       print('❌ Error joining club: $e');
       joinedClubs?.remove(club);
@@ -315,14 +333,26 @@ class AppState extends ChangeNotifier {
       joinedClubs?.remove(club);
       notifyListeners();
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('joinedClubs')
-          .doc(club.id?.toString())
-          .delete();
+      // Dual-delete: Remove from both user's joinedClubs AND club's members collection
+      await Future.wait([
+        // User's personal club list
+        FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('joinedClubs')
+            .doc(club.id?.toString())
+            .delete(),
+        
+        // Club's member list (for notifications)
+        FirebaseFirestore.instance
+            .collection('clubs')
+            .doc(club.id?.toString())
+            .collection('members')
+            .doc(user.uid)
+            .delete(),
+      ]);
 
-      print('✅ Left club: ${club.name}');
+      print('✅ Left club: ${club.name} (dual-delete completed)');
     } catch (e) {
       print('❌ Error leaving club: $e');
       joinedClubs?.add(club);
