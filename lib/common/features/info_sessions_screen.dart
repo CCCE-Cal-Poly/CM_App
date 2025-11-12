@@ -24,14 +24,24 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
     super.initState();
   }
 
+  bool _isValidInfoSession(CalEvent event) {
+    if (event.eventName.isEmpty || event.eventName.trim().isEmpty) {
+      return false;
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     var screenHeight = MediaQuery.of(context).size.height;
 
     return Consumer<EventProvider>(builder: (context, eventProvider, child) {
-            final infoSessions = eventProvider.isLoaded
+            final allInfoSessions = eventProvider.isLoaded
           ? eventProvider.getEventsByType('infoSession')
           : <CalEvent>[];
+      
+      // Filter out info sessions with no meaningful data
+      final infoSessions = allInfoSessions.where(_isValidInfoSession).toList();
 
       return Scaffold(
         backgroundColor: AppColors.calPolyGreen,

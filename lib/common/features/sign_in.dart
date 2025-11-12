@@ -172,6 +172,21 @@ class _SignInState extends State<SignIn> {
                   SizedBox(height: screenHeight * 0.015),
 
                   GestureDetector(
+                    onTap: _showForgotPasswordDialog,
+                    child: const Text(
+                      'Forgot Password?',
+                      style: TextStyle(
+                        color: AppColors.tanText,
+                        fontSize: 14,
+                        decoration: TextDecoration.underline,
+                        decorationColor: AppColors.tanText,
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: screenHeight * 0.01),
+
+                  GestureDetector(
                     onTap: () {
                       // Handle the tap event (e.g., navigate to sign-up page)
                       Navigator.pushReplacement(
@@ -370,5 +385,145 @@ class _SignInState extends State<SignIn> {
         });
       }
     }
+  }
+
+  void _showForgotPasswordDialog() {
+    final TextEditingController resetEmailController = TextEditingController();
+    String dialogErrorMsg = '';
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppColors.calPolyGreen,
+              title: const Text(
+                'Reset Password',
+                style: TextStyle(
+                  color: AppColors.tanText,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Enter your email address and we\'ll send you a link to reset your password.',
+                    style: TextStyle(
+                      color: AppColors.tanText,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Note: Check your spam/junk folder if you don\'t see the email.',
+                    style: TextStyle(
+                      color: AppColors.yellowButton,
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: resetEmailController,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: 'Email',
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.zero,
+                      ),
+                      hintStyle: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  if (dialogErrorMsg.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        dialogErrorMsg,
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: AppColors.tanText),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final email = resetEmailController.text.trim();
+                    
+                    if (email.isEmpty) {
+                      setDialogState(() {
+                        dialogErrorMsg = 'Please enter your email address.';
+                      });
+                      return;
+                    }
+                    
+                    try {
+                      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+                      
+                      if (!dialogContext.mounted) return;
+                      
+                      Navigator.of(dialogContext).pop();
+                      
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Password reset email sent to $email\nCheck your spam folder if you don\'t see it.'),
+                          backgroundColor: Colors.green,
+                          duration: const Duration(seconds: 5),
+                        ),
+                      );
+                    } catch (e) {
+                      String errorMessage = 'Failed to send reset email.';
+                      
+                      if (e is FirebaseAuthException) {
+                        if (e.code == 'user-not-found') {
+                          errorMessage = 'No account found with this email.';
+                        } else if (e.code == 'invalid-email') {
+                          errorMessage = 'Invalid email address.';
+                        } else if (e.code == 'too-many-requests') {
+                          errorMessage = 'Too many attempts. Try again later.';
+                        }
+                      }
+                      
+                      setDialogState(() {
+                        dialogErrorMsg = errorMessage;
+                      });
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.yellowButton,
+                  ),
+                  child: const Text(
+                    'Send Reset Link',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 }

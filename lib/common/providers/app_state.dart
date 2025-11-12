@@ -4,36 +4,219 @@ import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/company.dart';
 import 'package:ccce_application/common/collections/club.dart';
 import 'package:ccce_application/common/collections/calevent.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AppState extends ChangeNotifier {
   Set<Company>? favoriteCompanies;
   Set<Job>? favoriteJobs;
   Set<Club>? joinedClubs;
-  Set<CalEvent>? checkedInSessions;
+  Set<String>? checkedInEventIds; 
   Set<CalEvent>? calendarEvents;
+  bool _isLoadingCheckIns = false;
+  bool _checkInsLoaded = false;
+  bool _isLoadingFavorites = false;
+  bool _favoritesLoaded = false;
+  bool _isLoadingClubs = false;
+  bool _clubsLoaded = false;
+  
+  bool get isCheckInsLoaded => _checkInsLoaded;
+  bool get isFavoritesLoaded => _favoritesLoaded;
+  bool get isClubsLoaded => _clubsLoaded;
 
   AppState({
     Set<Company>? favoriteCompanies,
     Set<Job>? favoriteJobs,
     Set<Club>? joinedClubs,
-    Set<CalEvent>? checkedInSessions,
+    Set<String>? checkedInEventIds,
     Set<CalEvent>? calendarEvents,
   })  : favoriteCompanies = favoriteCompanies ?? <Company>{},
         favoriteJobs = favoriteJobs ?? <Job>{},
         joinedClubs = joinedClubs ?? <Club>{},
-        checkedInSessions = checkedInSessions ?? <CalEvent>{},
-        calendarEvents = calendarEvents ?? <CalEvent>{};
+        checkedInEventIds = checkedInEventIds ?? <String>{},
+        calendarEvents = calendarEvents ?? <CalEvent>{} {
+    _loadCheckIns();
+    _loadFavoriteCompanies();
+    _loadJoinedClubs();
+  }
 
-  void addFavorite(Favoritable item) {
+  Future<void> _loadCheckIns() async {
+    if (_isLoadingCheckIns) return;
+    _isLoadingCheckIns = true;
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('⚠️ No user logged in, skipping check-in load');
+        _isLoadingCheckIns = false;
+        return;
+      }
+
+      final checkInsSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('checkedInEvents')
+          .get();
+
+      final Set<String> loadedEventIds = {};
+      
+      for (final doc in checkInsSnapshot.docs) {
+        loadedEventIds.add(doc.id); 
+      }
+
+      checkedInEventIds = loadedEventIds;
+      _checkInsLoaded = true;
+      print('✅ Loaded ${loadedEventIds.length} check-ins from Firestore');
+      notifyListeners();
+    } catch (e) {
+      print('❌ Error loading check-ins: $e');
+      _checkInsLoaded = true;
+      notifyListeners();
+    } finally {
+      _isLoadingCheckIns = false;
+    }
+  }
+
+  Future<void> _loadFavoriteCompanies() async {
+    if (_isLoadingFavorites) return;
+    _isLoadingFavorites = true;
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('⚠️ No user logged in, skipping favorites load');
+        _isLoadingFavorites = false;
+        return;
+      }
+
+      final favoritesSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('favoriteCompanies')
+          .get();
+
+      final Set<Company> loadedFavorites = {};
+      
+      for (final doc in favoritesSnapshot.docs) {
+        final data = doc.data();
+        loadedFavorites.add(Company(
+          id: doc.id,
+          name: data['name'] ?? '',
+          location: data['location'] ?? '',
+          aboutMsg: data['aboutMsg'] ?? '',
+          msg: data['msg'] ?? '',
+          recruiterName: data['recruiterName'] ?? '',
+          recruiterTitle: data['recruiterTitle'] ?? '',
+          recruiterEmail: data['recruiterEmail'] ?? '',
+          logo: data['logo'],
+          offeredJobs: {},
+        ));
+      }
+
+      favoriteCompanies = loadedFavorites;
+      _favoritesLoaded = true;
+      print('✅ Loaded ${loadedFavorites.length} favorite companies from Firestore');
+      notifyListeners();
+    } catch (e) {
+      print('❌ Error loading favorite companies: $e');
+      _favoritesLoaded = true;
+      notifyListeners();
+    } finally {
+      _isLoadingFavorites = false;
+    }
+  }
+
+  Future<void> _loadJoinedClubs() async {
+    if (_isLoadingClubs) return;
+    _isLoadingClubs = true;
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('⚠️ No user logged in, skipping clubs load');
+        _isLoadingClubs = false;
+        return;
+      }
+
+      final clubsSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('joinedClubs')
+          .get();
+
+      final Set<Club> loadedClubs = {};
+      
+      for (final doc in clubsSnapshot.docs) {
+        final data = doc.data();
+        loadedClubs.add(Club(
+          id: doc.id,
+          name: data['name'] ?? '',
+          aboutMsg: data['aboutMsg'] ?? '',
+          email: data['email'] ?? '',
+          acronym: data['acronym'] ?? '',
+          instagram: data['instagram'] ?? '',
+          logo: data['logo'],
+        ));
+      }
+
+      joinedClubs = loadedClubs;
+      _clubsLoaded = true;
+      print('✅ Loaded ${loadedClubs.length} joined clubs from Firestore');
+      notifyListeners();
+    } catch (e) {
+      print('❌ Error loading joined clubs: $e');
+      _clubsLoaded = true;
+      notifyListeners();
+    } finally {
+      _isLoadingClubs = false;
+    }
+  }
+
+  Future<void> addFavorite(Favoritable item) async {
     if (item is Company) {
-      favoriteCompanies ??= <Company>{};
-      favoriteCompanies!.add(item);
+      print("⭐ Adding favorite company: ${item.name}");
+      
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) {
+          print('⚠️ No user logged in, cannot add favorite');
+          return;
+        }
+
+        favoriteCompanies ??= <Company>{};
+        favoriteCompanies!.add(item);
+        notifyListeners();
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('favoriteCompanies')
+            .doc(item.id)
+            .set({
+          'companyId': item.id,
+          'name': item.name,
+          'location': item.location,
+          'aboutMsg': item.aboutMsg,
+          'msg': item.msg,
+          'recruiterName': item.recruiterName,
+          'recruiterTitle': item.recruiterTitle,
+          'recruiterEmail': item.recruiterEmail,
+          'logo': item.logo,
+          'favoritedAt': FieldValue.serverTimestamp(),
+        });
+
+        print('✅ Added favorite company: ${item.name}');
+      } catch (e) {
+        print('❌ Error adding favorite company: $e');
+        favoriteCompanies?.remove(item);
+        notifyListeners();
+      }
     }
     if (item is Job) {
       favoriteJobs ??= <Job>{};
       favoriteJobs!.add(item);
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   bool isFavorite(Favoritable item) {
@@ -43,42 +226,198 @@ class AppState extends ChangeNotifier {
      else return favoriteJobs?.contains(item) ?? false;
   }
 
-  void removeFavorite(Favoritable item) {
-    if (item is Company) favoriteCompanies?.remove(item);
-    if (item is Job) favoriteJobs?.remove(item);
-    notifyListeners();
+  Future<void> removeFavorite(Favoritable item) async {
+    if (item is Company) {
+      print("🗑️ Removing favorite company: ${item.name}");
+      
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) {
+          print('⚠️ No user logged in, cannot remove favorite');
+          return;
+        }
+
+        favoriteCompanies?.remove(item);
+        notifyListeners();
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('favoriteCompanies')
+            .doc(item.id)
+            .delete();
+
+        print('✅ Removed favorite company: ${item.name}');
+      } catch (e) {
+        print('❌ Error removing favorite company: $e');
+        favoriteCompanies?.add(item);
+        notifyListeners();
+      }
+    }
+    if (item is Job) {
+      favoriteJobs?.remove(item);
+      notifyListeners();
+    }
   }
 
-  void addJoinedClub(Club club) {
-    joinedClubs ??= <Club>{};
-    joinedClubs!.add(club);
-    notifyListeners();
+  Future<void> addJoinedClub(Club club) async {
+    print("🎓 Joining club: ${club.name}");
+    
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('⚠️ No user logged in, cannot join club');
+        return;
+      }
+
+      joinedClubs ??= <Club>{};
+      joinedClubs!.add(club);
+      notifyListeners();
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('joinedClubs')
+          .doc(club.id?.toString())
+          .set({
+        'clubId': club.id,
+        'name': club.name,
+        'aboutMsg': club.aboutMsg,
+        'email': club.email,
+        'acronym': club.acronym,
+        'instagram': club.instagram,
+        'logo': club.logo,
+        'joinedAt': FieldValue.serverTimestamp(),
+      });
+
+      print('✅ Joined club: ${club.name}');
+    } catch (e) {
+      print('❌ Error joining club: $e');
+      joinedClubs?.remove(club);
+      notifyListeners();
+    }
   }
 
   bool isJoined(Club club) {
     return joinedClubs?.contains(club) ?? false;
   }
 
-  void removeJoinedClub(Club club) {
-    joinedClubs?.remove(club);
-    notifyListeners();
+  Future<void> removeJoinedClub(Club club) async {
+    print("👋 Leaving club: ${club.name}");
+    
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('⚠️ No user logged in, cannot leave club');
+        return;
+      }
+
+      joinedClubs?.remove(club);
+      notifyListeners();
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('joinedClubs')
+          .doc(club.id?.toString())
+          .delete();
+
+      print('✅ Left club: ${club.name}');
+    } catch (e) {
+      print('❌ Error leaving club: $e');
+      joinedClubs?.add(club);
+      notifyListeners();
+    }
   }
 
   bool isCheckedIn(CalEvent session) {
-    return checkedInSessions?.contains(session) ?? false;
+    return checkedInEventIds?.contains(session.id) ?? false;
   }
 
-  void checkInto(CalEvent session) {
-    print("Checking into session: [32m");
-    print(
-        "Existing sessions in checkedInSessions: [32m");
-    checkedInSessions ??= <CalEvent>{};
-    checkedInSessions!.add(session);
-    notifyListeners();
+  Future<void> checkInto(CalEvent session) async {
+    print("📝 Checking into session: ${session.eventName}");
+    
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('⚠️ No user logged in, cannot check in');
+        return;
+      }
+
+      checkedInEventIds ??= <String>{};
+      checkedInEventIds!.add(session.id);
+      notifyListeners();
+
+      // Dual-write: Write to both user's checkedInEvents AND event's attending collection
+      // This ensures notifications can query event attendees efficiently
+      await Future.wait([
+        // User's view (full event data)
+        FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('checkedInEvents')
+            .doc(session.id)
+            .set({
+          'eventId': session.id,
+          'eventName': session.eventName,
+          'checkedInAt': FieldValue.serverTimestamp(),
+        }),
+        // Event's attending list (for notifications - minimal data)
+        FirebaseFirestore.instance
+            .collection('events')
+            .doc(session.id)
+            .collection('attending')
+            .doc(user.uid)
+            .set({
+          'uid': user.uid,
+          'checkedInAt': FieldValue.serverTimestamp(),
+        }),
+      ]);
+
+      print('✅ Checked in to ${session.eventName} (dual-write completed)');
+    } catch (e) {
+      print('❌ Error checking in: $e');
+      checkedInEventIds?.remove(session.id);
+      notifyListeners();
+    }
   }
 
-  void checkOutOf(CalEvent session) {
-    checkedInSessions?.remove(session);
-    notifyListeners();
+  Future<void> checkOutOf(CalEvent session) async {
+    print("📤 Checking out of session: ${session.eventName}");
+    
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('⚠️ No user logged in, cannot check out');
+        return;
+      }
+
+      checkedInEventIds?.remove(session.id);
+      notifyListeners();
+
+      // Dual-delete: Remove from both user's checkedInEvents AND event's attending collection
+      await Future.wait([
+        // User's view
+        FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('checkedInEvents')
+            .doc(session.id)
+            .delete(),
+        // Event's attending list (for notifications)
+        FirebaseFirestore.instance
+            .collection('events')
+            .doc(session.id)
+            .collection('attending')
+            .doc(user.uid)
+            .delete(),
+      ]);
+
+      print('✅ Checked out of ${session.eventName} (dual-delete completed)');
+    } catch (e) {
+      print('❌ Error checking out: $e');
+      checkedInEventIds?.add(session.id);
+      notifyListeners();
+    }
   }
 }

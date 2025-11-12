@@ -181,18 +181,19 @@ class CalendarScreenState extends State<HomeScreen> {
   }
 
   List<CalEvent> _getEventsForDay(DateTime day) {
-    return eventMap.putIfAbsent(day, () => <CalEvent>[]);
-    //return events.values.expand((list) => list).where((event) => isSameDay(event.startTime, day)).toList();
+    final utcDay = DateTime.utc(day.year, day.month, day.day);
+    return eventMap.putIfAbsent(utcDay, () => <CalEvent>[]);
   }
 
   List<Widget> _getNextEvents(DateTime day) {
     List<CalEvent> nextEvents = [];
     List<Widget> eventContainers = [];
+    final utcDay = DateTime.utc(day.year, day.month, day.day);
     List<MapEntry<DateTime, List<CalEvent>>> sortedEntries =
         eventMap.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
     for (var events in sortedEntries) {
       final eventDate = events.key;
-      if (eventDate.isAfter(day) && nextEvents.length < 3) {
+      if (eventDate.isAfter(utcDay) && nextEvents.length < 3) {
         nextEvents.addAll(events.value);
       }
       if (nextEvents.length >= 3) {
@@ -278,7 +279,8 @@ class CalendarScreenState extends State<HomeScreen> {
 
   List<Widget> _getDayEvents(DateTime day) {
   List<Widget> eventContainers = [];
-  List<CalEvent> evs = eventMap[day] ?? [];
+  final utcDay = DateTime.utc(day.year, day.month, day.day);
+  List<CalEvent> evs = eventMap[utcDay] ?? [];
   
   for (var ev in evs) {
     Color boxColor = Colors.white;

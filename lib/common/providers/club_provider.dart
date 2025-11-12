@@ -82,7 +82,6 @@ class ClubProvider with ChangeNotifier {
     try {
       FirebaseFirestore firestore = FirebaseFirestore.instance;
       QuerySnapshot querySnapshot = await firestore.collection('clubs').get();
-      // Use the Club.fromDocument factory so field name variants are handled consistently
       _clubs = querySnapshot.docs.map((doc) => Club.fromDocument(doc)).toList();
     } catch (e) {
       // Handle error silently

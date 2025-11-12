@@ -3,15 +3,20 @@
 import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/providers/app_state.dart';
+import 'package:ccce_application/common/providers/event_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 Widget buildInfoSessionList(context) {
   final now = DateTime.now();
-  final allCheckedIn =
-      Provider.of<AppState>(context, listen: true).checkedInSessions ??
-          <CalEvent>{};
+  final checkedInEventIds =
+      Provider.of<AppState>(context, listen: true).checkedInEventIds ??
+          <String>{};
+  final allEvents = Provider.of<EventProvider>(context, listen: true).allEvents;
+  final allCheckedIn = allEvents
+      .where((event) => checkedInEventIds.contains(event.id))
+      .toList();
   print("Checked-in sessions available: ${allCheckedIn.map((e) => e.id)}");
   final checkedInInfoSessions =
       allCheckedIn.where((event) => event.eventType == "infoSession").toList();
@@ -20,7 +25,6 @@ Widget buildInfoSessionList(context) {
           (event.startTime.isAfter(now)) ||
           (event.startTime.isAtSameMomentAs(now)))
       .toList();
-  // Only show past notifications within a month of the current date
   final pastDays = DateTime.now().subtract(const Duration(days: 100));
   List<CalEvent> past = checkedInInfoSessions
       .where((event) =>
@@ -188,7 +192,5 @@ Widget buildInfoSessionList(context) {
 }
 
 Widget buildInfoSessionDisplay(context) {
-  return Expanded(
-    child: buildInfoSessionList(context),
-  );
+  return buildInfoSessionList(context);
 }

@@ -1,11 +1,13 @@
-import 'package:ccce_application/common/widgets/multi_select_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/providers/club_provider.dart';
 import 'package:ccce_application/common/theme/theme.dart';
+import 'dart:io';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -22,10 +24,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _roleController = TextEditingController();
   final _profilePictureUrlController = TextEditingController();
 
-  List<String> selectedClubs = [];
-
   bool _isLoading = false;
   bool _isInitialized = false;
+  bool _isUploadingImage = false;
+  File? _selectedImageFile;
+  String? _uploadedImageUrl;
 
   @override
   void initState() {
@@ -105,6 +108,63 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         setState(() {
           _isInitialized = true;
         });
+      }
+    }
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      setState(() {
+        _isUploadingImage = true;
+        _selectedImageFile = File(image.path);
+      });
+
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw Exception('No authenticated user');
+      }
+
+      // Create a reference to Firebase Storage
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_pictures')
+          .child('${currentUser.uid}.jpg');
+
+      // Upload the file
+      final uploadTask = await storageRef.putFile(_selectedImageFile!);
+
+      // Get the download URL
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+      setState(() {
+        _uploadedImageUrl = downloadUrl;
+        _profilePictureUrlController.text = downloadUrl;
+        _isUploadingImage = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile picture uploaded successfully!')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isUploadingImage = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error uploading image: $e')),
+        );
       }
     }
   }
@@ -207,53 +267,81 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     children: [
                       SizedBox(height: screenHeight * 0.02),
 
-                      Stack(
-                        children: [
-                          Consumer<UserProvider>(
-                            builder: (context, userProvider, child) {
-                              final currentUser =
-                                  FirebaseAuth.instance.currentUser;
-                              final userData = userProvider.user;
+                      GestureDetector(
+                        onTap: _isUploadingImage ? null : _pickAndUploadImage,
+                        child: Stack(
+                          children: [
+                            Consumer<UserProvider>(
+                              builder: (context, userProvider, child) {
+                                final currentUser =
+                                    FirebaseAuth.instance.currentUser;
+                                final userData = userProvider.user;
 
-                              ImageProvider profileImage;
-                              if (userData?.profilePictureUrl != null &&
-                                  userData!.profilePictureUrl!.isNotEmpty) {
-                                profileImage =
-                                    NetworkImage(userData.profilePictureUrl!);
-                              } else if (currentUser?.photoURL != null &&
-                                  currentUser!.photoURL!.isNotEmpty) {
-                                profileImage =
-                                    NetworkImage(currentUser.photoURL!);
-                              } else {
-                                profileImage = const AssetImage(
-                                    'assets/icons/default_profile.png');
-                              }
+                                ImageProvider profileImage;
+                                
+                                // Priority: uploaded image > user data > selected file > current user > default
+                                if (_uploadedImageUrl != null) {
+                                  profileImage = NetworkImage(_uploadedImageUrl!);
+                                } else if (_selectedImageFile != null) {
+                                  profileImage = FileImage(_selectedImageFile!);
+                                } else if (userData?.profilePictureUrl != null &&
+                                    userData!.profilePictureUrl!.isNotEmpty) {
+                                  profileImage =
+                                      NetworkImage(userData.profilePictureUrl!);
+                                } else if (currentUser?.photoURL != null &&
+                                    currentUser!.photoURL!.isNotEmpty) {
+                                  profileImage =
+                                      NetworkImage(currentUser.photoURL!);
+                                } else {
+                                  profileImage = const AssetImage(
+                                      'assets/icons/default_profile.png');
+                                }
 
-                              return CircleAvatar(
-                                radius: 60,
-                                backgroundColor: Colors.grey[400],
-                                backgroundImage: profileImage,
-                              );
-                            },
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: AppColors.yellowButton,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.edit,
-                                color: Colors.black,
-                                size: 18,
+                                return Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 60,
+                                      backgroundColor: Colors.grey[400],
+                                      backgroundImage: profileImage,
+                                    ),
+                                    if (_isUploadingImage)
+                                      Container(
+                                        width: 120,
+                                        height: 120,
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.5),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Center(
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: AppColors.yellowButton,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.black,
+                                  size: 18,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
 
                       SizedBox(height: screenHeight * 0.04),
@@ -327,37 +415,45 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         },
                       ),
 
-                      SizedBox(height: screenHeight * 0.025),
-                      const Divider(
-                        color: Colors.white,
+                      SizedBox(height: screenHeight * .03),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _saveProfile,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.yellowButton,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.black,
+                                  strokeWidth: 2,
+                                )
+                              : const Text(
+                                  'Save Changes',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
                       ),
-                      SizedBox(height: screenHeight * 0.025),
 
-                      Container(
-                          decoration: const BoxDecoration(
-                              color: AppColors.calPolyGold,
-                              borderRadius: BorderRadius.zero),
-                          child: Consumer<ClubProvider>(
-                            builder: (context, clubProvider, child) {
-                              return MultiSelectDropdown(
-                                label: "My Club Preferences",
-                                options: clubProvider.clubAcronyms,
-                                selectedItems: selectedClubs,
-                                onChanged: (selected) {
-                                  setState(() {
-                                    selectedClubs = selected;
-                                  });
-                                },
-                              );
-                            },
-                          )),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Divider(),
+                      ),
 
-                      const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.calPolyGold,
+                            backgroundColor: AppColors.yellowButton,
                             foregroundColor: Colors.black,
                             shape: const RoundedRectangleBorder(
                               borderRadius: BorderRadius.zero,
@@ -410,63 +506,76 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
                                     ElevatedButton(
                                       onPressed: () async {
+                                        if (selected.isEmpty) {
+                                          Navigator.pop(context);
+                                          return;
+                                        }
+                                        
                                         final user = FirebaseAuth.instance.currentUser;
-                                        if (user != null && selected.isNotEmpty) {
-                                          final existing = await FirebaseFirestore.instance.collection('clubAdminRequests').where('uid', isEqualTo: user.uid).get();
-                                            final Set<String> alreadyRequested = {};
-                                            for (final doc in existing.docs) {
-                                              final data = doc.data();
-                                              if (data.containsKey('clubs')) {
-                                                final clubsField = data['clubs'];
-                                                if (clubsField is List) {
-                                                  for (final c in clubsField) {
-                                                    if (c == null) continue;
-                                                    if (c is String) {
-                                                      alreadyRequested.add(c);
-                                                    } else if (c is Map) {
-                                                      final idVals = [];
-                                                      idVals.add(c['id'] ?? c['clubId'] ?? c['club_id'] ?? c['club']);
-                                                      if (idVals != null) alreadyRequested.add(idVals.toString());
-                                                    } else {
-                                                      alreadyRequested.add(c.toString());
-                                                    }
-                                                  }
+                                        if (user == null) {
+                                          Navigator.pop(context);
+                                          return;
+                                        }
+                                        
+                                        final existing = await FirebaseFirestore.instance.collection('clubAdminRequests').where('uid', isEqualTo: user.uid).get();
+                                        
+                                        if (!context.mounted) return;
+                                        
+                                        final Set<String> alreadyRequested = {};
+                                        for (final doc in existing.docs) {
+                                          final data = doc.data();
+                                          if (data.containsKey('clubs')) {
+                                            final clubsField = data['clubs'];
+                                            if (clubsField is List) {
+                                              for (final c in clubsField) {
+                                                if (c == null) continue;
+                                                if (c is String) {
+                                                  alreadyRequested.add(c);
+                                                } else if (c is Map) {
+                                                  final idVals = c['id'] ?? c['clubId'] ?? c['club_id'] ?? c['club'];
+                                                  alreadyRequested.add(idVals.toString());
+                                                } else {
+                                                  alreadyRequested.add(c.toString());
                                                 }
                                               }
                                             }
-
-                                            final Map<String, String> idToName = { for (final c in clubs) (c.id?.toString() ?? ''): (c.name?.toString() ?? c.acronym?.toString() ?? '') };
-
-                                            final toRequestIds = selected.where((id) => !alreadyRequested.contains(id)).toList();
-
-                                            if (toRequestIds.isEmpty) {
-                                              Navigator.pop(context);
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(content: Text('You already have requests for the selected clubs'))
-                                              );
-                                              return;
-                                            }
-
-                                            final toRequest = toRequestIds.map((id) => {
-                                              'id': id,
-                                              'name': idToName[id] ?? id,
-                                            }).toList();
-
-                                            final userName = "${_firstNameController.text} ${_lastNameController.text}";
-
-                                            await FirebaseFirestore.instance.collection('clubAdminRequests').add({
-                                              'uid': user.uid,
-                                              'name': userName ?? '',
-                                              'email': user.email,
-                                              'requestedAt': FieldValue.serverTimestamp(),
-                                              'clubs': toRequest,
-                                              'status': 'pending',
-                                            });
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Club admin request submitted')));
                                           }
                                         }
+
+                                        final Map<String, String> idToName = { for (final c in clubs) (c.id?.toString() ?? ''): (c.name?.toString() ?? c.acronym?.toString() ?? '') };
+
+                                        final toRequestIds = selected.where((id) => !alreadyRequested.contains(id)).toList();
+
+                                        if (toRequestIds.isEmpty) {
+                                          Navigator.pop(context);
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('You already have requests for the selected clubs'))
+                                          );
+                                          return;
+                                        }
+
+                                        final toRequest = toRequestIds.map((id) => {
+                                          'id': id,
+                                          'name': idToName[id] ?? id,
+                                        }).toList();
+
+                                        final userName = "${_firstNameController.text} ${_lastNameController.text}";
+
+                                        await FirebaseFirestore.instance.collection('clubAdminRequests').add({
+                                          'uid': user.uid,
+                                          'name': userName,
+                                          'email': user.email,
+                                          'requestedAt': FieldValue.serverTimestamp(),
+                                          'clubs': toRequest,
+                                          'status': 'pending',
+                                        });
+                                        
+                                        if (!context.mounted) return;
+                                        
                                         Navigator.pop(context);
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Club admin request submitted'))
+                                        );
                                       },
                                       child: const Text('Submit Request'),
                                     ),
@@ -476,40 +585,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             );
                           },
                           child: const Text('Request Club Admin'),
-                        ),
-                      ),
-
-                      SizedBox(height: screenHeight * 0.025),
-                      const Divider(
-                        color: Colors.white,
-                      ),
-
-                      SizedBox(height: screenHeight * 0.025),
-
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _saveProfile,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.yellowButton,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.zero,
-                            ),
-                          ),
-                          child: _isLoading
-                              ? const CircularProgressIndicator(
-                                  color: Colors.black,
-                                  strokeWidth: 2,
-                                )
-                              : const Text(
-                                  'Save Changes',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
                         ),
                       ),
 

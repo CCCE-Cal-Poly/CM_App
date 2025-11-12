@@ -3,22 +3,17 @@ import 'package:ccce_application/common/collections/company.dart';
 import 'package:ccce_application/common/collections/favoritable.dart';
 import 'package:ccce_application/common/providers/app_state.dart';
 import 'package:ccce_application/common/theme/theme.dart';
+import 'package:ccce_application/common/widgets/resilient_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 Widget jobLogoImage(String? url, double width, double height) {
-    if (url == null || url.isEmpty) {
-      return Icon(Icons.broken_image, size: height, color: Colors.grey);
-    }
-    return ClipOval(
-      child: Image.network(
-        url,
-        width: width,
-        height: height,
-        fit: BoxFit.cover, // Ensures the image fills the circle
-      ),
-    );
-  }
+  return ResilientCircleImage(
+    imageUrl: url,
+    placeholderAsset: 'assets/icons/default_company.png',
+    size: width,
+  );
+}
 
 class Job extends Favoritable {
   final String id;

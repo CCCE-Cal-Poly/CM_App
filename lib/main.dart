@@ -1,11 +1,9 @@
-import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/features/sign_in.dart';
 import 'package:ccce_application/common/providers/company_provider.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:ccce_application/rendered_page.dart';
 import 'package:ccce_application/common/features/onboarding/onboarding_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -77,7 +75,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final companyProvider = context.watch<CompanyProvider>();
     return FutureBuilder<bool>(
       future: _isTOSAccepted(),
       builder: (context, snapshot) {
@@ -118,8 +115,8 @@ class MyApp extends StatelessWidget {
               NotificationService.initForUid(snapshot.data!.uid);
             });
 
-            return Consumer<EventProvider>(
-              builder: (context, eventProvider, child) {
+            return Consumer2<EventProvider, CompanyProvider>(
+              builder: (context, eventProvider, companyProvider, child) {
                 if (!eventProvider.isLoaded) {
                   return const MaterialApp(
                     home: Scaffold(
@@ -130,6 +127,13 @@ class MyApp extends StatelessWidget {
                     ),
                   );
                 }
+                
+                if (companyProvider.isLoaded && eventProvider.needsLogoLinking) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    eventProvider.linkCompanyLogos(companyProvider.allCompanies);
+                  });
+                }
+                
                 return const MaterialApp(
                   home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
                 );

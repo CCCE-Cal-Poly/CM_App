@@ -3,6 +3,7 @@ import 'package:ccce_application/common/collections/favoritable.dart';
 import 'package:ccce_application/common/collections/job.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/providers/app_state.dart';
+import 'package:ccce_application/common/widgets/resilient_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -11,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Company extends Favoritable implements Comparable<Company> {
+  String? id;
   dynamic name;
   dynamic location;
   dynamic aboutMsg;
@@ -22,6 +24,7 @@ class Company extends Favoritable implements Comparable<Company> {
   Set<Job> offeredJobs;
 
   Company({
+      this.id,
       this.name, 
       this.location, 
       this.aboutMsg, 
@@ -41,6 +44,7 @@ class Company extends Favoritable implements Comparable<Company> {
     final data = doc.data() as Map<String, dynamic>;
 
     return Company(
+      id: doc.id,
       name: data['name'] ?? '',
       location: data['location'] ?? '',
       aboutMsg: data['about'] ?? '',
@@ -60,23 +64,11 @@ class CompanyItem extends StatelessWidget {
   const CompanyItem(this.company, {Key? key}) : super(key: key);
 
   Widget clubLogoImage(String? url, double width, double height) {
-    if (url == null || url.isEmpty) {
-      return Icon(Icons.broken_image, size: height, color: Colors.grey);
-    }
-    return ClipOval(
-        child: Container(
-      width: width,
-      height: height,
-      color: Colors.white,
-      child: FittedBox(
-        fit: BoxFit.contain,
-        child: Image.network(
-          url,
-          width: width,
-          height: height,
-        ),
-      ),
-    ));
+    return ResilientCircleImage(
+      imageUrl: url,
+      placeholderAsset: 'assets/icons/default_company.png',
+      size: width,
+    );
   }
 
   @override
@@ -169,23 +161,10 @@ class _CompanyPopupState extends State<CompanyPopup> {
   }
 
   Widget clubLogoImage(String? url, double width, double height) {
-    if (url == null || url.isEmpty) {
-      return Icon(Icons.broken_image, size: height, color: Colors.grey);
-    }
-    return ClipOval(
-      child: Container(
-        width: width,
-        height: height,
-        color: Colors.white,
-        child: FittedBox(
-          fit: BoxFit.contain,
-          child: Image.network(
-            url,
-            width: width,
-            height: height,
-          ),
-        ),
-      ),
+    return ResilientCircleImage(
+      imageUrl: url,
+      placeholderAsset: 'assets/icons/default_company.png',
+      size: width,
     );
   }
 
@@ -275,7 +254,7 @@ class _CompanyPopupState extends State<CompanyPopup> {
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: context
-                                            .read<AppState>()
+                                            .watch<AppState>()
                                             .isFavorite(widget.company)
                                         ? Colors.grey
                                         : AppColors.calPolyGreen,
@@ -285,23 +264,20 @@ class _CompanyPopupState extends State<CompanyPopup> {
                                     elevation: 0,
                                   ),
                                   onPressed: () {
-                                    // Interact with provider to add/remove favorite
-                                    setState(() {
-                                      if (context
+                                    if (context
+                                        .read<AppState>()
+                                        .isFavorite(widget.company)) {
+                                      context
                                           .read<AppState>()
-                                          .isFavorite(widget.company)) {
-                                        context
-                                            .read<AppState>()
-                                            .removeFavorite(widget.company);
-                                      } else {
-                                        context
-                                            .read<AppState>()
-                                            .addFavorite(widget.company);
-                                      }
-                                    });
+                                          .removeFavorite(widget.company);
+                                    } else {
+                                      context
+                                          .read<AppState>()
+                                          .addFavorite(widget.company);
+                                    }
                                   },
                                   child: context
-                                          .read<AppState>()
+                                          .watch<AppState>()
                                           .isFavorite(widget.company)
                                       ? const Row(
                                           mainAxisAlignment:
@@ -420,47 +396,56 @@ class _CompanyPopupState extends State<CompanyPopup> {
                     ),
                   ),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.mail,
-                      size: 24,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(width: 10),
-                    InkWell(
-                      onTap: () async {
-                        final email = widget.company.recruiterEmail;
-                        if (email != null && email.isNotEmpty) {
-                          final uri = Uri(scheme: 'mailto', path: email);
-                          try {
-                            await launchUrl(uri);
-                          } catch (e) {
-                            await Clipboard.setData(ClipboardData(text: email));
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Email copied to clipboard')),
-                            );
-                          }
+                Center(
+                  child: InkWell(
+                    onTap: () async {
+                      final email = widget.company.recruiterEmail;
+                      if (email != null && email.isNotEmpty) {
+                        final uri = Uri(scheme: 'mailto', path: email);
+                        try {
+                          await launchUrl(uri);
+                        } catch (e) {
+                          await Clipboard.setData(ClipboardData(text: email));
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Email copied to clipboard')),
+                          );
                         }
-                      },
-                      child: Text(
-                        widget.company.recruiterEmail ?? 'No Email',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18.0,
-                          decoration: TextDecoration.underline,
-                        ),
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.mail,
+                            size: 24,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 10),
+                          Flexible(
+                            child: AutoSizeText(
+                              widget.company.recruiterEmail ?? 'No Email',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18.0,
+                                decoration: TextDecoration.underline,
+                              ),
+                              minFontSize: 11,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
-                // Divider between the first section and the rest
-                SizedBox(
-                  height: screenHeight * .01,
+                const Divider(
+                  color: Colors.white,
+                  thickness: 1.1,
                 ),
-                // Second Section (About)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Column(
@@ -491,7 +476,6 @@ class _CompanyPopupState extends State<CompanyPopup> {
                   color: Colors.white,
                   thickness: 1.1,
                 ),
-                // Third Section (Message)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Column(
