@@ -71,14 +71,35 @@ exports.setUserRole = onCall(async (request) => {
       userUpdate.clubsAdminOf = [];
     }
 
-    await Promise.all([
+    const promises = [
       admin.auth().setCustomUserClaims(uid, claims),
       admin
         .firestore()
         .collection("users")
         .doc(uid)
         .set(userUpdate, {merge: true}),
-    ]);
+    ];
+
+    // If making someone a club admin, also add them as members of those clubs
+    if (normalizedRole === "club admin" && mergedClubs.length > 0) {
+      for (const clubId of mergedClubs) {
+        promises.push(
+          admin
+            .firestore()
+            .collection("clubs")
+            .doc(clubId)
+            .collection("members")
+            .doc(uid)
+            .set({
+              uid: uid,
+              joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+              isAdmin: true,
+            }, {merge: true}),
+        );
+      }
+    }
+
+    await Promise.all(promises);
 
     return {
       success: true,
@@ -124,6 +145,7 @@ exports.approveClubEvent = onCall(async (request) => {
   }
 
   const reqData = reqSnap.data() || {};
+  const clubId = reqData.clubId || null;
   const eventDoc = {
     company: reqData.clubName || "",
     eventName: reqData.eventName || "",
@@ -148,6 +170,40 @@ exports.approveClubEvent = onCall(async (request) => {
 
   try {
     const newEventRef = await db.collection("events").add(eventDoc);
+    
+    // Add event to club's Events array if clubId exists
+    if (clubId) {
+      const clubRef = db.collection("clubs").doc(clubId);
+      const clubSnap = await clubRef.get();
+      
+      if (clubSnap.exists) {
+        // Get the club's logo to use for the event
+        const clubData = clubSnap.data() || {};
+        const clubLogo = clubData.logo || "";
+        
+        // Update event with club logo if not already set
+        if (!eventDoc.logo && clubLogo) {
+          await newEventRef.update({logo: clubLogo});
+        }
+        
+        // Create event data for club's Events array
+        const clubEventData = {
+          eventName: eventDoc.eventName,
+          startTime: eventDoc.startTime,
+          endTime: eventDoc.endTime,
+          mainLocation: eventDoc.mainLocation,
+          eventType: eventDoc.eventType,
+          description: eventDoc.description,
+          logo: clubLogo || eventDoc.logo,
+        };
+        
+        // Add to club's Events array
+        await clubRef.update({
+          Events: admin.firestore.FieldValue.arrayUnion(clubEventData),
+        });
+      }
+    }
+    
     await reqRef.delete();
     return {success: true, eventId: newEventRef.id};
   } catch (err) {

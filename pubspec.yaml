@@ -53,6 +53,8 @@ dependencies:
   cloud_functions: ^6.0.3
   #Url launcher for email:
   url_launcher: ^6.3.1
+  #Google Sign In
+  google_sign_in: ^6.2.1
   #Image handling and caching
   http: ^1.2.2  # Updated for compatibility
   cached_network_image: ^3.4.1  # Updated for better performance
@@ -71,6 +73,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   build_runner: ^2.4.8
+  flutter_launcher_icons: ^0.14.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

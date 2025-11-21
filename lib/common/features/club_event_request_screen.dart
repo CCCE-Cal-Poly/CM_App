@@ -171,6 +171,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
       final clubName = selectedClub['Acronym'] ?? '';
 
       await FirebaseFirestore.instance.collection('clubEventRequests').add({
+        'clubId': _selectedClubId,
         'clubName': clubName,
         'eventName': _eventNameController.text.trim(),
         'eventType': 'club',
