@@ -2,6 +2,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/providers/app_state.dart';
+import 'package:ccce_application/common/widgets/resilient_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -60,16 +61,10 @@ class Club implements Comparable<Club> {
 
 class ClubItem extends StatelessWidget {
   Widget clubLogoImage(String? url, double width, double height) {
-    if (url == null || url.isEmpty) {
-      return Icon(Icons.broken_image, size: height, color: Colors.grey);
-    }
-    return ClipOval(
-      child: Image.network(
-        url,
-        width: width,
-        height: height,
-        fit: BoxFit.cover, 
-      ),
+    return ResilientCircleImage(
+      imageUrl: url,
+      placeholderAsset: 'assets/icons/default_club.png',
+      size: width,
     );
   }
 
@@ -138,16 +133,10 @@ class ClubPopUp extends StatefulWidget {
 }
 
 Widget clubLogoImage(String? url, double width, double height) {
-  if (url == null || url.isEmpty) {
-    return Icon(Icons.broken_image, size: height, color: Colors.grey);
-  }
-  return ClipOval(
-    child: Image.network(
-      url,
-      width: width,
-      height: height,
-      fit: BoxFit.cover, // Ensures the image fills the circle
-    ),
+  return ResilientCircleImage(
+    imageUrl: url,
+    placeholderAsset: 'assets/icons/default_club.png',
+    size: width,
   );
 }
 
@@ -156,9 +145,7 @@ class _ClubPopUpState extends State<ClubPopUp> {
   Widget build(BuildContext context) {
     double screenHeight = MediaQuery.of(context).size.height;
     double screenWidth = MediaQuery.of(context).size.width;
-    // Check whether current user is a club admin for this club
     final isClubAdmin = Provider.of<UserProvider>(context).isClubAdmin(widget.club.id?.toString() ?? '');
-    // Prepare club-only events list (filter by eventType and date)
     final now = DateTime.now();
     final twoWeeksFromNow = now.add(const Duration(days: 14));
     final clubEvents = widget.club.events.where((e) {
@@ -253,20 +240,18 @@ class _ClubPopUpState extends State<ClubPopUp> {
                               ),
                               child: ElevatedButton(
                                 onPressed: () {
-                                  setState(() {
-                                    if (context.read<AppState>().isJoined(widget.club)) {
-                                      context.read<AppState>().removeJoinedClub(widget.club);
-                                    } else {
-                                      context.read<AppState>().addJoinedClub(widget.club);
-                                    }
-                                  });
+                                  if (context.read<AppState>().isJoined(widget.club)) {
+                                    context.read<AppState>().removeJoinedClub(widget.club);
+                                  } else {
+                                    context.read<AppState>().addJoinedClub(widget.club);
+                                  }
                                 },
                                 style: ElevatedButton.styleFrom(
                                   fixedSize: Size(
                                     screenWidth * 0.5,
                                     screenHeight * 0.05,
                                   ),
-                                  backgroundColor: context.read<AppState>().isJoined(widget.club)
+                                  backgroundColor: context.watch<AppState>().isJoined(widget.club)
                                       ? Colors.grey
                                       : AppColors.calPolyGreen,
                                   shape: const RoundedRectangleBorder(
@@ -277,7 +262,7 @@ class _ClubPopUpState extends State<ClubPopUp> {
                                     vertical: screenHeight * .008,
                                   ),
                                 ),
-                                child: context.read<AppState>().isJoined(widget.club)
+                                child: context.watch<AppState>().isJoined(widget.club)
                                     ? const Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [

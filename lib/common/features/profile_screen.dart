@@ -1,5 +1,7 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/features/my_info_sessions.dart';
+import 'package:ccce_application/common/features/my_clubs.dart';
+import 'package:ccce_application/common/features/my_favorite_companies.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:flutter/material.dart';
@@ -31,15 +33,12 @@ class ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // Load user data when the widget initializes
     loadUserData();
   }
 
   void loadUserData() {
-    // Load user data and update the text controllers
     curUser = FirebaseAuth.instance.currentUser;
     if (curUser != null) {
-      // Load user profile via UserProvider
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           Provider.of<UserProvider>(context, listen: false)
@@ -401,7 +400,24 @@ class ProfileScreenState extends State<ProfileScreen> {
                         minimumSize:
                             const Size(double.infinity, 48), // Forces full width
                       ),
-                      onPressed: () => print("hi"),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => Scaffold(
+                            appBar: AppBar(
+                              title: const Text("My Clubs",
+                                  style: TextStyle(
+                                      fontFamily: AppFonts.sansProSemiBold,
+                                      color: AppColors.welcomeLightYellow,
+                                      fontWeight: FontWeight.w600)),
+                              backgroundColor: AppColors.calPolyGreen,
+                              foregroundColor: Colors.white,
+                            ),
+                            backgroundColor: AppColors.calPolyGreen,
+                            body: buildMyClubsDisplay(context),
+                          ),
+                        ),
+                      ),
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         mainAxisSize: MainAxisSize.max,
@@ -419,9 +435,26 @@ class ProfileScreenState extends State<ProfileScreen> {
                         shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.zero),
                         minimumSize:
-                            const Size(double.infinity, 48), // Forces full width
+                            const Size(double.infinity, 48),
                       ),
-                      onPressed: () => print("hi"),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => Scaffold(
+                            appBar: AppBar(
+                              title: const Text("My Favorite Companies",
+                                  style: TextStyle(
+                                      fontFamily: AppFonts.sansProSemiBold,
+                                      color: AppColors.welcomeLightYellow,
+                                      fontWeight: FontWeight.w600)),
+                              backgroundColor: AppColors.calPolyGreen,
+                              foregroundColor: Colors.white,
+                            ),
+                            backgroundColor: AppColors.calPolyGreen,
+                            body: buildMyFavoriteCompaniesDisplay(context),
+                          ),
+                        ),
+                      ),
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         mainAxisSize: MainAxisSize.max,

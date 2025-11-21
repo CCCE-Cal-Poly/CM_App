@@ -181,30 +181,21 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                           children: [
                             AutoSizeText('${request['name'] ?? ''} - ${request['email'] ?? ''}'),
                             if (requestedAt != null) Text('Requested at: $requestedAt'),
-                            const SizedBox(height: 2),
-                            SizedBox(
-                              height: 28,
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  children: clubs.asMap().entries.map((entry) {
-                                    final idx = entry.key;
-                                    final c = entry.value;
-                                    final name = (c['name'] ?? c['id'] ?? '').toString();
-                                    final hasSeparator = idx < clubs.length - 1;
-                                    return Row(
-                                      children: [
-                                        AutoSizeText(name, style: const TextStyle(fontSize: 14)),
-                                        if (hasSeparator) const Padding(
-                                          padding: EdgeInsets.symmetric(horizontal: 6.0),
-                                          child: Text(',', style: TextStyle(fontSize: 14)),
-                                        ),
-                                      ],
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
+                            const SizedBox(height: 4),
+                            Wrap(
+                              spacing: 2,
+                              children: clubs.asMap().entries.map((entry) {
+                                final idx = entry.key;
+                                final c = entry.value;
+                                final name = (c['name'] ?? c['id'] ?? '').toString();
+                                final hasSeparator = idx < clubs.length - 1;
+                                return Text(
+                                  '$name${hasSeparator ? ',' : ''}',
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                );
+                              }).toList(),
                             ),
+                            const SizedBox(height: 4),
                             Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [

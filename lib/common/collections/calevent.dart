@@ -2,22 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/providers/app_state.dart';
+import 'package:ccce_application/common/widgets/resilient_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 Widget eventLogoImage(String? url, double width, double height) {
-  if (url == null || url.isEmpty) {
-    return Icon(Icons.broken_image, size: height, color: Colors.grey);
-  }
-  return ClipOval(
-    child: Image.network(
-      url,
-      width: width,
-      height: height,
-      fit: BoxFit.cover,
-    ),
+  return ResilientCircleImage(
+    imageUrl: url,
+    placeholderAsset: 'assets/icons/default_company.png',
+    size: width,
   );
 }
 
@@ -30,6 +25,8 @@ class CalEvent {
   String eventType;
   String? logo;
   String? status;
+  String? companyId; 
+  DateTime? updatedAt;
   InfoSessionData? isd;
 
   CalEvent({
@@ -41,6 +38,8 @@ class CalEvent {
     required this.eventType,
     this.logo,
     this.status,
+    this.companyId,
+    this.updatedAt,
     this.isd,
   });
 
@@ -73,6 +72,10 @@ class CalEvent {
         ? data["endTime"].toDate()
         : start.add(const Duration(hours: 1));
     
+    final updatedAt = data["updatedAt"] is Timestamp
+        ? data["updatedAt"].toDate()
+        : null;
+
     return CalEvent(
       id: doc.id,
       eventName: displayName,
@@ -82,11 +85,16 @@ class CalEvent {
       eventType: eventType,
       logo: data.containsKey("logo") ? data["logo"] : null,
       status: data["Status"] ?? data["status"] ?? "pending",
+      companyId: null, 
+      updatedAt: updatedAt,
       isd: null, 
     );
   } else {
+    // Info session - support both new (companyId) and legacy (company name) approaches
     String openPositions = data["isHiring"] == "No" ? "" : (data["position"] ?? "");
-    String? theLogo = data.containsKey("logo") ? data["logo"] : null;
+    String? theLogo = data.containsKey("logo") && data["logo"] != null && data["logo"].toString().isNotEmpty 
+        ? data["logo"] 
+        : null;
 
     final displayName = data["company"] ?? data["eventName"] ?? "";
     
@@ -98,6 +106,10 @@ class CalEvent {
         ? data["endTime"].toDate()
         : start.add(const Duration(hours: 1));
 
+    final updatedAt = data["updatedAt"] is Timestamp
+        ? data["updatedAt"].toDate()
+        : null;
+
     return CalEvent(
       id: doc.id,
       eventName: displayName,
@@ -107,6 +119,8 @@ class CalEvent {
       eventType: eventType,
       logo: theLogo,
       status: data["Status"] ?? "pending",
+      companyId: data["companyId"], 
+      updatedAt: updatedAt,
       isd: InfoSessionData(
         data["website"],
         data["interviewLocation"],
@@ -440,7 +454,7 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                                     screenWidth * 0.5,
                                     screenHeight * 0.05,
                                   ),
-                                  backgroundColor: context.read<AppState>().isCheckedIn(widget.infoSession)
+                                  backgroundColor: context.watch<AppState>().isCheckedIn(widget.infoSession)
                                       ? Colors.grey
                                       : AppColors.calPolyGreen,
                                   shape: const RoundedRectangleBorder(
@@ -451,7 +465,7 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                                     vertical: screenHeight * .008,
                                   ),
                                 ),
-                                child: context.read<AppState>().isCheckedIn(widget.infoSession)
+                                child: context.watch<AppState>().isCheckedIn(widget.infoSession)
                                     ? const Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
