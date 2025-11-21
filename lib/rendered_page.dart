@@ -72,8 +72,19 @@ class _MyRenderedPageState extends State<RenderedPage> {
   @override
   Widget build(BuildContext context) {
   final userProvider = Provider.of<UserProvider>(context);
-  final isAdmin = userProvider.user?.role == UserRole.admin;
-  final isClubAdmin = userProvider.user?.role == UserRole.clubAdmin;
+  final user = userProvider.user;
+  final isAdmin = user?.role == UserRole.admin;
+  final isClubAdmin = user?.role == UserRole.clubAdmin;
+  
+  // If user data hasn't loaded yet, show loading state
+  if (user == null) {
+    return Scaffold(
+      key: _scaffoldKey,
+      body: const Center(child: CircularProgressIndicator()),
+      backgroundColor: tanColor,
+    );
+  }
+  
     if (_pages[_selectedIndex] == null) {
       _pages[_selectedIndex] = _pageBuilders[_selectedIndex]();
     }

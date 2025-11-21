@@ -39,15 +39,15 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
               facultyData['administration']!.toLowerCase().contains("true");
         }
         Faculty newFaculty = Faculty(
-            facultyData['first name'],
-            facultyData['last name'],
+            facultyData['firstname'],
+            facultyData['lastname'],
             facultyData['title'],
             facultyData['email'],
             facultyData['phone'],
             facultyData['hours'],
             facultyData['office'],
             administration,
-            facultyData['emeritus'] == "true" ? true : false);
+            );
         facultyList.add(newFaculty);
       });
     } catch (e) {
@@ -79,7 +79,6 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
 
 
   Map<String, bool> buttonStates = {
-  'A-Z': true,
   'Admin': false,
   'Faculty': false,
   };
@@ -217,8 +216,6 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    createButtonSorter('A-Z', sortAlphabetically),
-                    const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
                     createButtonSorter('Admin', () => {}),
                     const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
                     createButtonSorter('Faculty', () => {}),

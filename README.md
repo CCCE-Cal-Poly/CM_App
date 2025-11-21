@@ -4,42 +4,42 @@ A comprehensive mobile application for Cal Poly's Construction Management depart
 
 ## Features
 
-### 🏠 Home Screen
+### Home Screen
 - Interactive calendar with event management
 - Announcements and important notifications
 - Real-time updates for department activities
 
-### 👥 Member Directory
+### Member Directory
 - Comprehensive listing of department members
 - Search and filter capabilities
 - Detailed member profiles with contact information
 
-### 🏛️ Club Directory
+### Club Directory
 - List of all CM-related clubs and organizations
 - Club events and activities
 - Membership information and contact details
 
-### 👨‍🏫 Faculty Directory
+### Faculty Directory
 - Complete faculty listing with contact information
 - Office hours and availability
 - Areas of expertise and research interests
 
-### 💼 Info Sessions
+### Info Sessions
 - Upcoming company information sessions
 - Registration for events
 - Session details and locations
 
-### 💻 Job Board
+### Job Board
 - Industry job postings
 - Internship opportunities
 - Easy application process
 
-### 👤 Profile Management
+### Profile Management
 - Personal profile customization
 - Academic and professional information
 - Contact preferences
 
-### 🔐 Admin Control Panel
+### Admin Control Panel
 - Event management
 - User management
 - Content moderation

@@ -7,8 +7,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:ccce_application/common/providers/user_provider.dart';
-import 'package:ccce_application/common/features/club_event_request_form.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Club implements Comparable<Club> {
@@ -145,7 +143,6 @@ class _ClubPopUpState extends State<ClubPopUp> {
   Widget build(BuildContext context) {
     double screenHeight = MediaQuery.of(context).size.height;
     double screenWidth = MediaQuery.of(context).size.width;
-    final isClubAdmin = Provider.of<UserProvider>(context).isClubAdmin(widget.club.id?.toString() ?? '');
     final now = DateTime.now();
     final twoWeeksFromNow = now.add(const Duration(days: 14));
     final clubEvents = widget.club.events.where((e) {
@@ -340,40 +337,6 @@ class _ClubPopUpState extends State<ClubPopUp> {
                           fontSize: 16.0,
                         ),
                       ),
-
-                    // Show the Request Event button only to club admins
-                    if (isClubAdmin) ...[
-                      const SizedBox(height: 8),
-                      Center(
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: AppColors.calPolyGreen,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.zero,
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.of(context).push(MaterialPageRoute(
-                              builder: (_) => ClubEventRequestForm(
-                                clubId: widget.club.id?.toString() ?? '',
-                                clubName: widget.club.name ?? '',
-                                clubLogoUrl: widget.club.logo,
-                              ),
-                            ));
-                          },
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                            child: Text(
-                              'REQUEST EVENT',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
                 const Divider(),

@@ -119,9 +119,6 @@ coverage/
 # Java crash logs
 java_pid*
 
-package.json
-package-lock.json
-
 # Ignore sensitive Firebase API keys
 firebaseServiceKey.json
 lib/firebase_keys.dart
@@ -129,4 +126,3 @@ devtools_options.yaml
 
 #Ignore Claude
 CLAUDE.md
-node_modules
