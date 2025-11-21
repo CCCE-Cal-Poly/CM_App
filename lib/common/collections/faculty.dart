@@ -13,12 +13,15 @@ class Faculty implements Comparable<Faculty> {
   dynamic hours;
   dynamic office;
   bool administration;
-  bool emeritus;
   Faculty(this.fname, this.lname, this.title, this.email, this.phone,
-      this.hours, this.office, this.administration, this.emeritus);
+      this.hours, this.office, this.administration);
 
   @override
   int compareTo(Faculty other) {
+    if (lname == null && other.lname == null) return 0;
+    if (lname == null) return 1;
+    if (other.lname == null) return -1;
+    
     return (lname.toLowerCase().compareTo(other.lname.toLowerCase()));
   }
 }
@@ -32,32 +35,38 @@ class FacultyItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.black),
-          borderRadius: BorderRadius.zero,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 6.0),
+      child: IntrinsicHeight(
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: Colors.black),
+            borderRadius: BorderRadius.zero,
+          ),
           child: Padding(
-            padding: const EdgeInsets.only(left: 18.0, top: 4.0, bottom: 8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  faculty.lname + ", " + faculty.fname,
-                  style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14),
-                ),
-                Text(faculty.title,
+            padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 6.0),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 18.0, top: 4.0, bottom: 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    faculty.fname != null && faculty.fname.toString().isNotEmpty
+                        ? "${faculty.lname ?? ''}, ${faculty.fname}"
+                        : faculty.lname ?? '',
                     style: const TextStyle(
-                        color: AppColors.darkGoldText,
-                        fontWeight: FontWeight.w400,
-                        fontSize: 11)),
-              ],
+                        color: Colors.black,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14),
+                  ),
+                  if (faculty.title != null && faculty.title.toString().isNotEmpty)
+                    Text(faculty.title ?? '',
+                        style: const TextStyle(
+                            color: AppColors.darkGoldText,
+                            fontWeight: FontWeight.w400,
+                            fontSize: 11)),
+                ],
+              ),
             ),
           ),
         ),
@@ -136,7 +145,9 @@ class _FacultyPopUpState extends State<FacultyPopUp> {
                               ),
                             ),
                             Text(
-                              '${widget.faculty.lname}, ${widget.faculty.fname}',
+                              widget.faculty.fname != null && widget.faculty.fname.toString().isNotEmpty
+                                  ? '${widget.faculty.lname ?? ''}, ${widget.faculty.fname}'
+                                  : widget.faculty.lname ?? '',
                               style: const TextStyle(
                                   fontSize: 17, fontWeight: FontWeight.bold),
                             ),

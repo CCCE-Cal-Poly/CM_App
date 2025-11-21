@@ -478,7 +478,7 @@ exports.cleanupOldNotifications = onSchedule("every 24 hours", async () => {
   }
 });
 
-exports.processPendingNotifications = onSchedule("every 15 minutes", async (event) => {
+exports.processPendingNotifications = onSchedule("every 5 minutes", async (event) => {
   console.log("Scheduled run: processing pending notifications");
   const db = admin.firestore();
   const now = admin.firestore.Timestamp.fromMillis(Date.now());
@@ -541,7 +541,6 @@ exports.scheduleEventReminder = onDocumentCreated("events/{eventId}", async (eve
       return;
     }
 
-    // Use company name as the event name (for info sessions)
     const eventName = eventData.eventName || eventData.company || "Upcoming Event";
     const eventLocation = eventData.mainLocation || "No Listed Location";
     const eventDescription = eventData.description || "";

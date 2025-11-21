@@ -75,6 +75,11 @@ service cloud.firestore {
       allow read: if request.auth != null && resource.data.requestedByUid == request.auth.uid;
     }
 
+    // Allow authenticated users to read notifications
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null;
+    }
+
     // For all other documents, deny read and write by default
     match /{document=**} {
       allow read, write: if false;

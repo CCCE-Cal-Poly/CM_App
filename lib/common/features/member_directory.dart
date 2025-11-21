@@ -28,7 +28,6 @@ class _MemberDirectoryState extends State<MemberDirectory> {
     super.initState();
 }
   Map<String, bool> buttonStates = {
-  'A-Z': true,
   'Admin': false,
   'Faculty': false,
   };
@@ -166,8 +165,6 @@ class _MemberDirectoryState extends State<MemberDirectory> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    createButtonSorter('A-Z', sortAlphabetically),
-                    const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
                     createButtonSorter('Students', () => {}),
                     const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
                     createButtonSorter('Alumni', () => {}),

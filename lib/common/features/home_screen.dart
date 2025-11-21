@@ -1,6 +1,7 @@
 import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/collections/club.dart';
 import 'package:ccce_application/common/providers/event_provider.dart';
+import 'package:ccce_application/common/providers/app_state.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:ccce_application/main.dart';
@@ -45,35 +46,6 @@ class NotificationItem {
       {required this.title, required this.message, required this.dateTime});
 }
 
-List<NotificationItem> mockNotifications = [
-  NotificationItem(
-    title: 'Jeong Woo',
-    message: 'Remember to bring hard hats on February 23rd!',
-    dateTime: DateTime(2025, 7, 14, 9, 0),
-  ),
-  NotificationItem(
-    title: 'Jeong Woo',
-    message:
-        'Do not bring hard hats on February 23rd! Do not bring hard hats on February 23rd!Do not bring hard hats on February 23rd! Do not bring hard hats on February 23rd!',
-    dateTime: DateTime(2025, 7, 14, 8, 0),
-  ),
-  NotificationItem(
-    title: 'HITT Info Session',
-    message: 'Please submit all senior photos by this Friday!',
-    dateTime: DateTime(2025, 6, 14, 10, 0),
-  ),
-  NotificationItem(
-    title: 'Emma Blair',
-    message: 'Pick up keycards for Construction Management room.',
-    dateTime: DateTime(2025, 8, 13, 8, 0),
-  ),
-  NotificationItem(
-    title: 'Jeong Woo',
-    message: 'Bring graduation cords Tuesday.',
-    dateTime: DateTime(2025, 6, 13, 11, 0),
-  ),
-];
-
 Map<String, List<NotificationItem>> groupNotifications(
     List<NotificationItem> notifications) {
   Map<String, List<NotificationItem>> grouped = {};
@@ -97,6 +69,12 @@ class CalendarScreenState extends State<HomeScreen> {
   late HashMap<DateTime, List<CalEvent>> eventMap = HashMap();
   List _selectedEvents = [];
   bool _screenBool = false;
+  
+  // Track notifications for refresh
+  Future<List<QuerySnapshot>>? _notificationsFuture;
+  String? _lastUid;
+  List<String>? _lastEventIds;
+  List<String>? _lastClubIds;
 
   @override
   void initState() {
@@ -176,7 +154,6 @@ class CalendarScreenState extends State<HomeScreen> {
 
   List<CalEvent> _eventLoader(DateTime day) {
     final events = _getEventsForDay(day);
-    //print('${day} ${events}');
     return events;
   }
 
@@ -200,6 +177,10 @@ class CalendarScreenState extends State<HomeScreen> {
         break;
       }
     }
+    
+    // Sort events by start time
+    nextEvents.sort((a, b) => a.startTime.compareTo(b.startTime));
+    
     for (var ev in nextEvents) {
     Color boxColor = Colors.white;
     eventContainers.add(
@@ -230,7 +211,7 @@ class CalendarScreenState extends State<HomeScreen> {
                               fontSize: 11),
                         ),
                         Text(
-                          "${DateFormat('hh:mm a').format(ev.startTime)}-${DateFormat('hh:mm a').format(ev.endTime)}",
+                          "${DateFormat('h:mm a').format(ev.startTime)}-${DateFormat('h:mm a').format(ev.endTime)}",
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                               fontFamily: "SansSerifPro", fontSize: 10),
@@ -282,6 +263,9 @@ class CalendarScreenState extends State<HomeScreen> {
   final utcDay = DateTime.utc(day.year, day.month, day.day);
   List<CalEvent> evs = eventMap[utcDay] ?? [];
   
+  // Sort events by start time
+  evs.sort((a, b) => a.startTime.compareTo(b.startTime));
+  
   for (var ev in evs) {
     Color boxColor = Colors.white;
     eventContainers.add(
@@ -302,7 +286,7 @@ class CalendarScreenState extends State<HomeScreen> {
                   ),
                   child: Center(
                     child: Text(
-                      "${DateFormat('hh:mm a').format(ev.startTime)}\n-\n${DateFormat('hh:mm a').format(ev.endTime)}",
+                      "${DateFormat('h:mm a').format(ev.startTime)}\n-\n${DateFormat('h:mm a').format(ev.endTime)}",
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontFamily: "SansSerifPro",
@@ -529,204 +513,194 @@ class CalendarScreenState extends State<HomeScreen> {
     );
   }
 
+  // Fetch notifications using one-time reads for efficiency
+  Future<List<QuerySnapshot>> _fetchNotifications(
+    String uid,
+    List<String> checkedInEventIds,
+    List<String> joinedClubIds,
+  ) async {
+    final List<Future<QuerySnapshot>> queries = [];
+    
+    // 1. Broadcast notifications (for all users)
+    queries.add(
+      FirebaseFirestore.instance
+          .collection('notifications')
+          .where('targetType', isEqualTo: 'broadcast')
+          .where('status', whereIn: ['sent', 'pending'])
+          .get(),
+    );
+
+    // 2. User-specific notifications
+    queries.add(
+      FirebaseFirestore.instance
+          .collection('notifications')
+          .where('targetType', isEqualTo: 'user')
+          .where('targetId', isEqualTo: uid)
+          .where('status', whereIn: ['sent', 'pending'])
+          .get(),
+    );
+
+    // 3. Event notifications for checked-in events (batched to avoid limit)
+    if (checkedInEventIds.isNotEmpty) {
+      for (int i = 0; i < checkedInEventIds.length; i += 10) {
+        final batch = checkedInEventIds.skip(i).take(10).toList();
+        if (batch.isNotEmpty) {
+          queries.add(
+            FirebaseFirestore.instance
+                .collection('notifications')
+                .where('targetType', isEqualTo: 'event')
+                .where('targetId', whereIn: batch)
+                .where('status', whereIn: ['sent', 'pending'])
+                .get(),
+          );
+        }
+      }
+    }
+
+    // 4. Club notifications for joined clubs (batched to avoid limit)
+    if (joinedClubIds.isNotEmpty) {
+      for (int i = 0; i < joinedClubIds.length; i += 10) {
+        final batch = joinedClubIds.skip(i).take(10).toList();
+        if (batch.isNotEmpty) {
+          queries.add(
+            FirebaseFirestore.instance
+                .collection('notifications')
+                .where('targetType', isEqualTo: 'club')
+                .where('targetId', whereIn: batch)
+                .where('status', whereIn: ['sent', 'pending'])
+                .get(),
+          );
+        }
+      }
+    }
+
+    // Execute all queries in parallel
+    return await Future.wait(queries);
+  }
+
   Widget buildAnnouncementList(context) {
     final userProvider = Provider.of<UserProvider>(context);
     final uid = userProvider.user?.uid;
+    final appState = Provider.of<AppState>(context);
 
     if (uid == null) {
-      // Fallback to local mockNotifications if user not loaded
-      final now = DateTime.now();
-      List<NotificationItem> upcoming = mockNotifications
-          .where((n) =>
-              !n.dateTime.isBefore(DateTime(now.year, now.month, now.day)))
-          .toList();
-      final oneMonthAgo = DateTime(now.year, now.month - 1, now.day);
-      List<NotificationItem> past = mockNotifications
-          .where((n) =>
-              n.dateTime.isBefore(DateTime(now.year, now.month, now.day)) &&
-              n.dateTime.isAfter(oneMonthAgo))
-          .toList();
-      upcoming.sort((a, b) => a.dateTime.compareTo(b.dateTime));
-      past.sort((a, b) => b.dateTime.compareTo(a.dateTime));
-
-      Widget sectionHeader(String text, {bool italic = false}) => Padding(
-            padding: const EdgeInsets.only(left: 16, top: 12, bottom: 8),
-            child: Text(
-              text,
-              style: TextStyle(
-                color: Colors.white,
-                fontFamily: italic ? "SansSerifProItalic" : "SansSerifPro",
-                fontSize: 24,
-                fontStyle: italic ? FontStyle.italic : FontStyle.normal,
-              ),
-            ),
-          );
-
-      Widget dateHeader(DateTime date) => Padding(
-            padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
-            child: Text(
-              DateFormat('EEEE, MMMM d').format(date),
-              style: const TextStyle(
-                color: AppColors.tanText,
-                fontFamily: "SansSerifPro",
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          );
-
-      Widget notificationRow(NotificationItem n) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
-            child: SizedBox(
-              height: 65,
-              child: Row(
-                children: [
-                  Container(
-                      height: 65,
-                      width: 80,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              DateFormat('MMM d').format(n.dateTime),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                  fontFamily: "AppFonts.sansProSemiBold",
-                                  fontSize: 11,
-                                  color: AppColors.darkGoldText),
-                            ),
-                            Text(
-                              DateFormat('hh:mm a').format(n.dateTime),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                  fontFamily: "SansSerifPro",
-                                  fontSize: 10,
-                                  color: AppColors.darkGoldText),
-                            ),
-                          ],
-                        ),
-                      )),
-                  const SizedBox(width: 1),
-                  Expanded(
-                      child: Container(
-                          padding: const EdgeInsets.only(left: 12.0, top: 6.0),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                          ),
-                          child: Center(
-                              child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(n.title,
-                                  style: const TextStyle(
-                                    fontFamily: "AppFonts.sansProSemiBold",
-                                    fontSize: 13)
-                                  ),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Padding(
-                                    padding: EdgeInsets.only(top: 2.0),
-                                    child: Icon(Icons.notifications,
-                                        size: 10, color: AppColors.darkGoldText),
-                                  ),
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(left: 2.0),
-                                      child: SizedBox(
-                                        height:
-                                            32, 
-                                        child: SingleChildScrollView(
-                                          scrollDirection: Axis.vertical,
-                                          child: Text(
-                                            n.message,
-                                            style: const TextStyle(
-                                                fontFamily: "SansSerifPro",
-                                                fontSize: 10,
-                                                color: AppColors.darkGoldText),
-                                            softWrap: true,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ))))
-                ],
-              ),
-            ),
-          );
-
-      List<Widget> buildSection(
-          String sectionTitle, List<NotificationItem> items) {
-        if (items.isEmpty) return [sectionHeader(sectionTitle, italic: true)];
-        final grouped = groupNotifications(items);
-        final sortedKeys = grouped.keys.toList()
-          ..sort((a, b) => DateTime.parse(a).compareTo(DateTime.parse(b)));
-        return [sectionHeader(sectionTitle, italic: true)] +
-            [
-              for (final dateKey in sortedKeys) ...[
-                dateHeader(DateTime.parse(dateKey)),
-                ...grouped[dateKey]!.map(notificationRow).toList(),
-              ]
-            ];
-      }
-
-      return ListView(
-        padding: const EdgeInsets.only(bottom: 24),
-        children: [
-          const Divider(
-            color: Colors.white,
-            thickness: 1,
-            indent: 20,
-            endIndent: 60,
+      // User not loaded - show empty state
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24.0),
+          child: Text(
+            'Sign in to view notifications',
+            style: TextStyle(color: Colors.white, fontSize: 16),
           ),
-          ...buildSection('Upcoming', upcoming),
-          const SizedBox(height: 12),
-          const Divider(
-            indent: 20,
-            endIndent: 60,
-            color: Colors.white,
-            thickness: 1,
-          ),
-          ...buildSection('Past', past),
-        ],
+        ),
       );
     }
 
-    // If user is signed in, stream notifications from Firestore
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('notifications')
-          .where('uid', isEqualTo: uid)
-          .orderBy('createdAt', descending: true)
-          .snapshots(),
+    // Get user's checked-in event IDs for efficient querying
+    final checkedInEventIds = appState.checkedInEventIds?.toList() ?? [];
+
+    // Get joined club IDs
+    final joinedClubIds = appState.joinedClubs?.map((c) => c.id).whereType<String>().toList() ?? [];
+
+    // Initialize or refresh future if parameters changed
+    if (_notificationsFuture == null || 
+        _lastUid != uid || 
+        _lastEventIds?.join(',') != checkedInEventIds.join(',') || 
+        _lastClubIds?.join(',') != joinedClubIds.join(',')) {
+      _notificationsFuture = _fetchNotifications(uid, checkedInEventIds, joinedClubIds);
+      _lastUid = uid;
+      _lastEventIds = checkedInEventIds;
+      _lastClubIds = joinedClubIds;
+    }
+
+    return FutureBuilder<List<QuerySnapshot>>(
+      future: _notificationsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        final docs = snapshot.data?.docs ?? [];
-        final List<NotificationItem> items = docs.map((d) {
+        
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text(
+                'Error loading notifications',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+            ),
+          );
+        }
+        
+        // Combine all documents from multiple queries
+        final allDocs = <QueryDocumentSnapshot>[];
+        if (snapshot.hasData) {
+          for (final querySnapshot in snapshot.data!) {
+            allDocs.addAll(querySnapshot.docs);
+          }
+        }
+        
+        // Remove duplicates (same notification ID)
+        final seenIds = <String>{};
+        final uniqueDocs = allDocs.where((doc) {
+          if (seenIds.contains(doc.id)) return false;
+          seenIds.add(doc.id);
+          return true;
+        }).toList();
+        
+        // Filter for pending notifications scheduled within the next week
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final oneWeekFromNow = today.add(const Duration(days: 7));
+        
+        final eligibleDocs = uniqueDocs.where((d) {
+          final data = d.data() as Map<String, dynamic>;
+          final status = data['status'];
+          
+          // For pending notifications, only show if sendAt is within the next week
+          if (status == 'pending') {
+            final sendAt = data['sendAt'];
+            if (sendAt is Timestamp) {
+              final sendDate = sendAt.toDate();
+              // Only show pending notifications with sendAt within the next 7 days
+              return !sendDate.isBefore(today) && sendDate.isBefore(oneWeekFromNow);
+            }
+            return false;
+          }
+          
+          return true; // Show all 'sent' notifications
+        }).toList();
+        
+        final List<NotificationItem> items = eligibleDocs.map((d) {
           final data = d.data() as Map<String, dynamic>;
           final title = data['title'] ?? 'Notification';
           final message = data['message'] ?? '';
-          final ts = data['createdAt'];
+          
+          // Priority: eventData.startTime (actual event time) > sendAt > createdAt
           DateTime dateTime;
-          if (ts is Timestamp) {
-            dateTime = ts.toDate();
+          final eventData = data['eventData'] as Map<String, dynamic>?;
+          final eventStartTime = eventData?['startTime'];
+          final sendAt = data['sendAt'];
+          
+          if (eventStartTime is Timestamp) {
+            // For event reminders, use the actual event start time
+            dateTime = eventStartTime.toDate();
+          } else if (sendAt is Timestamp) {
+            // For scheduled notifications, use sendAt + 1 hour to get event time
+            dateTime = sendAt.toDate().add(const Duration(hours: 1));
           } else {
-            dateTime = DateTime.now();
+            // Fallback to createdAt
+            final ts = data['createdAt'];
+            if (ts is Timestamp) {
+              dateTime = ts.toDate();
+            } else {
+              dateTime = DateTime.now();
+            }
           }
+          
           return NotificationItem(title: title, message: message, dateTime: dateTime);
         }).toList();
 
-        final now = DateTime.now();
         List<NotificationItem> upcoming = items
             .where((n) => !n.dateTime.isBefore(DateTime(now.year, now.month, now.day)))
             .toList();
@@ -775,7 +749,7 @@ class CalendarScreenState extends State<HomeScreen> {
                                         fontSize: 11,
                                         color: AppColors.darkGoldText)),
                                 Text(
-                                    DateFormat('hh:mm a')
+                                    DateFormat('h:mm a')
                                         .format(n.dateTime),
                                     style: const TextStyle(
                                         fontFamily: "SansSerifPro",
@@ -843,15 +817,25 @@ class CalendarScreenState extends State<HomeScreen> {
           return widgets;
         }
 
-        return ListView(
-          padding: const EdgeInsets.only(bottom: 24),
-          children: [
-            const Divider(color: Colors.white, thickness: 1, indent: 20, endIndent: 60),
-            ...sectionWidgets('Upcoming', upcoming),
-            const SizedBox(height: 12),
-            const Divider(indent: 20, endIndent: 60, color: Colors.white, thickness: 1),
-            ...sectionWidgets('Past', past),
-          ],
+        return RefreshIndicator(
+          onRefresh: () async {
+            // Force refresh notifications
+            setState(() {
+              _notificationsFuture = _fetchNotifications(uid, checkedInEventIds, joinedClubIds);
+            });
+            // Wait for fetch to complete
+            await _notificationsFuture;
+          },
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 24),
+            children: [
+              const Divider(color: Colors.white, thickness: 1, indent: 20, endIndent: 60),
+              ...sectionWidgets('Upcoming', upcoming),
+              const SizedBox(height: 12),
+              const Divider(indent: 20, endIndent: 60, color: Colors.white, thickness: 1),
+              ...sectionWidgets('Past', past),
+            ],
+          ),
         );
       },
     );

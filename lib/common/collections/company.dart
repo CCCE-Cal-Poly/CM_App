@@ -106,7 +106,7 @@ class CompanyItem extends StatelessWidget {
                   padding: const EdgeInsets.all(1.0),
                   child: ClipOval(
                     child: clubLogoImage(
-                        company.logo, screenWidth * .09, screenWidth * .09),
+                        company.logo, screenWidth * .11, screenWidth * .11),
                   ),
                 ),
               ),
@@ -219,7 +219,7 @@ class _CompanyPopupState extends State<CompanyPopup> {
                               ),
                               child: Center(
                                 child: clubLogoImage(widget.company.logo,
-                                    screenWidth * .1, screenWidth * .1),
+                                    screenHeight * .1, screenHeight * .1),
                               ),
                             ),
                           ],
@@ -238,12 +238,14 @@ class _CompanyPopupState extends State<CompanyPopup> {
                                 color: Colors.black,
                               ),
                             ),
-                            Text(
+                            AutoSizeText(
                               widget.company.location,
                               style: const TextStyle(
                                 fontSize: 16.0,
                                 color: AppColors.darkGoldText,
                               ),
+                              minFontSize: 12,
+                              maxLines: 1,
                             ),
                             const SizedBox(height: 10),
                             Padding(

@@ -164,8 +164,14 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
           ? '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'.trim()
           : currentUser.displayName ?? currentUser.email ?? 'Unknown';
 
+      final selectedClub = _clubs.firstWhere(
+        (club) => club['id'] == _selectedClubId,
+        orElse: () => {'Acronym': ''},
+      );
+      final clubName = selectedClub['Acronym'] ?? '';
+
       await FirebaseFirestore.instance.collection('clubEventRequests').add({
-        'clubName': _clubNameController.text.trim(),
+        'clubName': clubName,
         'eventName': _eventNameController.text.trim(),
         'eventType': 'club',
         'eventLocation': _locationController.text.trim(),

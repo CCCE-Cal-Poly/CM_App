@@ -417,6 +417,13 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                                     style: const TextStyle(color: Colors.black87, fontSize: 14),
                                   ),
                                   SizedBox(height: screenHeight * 0.006),
+                                  if (widget.infoSession.eventLocation.isNotEmpty)
+                                    Text(
+                                      widget.infoSession.eventLocation,
+                                      style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                    ),
+                                  if (widget.infoSession.eventLocation.isNotEmpty)
+                                    SizedBox(height: screenHeight * 0.006),
                                   if ((widget.infoSession.isd?.website ?? '').isNotEmpty)
                                     InkWell(
                                       onTap: () {
