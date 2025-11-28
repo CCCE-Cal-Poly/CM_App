@@ -34,13 +34,8 @@ class Club implements Comparable<Club> {
   factory Club.fromDocument(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
 
-    List<CalEvent> events = [];
-    if (data['Events'] != null) {
-      events = List<Map<String, dynamic>>.from(data['Events'])
-        .map((eventData) => CalEvent.clubEventfromMap(eventData))
-        .toList();
-    }
-
+    // Events will be loaded asynchronously via fetchEvents()
+    // We'll start with an empty list here
     return Club(
       id: doc.id,
       name: data['Name'] ?? 'No Name',
@@ -48,9 +43,35 @@ class Club implements Comparable<Club> {
       email: data['Email'] ?? 'No Email',
       acronym: data['Acronym'] ?? '',
       instagram: data['Instagram'] ?? '',
-      logo: data['logo'] ?? null,
-      events: events,
+      logo: data['Logo'] ?? null,
+      events: [], // Will be populated by fetchEvents()
     );
+  }
+
+  // Fetch events from document references
+  Future<void> fetchEvents() async {
+    try {
+      final clubDoc = await FirebaseFirestore.instance
+          .collection('clubs')
+          .doc(id)
+          .get();
+      
+      final data = clubDoc.data();
+      if (data != null && data['events'] != null) {
+        final eventRefs = List<DocumentReference>.from(data['events']);
+        
+        final eventDocs = await Future.wait(
+          eventRefs.map((ref) => ref.get())
+        );
+        
+        events = eventDocs
+            .where((doc) => doc.exists)
+            .map((doc) => CalEvent.fromSnapshot(doc))
+            .toList();
+      }
+    } catch (e) {
+      print('Error fetching club events: $e');
+    }
   }
 
   @override
@@ -141,18 +162,31 @@ Widget clubLogoImage(String? url, double width, double height) {
 }
 
 class _ClubPopUpState extends State<ClubPopUp> {
+  bool _isLoadingEvents = true;
+
   @override
   void initState() {
     super.initState();
+    _initializeClub();
+  }
+
+  Future<void> _initializeClub() async {
     // Auto-join club admins to their clubs if not already joined
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      final appState = Provider.of<AppState>(context, listen: false);
-      
-      if (userProvider.isClubAdmin(widget.club.id) && !appState.isJoined(widget.club)) {
-        appState.addJoinedClub(widget.club);
-      }
-    });
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final appState = Provider.of<AppState>(context, listen: false);
+    
+    if (userProvider.isClubAdmin(widget.club.id) && !appState.isJoined(widget.club)) {
+      appState.addJoinedClub(widget.club);
+    }
+
+    // Fetch events from references
+    await widget.club.fetchEvents();
+    
+    if (mounted) {
+      setState(() {
+        _isLoadingEvents = false;
+      });
+    }
   }
 
   @override
@@ -161,6 +195,7 @@ class _ClubPopUpState extends State<ClubPopUp> {
     double screenWidth = MediaQuery.of(context).size.width;
     final now = DateTime.now();
     final twoWeeksFromNow = now.add(const Duration(days: 14));
+    
     final clubEvents = widget.club.events.where((e) {
       final t = e.eventType.toLowerCase();
       final isClubEvent = t == 'club' || t == 'club event' || t == 'clubevent' || t == 'club_event';
@@ -415,22 +450,21 @@ class _ClubPopUpState extends State<ClubPopUp> {
                       ),
                     ),
                     const SizedBox(height: 5),
+                    // Show loading indicator while fetching events
+                    if (_isLoadingEvents)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                      )
                     // Only show events that represent club events (not info sessions or other types)
-                    if (clubEvents.isNotEmpty)
+                    else if (clubEvents.isNotEmpty)
                       ...clubEvents.map((event) => Padding(
                             padding: const EdgeInsets.only(bottom: 8.0),
-                            child: _EventTile(
-                              event: event,
-                              onTap: () {
-                                // Open the event popup by pushing the existing InfoSessionPopUp
-                                Navigator.of(context).push(MaterialPageRoute(
-                                  builder: (_) => InfoSessionPopUp(
-                                    infoSession: event,
-                                    onClose: () => Navigator.of(context).pop(),
-                                  ),
-                                ));
-                              },
-                            ),
+                            child: _EventTile(event: event),
                           ))
                     else
                       const Text(
@@ -571,9 +605,8 @@ class _ClubPopUpState extends State<ClubPopUp> {
 // Compact event tile used in ClubPopUp
 class _EventTile extends StatelessWidget {
   final CalEvent event;
-  final VoidCallback? onTap;
 
-  const _EventTile({required this.event, this.onTap, Key? key}) : super(key: key);
+  const _EventTile({required this.event, Key? key}) : super(key: key);
 
   String _formatShortDate(DateTime dt) {
     // e.g. 'Oct 3 · 3:30pm'
@@ -592,46 +625,39 @@ class _EventTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(6),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      padding: const EdgeInsets.all(8.0),
+      child: Row(
+        children: [
+          SizedBox(
+            width: screenWidth * 0.12,
+            height: screenWidth * 0.12,
+            child: clubLogoImage(event.logo, screenWidth * 0.12, screenWidth * 0.12),
           ),
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              SizedBox(
-                width: screenWidth * 0.12,
-                height: screenWidth * 0.12,
-                child: clubLogoImage(event.logo, screenWidth * 0.12, screenWidth * 0.12),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      event.eventName,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatShortDate(event.startTime),
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                  ],
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.eventName,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const Icon(Icons.chevron_right, color: Colors.white70),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  _formatShortDate(event.startTime),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

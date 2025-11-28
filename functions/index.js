@@ -171,7 +171,7 @@ exports.approveClubEvent = onCall(async (request) => {
   try {
     const newEventRef = await db.collection("events").add(eventDoc);
     
-    // Add event to club's Events array if clubId exists
+    // Add event reference to club's events array if clubId exists
     if (clubId) {
       const clubRef = db.collection("clubs").doc(clubId);
       const clubSnap = await clubRef.get();
@@ -186,20 +186,9 @@ exports.approveClubEvent = onCall(async (request) => {
           await newEventRef.update({logo: clubLogo});
         }
         
-        // Create event data for club's Events array
-        const clubEventData = {
-          eventName: eventDoc.eventName,
-          startTime: eventDoc.startTime,
-          endTime: eventDoc.endTime,
-          mainLocation: eventDoc.mainLocation,
-          eventType: eventDoc.eventType,
-          description: eventDoc.description,
-          logo: clubLogo || eventDoc.logo,
-        };
-        
-        // Add to club's Events array
+        // Add document reference to club's events array (lowercase 'events')
         await clubRef.update({
-          Events: admin.firestore.FieldValue.arrayUnion(clubEventData),
+          events: admin.firestore.FieldValue.arrayUnion(newEventRef),
         });
       }
     }
