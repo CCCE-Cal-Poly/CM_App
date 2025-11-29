@@ -209,19 +209,11 @@ class _CompanyPopupState extends State<CompanyPopup> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              width: screenHeight * .1,
-                              height: screenHeight * .1,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white,
-                                border:
-                                    Border.all(color: Colors.black, width: 1),
-                              ),
-                              child: Center(
+                              width: screenHeight * .12,
+                              height: screenHeight * .12,
                                 child: clubLogoImage(widget.company.logo,
-                                    screenHeight * .1, screenHeight * .1),
+                                    screenHeight * .12, screenHeight * .12),
                               ),
-                            ),
                           ],
                         ),
                       ),

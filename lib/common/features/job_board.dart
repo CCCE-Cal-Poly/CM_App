@@ -1,11 +1,8 @@
 import 'package:ccce_application/common/collections/company.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
-import 'package:ccce_application/common/widgets/debug_outline.dart';
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/job.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class JobBoard extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -29,9 +26,6 @@ class JobBoard extends StatefulWidget {
 );
 
 class _JobBoardState extends State<JobBoard> {
-  
-
-  final TextEditingController _searchController = TextEditingController();
   bool _isTextEntered = false;
 
   static List<Job> jobList = [];

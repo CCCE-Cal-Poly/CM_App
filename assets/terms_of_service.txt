@@ -1,0 +1,246 @@
+TERMS OF SERVICE
+
+Last Updated: November 28, 2025
+
+1. ACCEPTANCE OF TERMS
+
+By accessing and using the Cal Poly Construction Management (CM) mobile application ("the App"), you accept and agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, please do not use the App.
+
+2. DESCRIPTION OF SERVICE
+
+The App provides Cal Poly Construction Management students, faculty, and industry professionals with:
+- Event calendars and notifications for info sessions, career fairs, and club activities
+- Club information and membership management
+- Company directories and contact information
+- Faculty and member directories
+- Event check-in functionality
+- Profile management
+
+3. USER ACCOUNTS
+
+3.1 Registration
+- You must provide accurate, complete, and current information during registration
+- You are responsible for maintaining the confidentiality of your account credentials
+- You must be affiliated with Cal Poly's Construction Management program to use the App
+- Email verification is required for account activation
+
+3.2 Account Security
+- You are solely responsible for all activities under your account
+- Notify us immediately of any unauthorized use of your account
+- We reserve the right to terminate accounts that violate these Terms
+
+3.3 Account Types
+- Student: Access to all features for enrolled CM students
+- Faculty: Enhanced access for CM faculty members
+- Club Admin: Additional permissions to manage club events and information
+- Admin: Full administrative access (Cal Poly CM Department only)
+
+4. USER CONDUCT
+
+You agree NOT to:
+- Provide false or misleading information
+- Impersonate any person or entity
+- Upload malicious code, viruses, or harmful content
+- Harass, abuse, or harm other users
+- Use the App for unauthorized commercial purposes
+- Scrape, crawl, or systematically download content
+- Attempt to gain unauthorized access to systems or accounts
+- Post inappropriate, offensive, or illegal content
+- Spam other users with unwanted communications
+
+5. CONTENT AND INTELLECTUAL PROPERTY
+
+5.1 User Content
+- You retain ownership of content you submit (profile information, event check-ins, etc.)
+- By submitting content, you grant us a license to use, display, and distribute it within the App
+- You are responsible for ensuring you have rights to any content you upload
+
+5.2 App Content
+- All App content, design, logos, and trademarks are owned by Cal Poly or licensed to us
+- You may not reproduce, modify, or distribute App content without permission
+- Event, club, and company information is provided by third parties; we do not guarantee accuracy
+
+6. PRIVACY AND DATA
+
+6.1 Data Collection
+We collect and process:
+- Account information (name, email, role)
+- Profile information (photo, preferences)
+- Usage data (events attended, clubs joined, companies favorited)
+- Device information (FCM tokens for notifications)
+
+6.2 Data Usage
+- To provide and improve App functionality
+- To send notifications about relevant events
+- To facilitate connections between students, faculty, and industry
+- We do NOT sell your personal data to third parties
+
+6.3 Data Sharing
+- Event organizers can see attendee lists for their events
+- Club admins can see their club membership
+- Faculty directory information is visible to authenticated users
+- We may share data with Cal Poly administration as required
+
+6.4 Data Retention
+- Active account data is retained while your account exists
+- You may request account deletion at any time through the App settings
+- Upon deletion, your data is permanently removed within 30 days
+
+7. NOTIFICATIONS
+
+7.1 Push Notifications
+- You will receive notifications about upcoming events you've registered for
+- Club members receive notifications about club activities
+- You can manage notification preferences in your device settings
+
+7.2 Email Communications
+- We may send account-related emails (verification, security alerts)
+- We will NOT send marketing emails without explicit consent
+
+8. EVENTS AND CHECK-INS
+
+8.1 Event Information
+- Event details are provided by organizers; we are not responsible for inaccuracies
+- Event times, locations, and details are subject to change
+- Check-in data is used for attendance tracking and may be shared with event organizers
+
+8.2 Event Liability
+- We are not liable for events hosted by third parties
+- Attendance at events is at your own risk
+- Event organizers are responsible for event conduct and safety
+
+9. CLUB ADMINISTRATION
+
+9.1 Club Admin Responsibilities
+- Club admins must provide accurate club information
+- Club admins may create and manage club events
+- Club admin requests are subject to approval by App administrators
+- Misuse of admin privileges will result in removal and potential account termination
+
+9.2 Club Events
+- Club event requests must be approved before appearing in the calendar
+- Events must be relevant to the Construction Management community
+- We reserve the right to deny or remove inappropriate events
+
+10. DISCLAIMERS
+
+10.1 "AS IS" Service
+- The App is provided "AS IS" without warranties of any kind
+- We do not guarantee uninterrupted or error-free service
+- We are not responsible for data loss, though we implement reasonable safeguards
+
+10.2 Third-Party Content
+- Company information, job postings, and external links are not endorsed by us
+- We are not responsible for third-party websites or services
+- Verify all information independently before taking action
+
+10.3 Academic and Professional Advice
+- The App does not provide academic or career advice
+- Consult with Cal Poly advisors for official guidance
+- Job and internship information should be verified with employers
+
+11. LIMITATION OF LIABILITY
+
+To the maximum extent permitted by law:
+- We are not liable for indirect, incidental, or consequential damages
+- Our total liability shall not exceed $100 or the amount you paid to use the App (currently $0)
+- We are not liable for user-generated content or third-party actions
+
+12. INDEMNIFICATION
+
+You agree to indemnify and hold harmless Cal Poly, the CM Department, and App operators from claims arising from:
+- Your use of the App
+- Your violation of these Terms
+- Your violation of any third-party rights
+- Content you submit to the App
+
+13. MODIFICATIONS TO SERVICE AND TERMS
+
+13.1 Service Changes
+- We reserve the right to modify or discontinue features at any time
+- We will provide reasonable notice of significant changes when possible
+
+13.2 Terms Changes
+- We may update these Terms periodically
+- Continued use after changes constitutes acceptance
+- Material changes will be notified through the App or email
+
+14. TERMINATION
+
+14.1 By You
+- You may delete your account at any time through App settings
+- Account deletion is permanent and cannot be reversed
+
+14.2 By Us
+- We may suspend or terminate accounts that violate these Terms
+- We may terminate the service entirely with reasonable notice
+- Upon termination, your right to use the App ceases immediately
+
+15. INTELLECTUAL PROPERTY COMPLAINTS
+
+If you believe your intellectual property rights have been violated:
+- Contact us at [INSERT CONTACT EMAIL]
+- Provide description of copyrighted work and location of alleged infringement
+- We will respond to valid DMCA notices per legal requirements
+
+16. DISPUTE RESOLUTION
+
+16.1 Governing Law
+- These Terms are governed by California law
+- Disputes will be resolved in San Luis Obispo County, California
+
+16.2 Informal Resolution
+- Contact us first to resolve disputes informally
+- Most issues can be resolved through communication
+
+16.3 Arbitration (Optional)
+- Parties may agree to binding arbitration
+- Small claims court remains available for qualifying claims
+
+17. MISCELLANEOUS
+
+17.1 Entire Agreement
+- These Terms constitute the entire agreement between you and us
+- Previous agreements or communications are superseded
+
+17.2 Severability
+- If any provision is found invalid, remaining provisions continue in effect
+
+17.3 No Waiver
+- Failure to enforce a right does not constitute waiver of that right
+
+17.4 Assignment
+- You may not assign these Terms; we may assign them to successors
+
+18. CONTACT INFORMATION
+
+For questions, concerns, or requests regarding these Terms:
+
+Cal Poly Construction Management Department
+1 Grand Avenue
+San Luis Obispo, CA 93407
+Email: cmdept@calpoly.edu
+Phone: (805) 756-1323
+
+For technical support or account issues:
+- Email: cmdept@calpoly.edu with subject line "App Support"
+
+19. SPECIAL PROVISIONS FOR MINORS
+
+- Users under 18 must have parental consent
+- Minors should review these Terms with a parent or guardian
+- We do not knowingly collect data from children under 13
+
+20. ACKNOWLEDGMENT
+
+By using the App, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
+
+---
+
+IMPORTANT NOTES FOR IMPLEMENTATION:
+- All contact information has been set to cmdept@calpoly.edu (CM Department reception)
+- Main phone number is Cal Poly general line; update if department has direct line
+- Users should use subject lines to route emails appropriately
+- Review with Cal Poly legal counsel before deployment
+- Ensure FERPA compliance for student data
+- Consider additional Cal Poly-specific policies

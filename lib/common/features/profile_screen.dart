@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/collections/user_data.dart';
 import 'package:ccce_application/common/features/edit_profile_screen.dart';
+import 'package:ccce_application/common/features/legal_document_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -344,25 +345,6 @@ class ProfileScreenState extends State<ProfileScreen> {
                         minimumSize:
                             const Size(double.infinity, 48), // Forces full width
                       ),
-                      onPressed: () => print("hi"),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          Text("About", style: TextStyle(color: Colors.black)),
-                          Icon(Icons.arrow_forward, color: Colors.black),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: screenHeight * 0.01),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.yellowButton,
-                        shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero),
-                        minimumSize:
-                            const Size(double.infinity, 48), // Forces full width
-                      ),
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -460,6 +442,62 @@ class ProfileScreenState extends State<ProfileScreen> {
                         mainAxisSize: MainAxisSize.max,
                         children: [
                           Text("Industry Preferences",
+                              style: TextStyle(color: Colors.black)),
+                          Icon(Icons.arrow_forward, color: Colors.black),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: screenHeight * 0.01),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.yellowButton,
+                        shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero),
+                        minimumSize:
+                            const Size(double.infinity, 48),
+                      ),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LegalDocumentScreen(
+                            title: 'Privacy Policy',
+                            assetPath: 'assets/privacy_policy.txt',
+                          ),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Text("Privacy Policy",
+                              style: TextStyle(color: Colors.black)),
+                          Icon(Icons.arrow_forward, color: Colors.black),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: screenHeight * 0.01),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.yellowButton,
+                        shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero),
+                        minimumSize:
+                            const Size(double.infinity, 48),
+                      ),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LegalDocumentScreen(
+                            title: 'Terms of Service',
+                            assetPath: 'assets/terms_of_service.txt',
+                          ),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Text("Terms of Service",
                               style: TextStyle(color: Colors.black)),
                           Icon(Icons.arrow_forward, color: Colors.black),
                         ],

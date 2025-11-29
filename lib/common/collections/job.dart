@@ -52,7 +52,6 @@ class JobItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double screenHeight = MediaQuery.of(context).size.height;
     double screenWidth = MediaQuery.of(context).size.width;
     return Card(
       color: Colors.white,
@@ -419,7 +418,7 @@ class JobPopUpState extends State<JobPopUp>{
                           width: 10,
                         ), // Add space between icon and text
                         Text(
-                          job.contactEmail ?? 'No Email',
+                          job.contactEmail,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18.0,
@@ -439,7 +438,7 @@ class JobPopUpState extends State<JobPopUp>{
                           width: 10,
                         ), // Add space between icon and text
                         Text(
-                          job.contactPhone ?? 'No Phone Number',
+                          job.contactPhone,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18.0,

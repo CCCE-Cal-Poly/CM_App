@@ -85,12 +85,6 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
 
   @override
   Widget build(BuildContext context) {
-    void sortAlphabetically() {
-      setState(() {
-        facultyList = facultyList.reversed.toList();
-      });
-    }
-
     OutlinedButton createButtonSorter(String txt, VoidCallback sortingFunction) {
       bool isActive = buttonStates[txt] ?? false;
       return OutlinedButton(

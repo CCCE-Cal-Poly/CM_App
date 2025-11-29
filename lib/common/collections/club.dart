@@ -34,8 +34,6 @@ class Club implements Comparable<Club> {
   factory Club.fromDocument(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
 
-    // Events will be loaded asynchronously via fetchEvents()
-    // We'll start with an empty list here
     return Club(
       id: doc.id,
       name: data['Name'] ?? 'No Name',
@@ -43,7 +41,7 @@ class Club implements Comparable<Club> {
       email: data['Email'] ?? 'No Email',
       acronym: data['Acronym'] ?? '',
       instagram: data['Instagram'] ?? '',
-      logo: data['Logo'] ?? null,
+      logo: (data['Logo'] ?? data['logo']) as String?, // Support both 'Logo' and 'logo' field names
       events: [], // Will be populated by fetchEvents()
     );
   }
