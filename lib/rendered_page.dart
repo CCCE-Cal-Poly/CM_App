@@ -3,6 +3,7 @@ import 'package:ccce_application/common/features/admin_control_panel.dart';
 import 'package:ccce_application/common/features/job_board.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/features/club_event_request_screen.dart';
+import 'package:ccce_application/common/features/my_club_events_screen.dart';
 import 'package:ccce_application/common/collections/user_data.dart' show UserRole;
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/features/faculty_directory.dart';
@@ -44,6 +45,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
       () => ProfileScreen(scaffoldKey: _scaffoldKey),
       () => AdminPanelScreen(scaffoldKey: _scaffoldKey),
       () => ClubEventRequestScreen(scaffoldKey: _scaffoldKey),
+      () => MyClubEventsScreen(scaffoldKey: _scaffoldKey),
     ];
     _pages = List<Widget?>.filled(_pageBuilders.length, null);
   }
@@ -113,7 +115,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
             backgroundColor: lighterTanColor,
             child: SafeArea(
               child: ListView(
-                padding: const EdgeInsets.only(right: 24.0),
+                padding: const EdgeInsets.only(top: 20.0, right: 20.0),
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -139,6 +141,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
                   createListItem("Profile", 6),
                   if (isAdmin) createListItem("Admin Control Panel", 7),
                   if (isClubAdmin || isAdmin) createListItem("Request Club Event", 8),
+                  if (isClubAdmin || isAdmin) createListItem("My Club Events", 9),
                 ],
               ),
             ),
