@@ -63,72 +63,98 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.mail, size: 64, color: AppColors.calPolyGreen),
-            const SizedBox(height: 16),
-            const Text(
-              "Email Verification",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                "A verification email has been sent to your inbox.\nPlease verify your email to continue.",
-                textAlign: TextAlign.center,
+    return WillPopScope(
+      onWillPop: () async => false, // Prevent back button
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.mail, size: 64, color: AppColors.calPolyGreen),
+              const SizedBox(height: 16),
+              const Text(
+                "Email Verification Required",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-            ),
-            const SizedBox(height: 20),
-
-            // Resend email
-            SizedBox(
-              width: 200,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.calPolyGreen,
-                  foregroundColor: AppColors.lightGold,
-                  shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.zero),
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  "A verification email has been sent to your inbox.\nPlease verify your email to continue.\n\nThis page will automatically proceed once your email is verified.",
+                  textAlign: TextAlign.center,
                 ),
-                onPressed: _isResending
-                    ? null
-                    : () async {
-                        setState(() => _isResending = true);
-                        await FirebaseAuth.instance.currentUser
-                            ?.sendEmailVerification();
-                        setState(() => _isResending = false);
-                      },
-                child: _isResending
-                    ? const SizedBox(
-                        height: 16,
-                        width: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text("Resend Email"),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-            TextButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SignUp()),
-                );
-              },
-              child: const Text(
-                "I'm not receiving an email",
-                style: TextStyle(color: Colors.black54),
+              // Resend email
+              SizedBox(
+                width: 200,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.calPolyGreen,
+                    foregroundColor: AppColors.lightGold,
+                    shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero),
+                  ),
+                  onPressed: _isResending
+                      ? null
+                      : () async {
+                          setState(() => _isResending = true);
+                          try {
+                            await FirebaseAuth.instance.currentUser
+                                ?.sendEmailVerification();
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Verification email sent!'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                          setState(() => _isResending = false);
+                        },
+                  child: _isResending
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text("Resend Email"),
+                ),
               ),
-            )
-          ],
+              const SizedBox(height: 16),
+
+              TextButton(
+                onPressed: () async {
+                  // Sign out and go back to sign up
+                  await FirebaseAuth.instance.signOut();
+                  if (mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SignUp()),
+                    );
+                  }
+                },
+                child: const Text(
+                  "Use a different email",
+                  style: TextStyle(color: Colors.black54),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

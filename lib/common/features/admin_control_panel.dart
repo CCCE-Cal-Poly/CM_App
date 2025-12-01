@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:ccce_application/common/collections/user_data.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 
 class AdminPanelScreen extends StatefulWidget {

@@ -1,0 +1,295 @@
+PRIVACY POLICY
+
+Last Updated: November 28, 2025
+
+1. INTRODUCTION
+
+This Privacy Policy explains how the Cal Poly Construction Management (CM) mobile application ("the App," "we," "us," or "our") collects, uses, discloses, and protects your personal information. By using the App, you consent to the practices described in this policy.
+
+2. INFORMATION WE COLLECT
+
+2.1 Information You Provide
+- Account Information: Name, email address, password (encrypted)
+- Profile Information: Profile photo, school year, role (student/faculty/admin)
+- Preferences: Clubs joined, favorite companies, event interests
+- User-Generated Content: Event check-ins, club memberships, requests
+
+2.2 Automatically Collected Information
+- Device Information: Device type, operating system, unique device identifiers
+- Usage Data: Features used, events viewed, pages visited, time spent in app
+- FCM Tokens: For push notification delivery
+- Log Data: IP addresses, access times, app crashes, performance data
+
+2.3 Information from Third Parties
+- Google Sign-In: If you use Google authentication, we receive your Google profile information (name, email, profile picture)
+- Firebase Services: Authentication and database services provided by Google Firebase
+
+3. HOW WE USE YOUR INFORMATION
+
+3.1 Primary Uses
+- Provide and maintain App functionality
+- Authenticate your identity and manage your account
+- Send notifications about events you're interested in
+- Display relevant events, clubs, and company information
+- Track event attendance for organizers
+- Facilitate connections within the CM community
+
+3.2 Secondary Uses
+- Improve App performance and user experience
+- Analyze usage patterns and trends (aggregated, anonymized)
+- Respond to support requests and communications
+- Prevent fraud, abuse, and security issues
+- Comply with legal obligations
+
+3.3 We Do NOT
+- Sell your personal information to third parties
+- Use your information for unrelated marketing purposes
+- Share your information with advertisers
+- Track your location without explicit consent
+
+4. HOW WE SHARE YOUR INFORMATION
+
+4.1 Within the App
+- Event Organizers: Can see attendee lists for their events
+- Club Admins: Can see members of clubs they administer
+- Other Users: Can see your name and role in directories (if you're faculty)
+- Your profile photo and name are visible to other authenticated users
+
+4.2 With Service Providers
+- Firebase (Google): Cloud hosting, authentication, database, storage
+- Cloud Functions: Backend processing and notifications
+- These providers are bound by confidentiality agreements
+
+4.3 With Cal Poly
+- We may share anonymized analytics with the CM Department
+- Administrative data may be shared for official university purposes
+- We comply with FERPA regulations for student data
+
+4.4 Legal Requirements
+- We may disclose information to comply with legal obligations
+- To protect rights, property, or safety of users or others
+- In response to lawful requests by public authorities
+
+4.5 Business Transfers
+- In the event of a merger, acquisition, or asset sale, your information may be transferred
+- You will be notified of any such change in ownership or control
+
+5. DATA SECURITY
+
+5.1 Security Measures
+- Passwords are encrypted using industry-standard methods
+- Data transmission uses HTTPS/TLS encryption
+- Firebase Security Rules protect database access
+- Profile pictures stored in secure Firebase Storage
+- Regular security audits and updates
+
+5.2 Account Security
+- You are responsible for maintaining your password confidentiality
+- Enable device security features (PIN, biometric)
+- We cannot guarantee absolute security despite best efforts
+- Notify us immediately of any suspected security breach
+
+5.3 Data Breaches
+- We will notify affected users within 72 hours of discovering a breach
+- Notification will include nature of breach and steps to protect yourself
+- We will work with authorities as required by law
+
+6. YOUR RIGHTS AND CHOICES
+
+6.1 Access and Update
+- View and edit your profile information in App settings
+- Update preferences for clubs and companies
+- Request a copy of your data by contacting us
+
+6.2 Account Deletion
+- Delete your account anytime through App settings
+- This permanently removes your personal information within 30 days
+- Some data may be retained in backups for up to 90 days
+- Anonymized analytics may be retained indefinitely
+
+6.3 Notification Preferences
+- Control push notifications through device settings
+- You cannot opt out of critical account-related notifications (security alerts)
+
+6.4 Data Portability
+- Request a machine-readable copy of your data
+- We will provide data in JSON format within 30 days
+
+6.5 Objection and Restriction
+- Object to certain uses of your data by contacting us
+- We will honor requests where legally required
+
+7. COOKIES AND TRACKING
+
+7.1 Local Storage
+- We use device storage to cache data for offline functionality
+- Session tokens for authentication
+- User preferences and settings
+
+7.2 Analytics
+- We use Firebase Analytics to understand app usage
+- Analytics data is anonymized and aggregated
+- No personal identification from analytics alone
+
+7.3 Third-Party Services
+- Google Sign-In and Firebase use cookies per their privacy policies
+- Review Google's privacy policy: https://policies.google.com/privacy
+
+8. CHILDREN'S PRIVACY
+
+- The App is intended for users 13 years and older
+- We do not knowingly collect information from children under 13
+- If we discover data from a child under 13, we will delete it promptly
+- Parents can contact us to request deletion of their child's data
+- Most users are college-age adults (18+)
+
+9. INTERNATIONAL DATA TRANSFERS
+
+- Data is stored on Firebase servers, which may be located outside your country
+- By using the App, you consent to transfer of your data to the United States
+- We comply with applicable international data protection laws
+- Adequate safeguards are in place for international transfers
+
+10. DATA RETENTION
+
+10.1 Active Accounts
+- We retain your data as long as your account is active
+- Inactive accounts (no login for 2+ years) may be archived or deleted
+
+10.2 Deleted Accounts
+- Most data deleted within 30 days of account deletion
+- Backup systems may retain data for up to 90 days
+- Anonymized analytics retained indefinitely
+- Legal obligations may require longer retention
+
+10.3 Specific Data Types
+- Event check-ins: Retained for academic year + 2 years
+- Club memberships: Retained while account active
+- FCM tokens: Deleted when app is uninstalled or account deleted
+- Profile photos: Deleted with account
+
+11. CALIFORNIA PRIVACY RIGHTS (CCPA)
+
+If you are a California resident, you have additional rights:
+
+11.1 Right to Know
+- What personal information we collect
+- Sources of that information
+- Purposes for collection and sharing
+- Categories of third parties we share with
+
+11.2 Right to Delete
+- Request deletion of your personal information
+- Subject to legal retention requirements
+
+11.3 Right to Opt-Out
+- We do not sell personal information, so no opt-out needed
+
+11.4 Right to Non-Discrimination
+- We will not discriminate against you for exercising your rights
+
+11.5 Exercising Your Rights
+- Email us at cmdept@calpoly.edu
+- We will verify your identity before processing requests
+- Response within 45 days of verification
+
+12. EUROPEAN PRIVACY RIGHTS (GDPR)
+
+If you are in the European Economic Area, you have rights under GDPR:
+
+12.1 Legal Basis for Processing
+- Consent: You agree to these terms
+- Contract: Necessary to provide the service
+- Legitimate Interest: App improvement and security
+
+12.2 Your Rights
+- Right to access your data
+- Right to rectification (correction)
+- Right to erasure ("right to be forgotten")
+- Right to restrict processing
+- Right to data portability
+- Right to object to processing
+- Right to withdraw consent
+
+12.3 Data Protection Officer
+- Contact: cmdept@calpoly.edu
+- You may lodge a complaint with your local supervisory authority
+
+13. CHANGES TO THIS PRIVACY POLICY
+
+- We may update this policy periodically
+- Material changes will be notified via email or in-app notification
+- "Last Updated" date will be revised
+- Continued use after changes constitutes acceptance
+- Review this policy regularly to stay informed
+
+14. THIRD-PARTY LINKS
+
+- The App may contain links to external websites or services
+- We are not responsible for privacy practices of third parties
+- Review privacy policies of any third-party services you use
+- Company profiles may link to external career sites
+
+15. DO NOT TRACK SIGNALS
+
+- We do not currently respond to "Do Not Track" browser signals
+- We do not track users across third-party websites
+- You can control tracking through device settings
+
+16. BUSINESS CONTACT INFORMATION
+
+The App facilitates professional networking:
+- Company contact information is provided for career purposes
+- Use professionally and respectfully
+- Do not abuse contact information for spam or harassment
+- Companies may have their own privacy policies
+
+17. ACADEMIC RECORDS
+
+- This App is not an official academic system
+- Event attendance tracked here is not part of official transcripts
+- FERPA protects your official academic records
+- We do not access or store grade information
+
+18. CONTACT US
+
+For all privacy-related questions, data requests, or security concerns:
+
+Cal Poly Construction Management Department
+1 Grand Avenue
+San Luis Obispo, CA 93407
+Email: cmdept@calpoly.edu
+Phone: (805) 756-1323
+
+In your email, please specify:
+- Privacy questions: Subject line "Privacy Policy Question"
+- Data access/deletion requests: Subject line "Data Request"
+- Security concerns: Subject line "Security Issue"
+
+Response time: We aim to respond within 5 business days
+
+19. GOVERNING LAW
+
+This Privacy Policy is governed by California law and federal law of the United States. Disputes will be resolved in San Luis Obispo County, California.
+
+20. CONSENT
+
+By using the Cal Poly Construction Management App, you consent to:
+- Collection of information described in this policy
+- Use of information for stated purposes
+- Sharing of information as described
+- Storage of data on Firebase servers
+- These terms and any future updates
+
+If you do not consent, please do not use the App and delete your account if you have one.
+
+---
+
+IMPORTANT NOTES FOR IMPLEMENTATION:
+- All contact information has been set to cmdept@calpoly.edu (CM Department reception)
+- Users should use subject lines to route emails appropriately
+- Review with Cal Poly legal counsel before deployment
+- Ensure FERPA compliance is validated
+- Consider adding Cal Poly-specific privacy provisions
+- Update Firebase privacy settings to match this policy
+- Add link to Google's privacy policy for Firebase services

@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ccce_application/rendered_page.dart';
 import 'package:ccce_application/common/features/sign_up.dart';
+import 'package:ccce_application/common/features/verification_screen.dart';
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class SignIn extends StatefulWidget {
   const SignIn({super.key});
@@ -239,7 +243,7 @@ class _SignInState extends State<SignIn> {
                     width: screenWidth * 0.75,
                     height: screenHeight * 0.065,
                     child: ElevatedButton(
-                      onPressed: _signInFunc,
+                      onPressed: _signInWithGoogle,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.tanText,
                         shape: const RoundedRectangleBorder(
@@ -295,7 +299,23 @@ class _SignInState extends State<SignIn> {
 
       if (userCredential.user != null) {
         print("Sign-in successful, user UID: ${userCredential.user!.uid}");
-        // User is confirmed to be non-null, proceed with navigation
+        
+        // Check if email is verified
+        if (!userCredential.user!.emailVerified) {
+          print("Email not verified, redirecting to verification screen");
+          if (mounted) {
+            setState(() {
+              errorMsg = "";
+            });
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const EmailVerificationScreen()),
+            );
+          }
+          return;
+        }
+        
+        // User is confirmed to be non-null and verified, proceed with navigation
         try {
           // Ensure errorMsg is cleared on successful auth before navigation
           if (mounted) {
@@ -380,6 +400,105 @@ class _SignInState extends State<SignIn> {
 
       if (mounted) {
         // Check if the widget is still in the tree
+        setState(() {
+          errorMsg = tempErrorMsg;
+        });
+      }
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      errorMsg = "";
+    });
+
+    try {
+      // Trigger Google Sign-In flow
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      
+      if (googleUser == null) {
+        // User canceled the sign-in
+        return;
+      }
+
+      // Obtain auth details from the request
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the Google credential
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      
+      if (userCredential.user != null) {
+        final user = userCredential.user!;
+        print("Google sign-in successful, user UID: ${user.uid}");
+
+        // Check if this is a new user - if so, create Firestore document
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        
+        if (!userDoc.exists) {
+          // New user - create Firestore document
+          String? fcmToken = await FirebaseMessaging.instance.getToken();
+          
+          Map<String, dynamic> userData = {
+            'email': user.email ?? '',
+            'firstName': user.displayName?.split(' ').first ?? '',
+            'lastName': user.displayName?.split(' ').skip(1).join(' ') ?? '',
+            'schoolYear': '',
+            'company': '',
+            'role': '',
+            'admin': false,
+          };
+          
+          if (fcmToken != null) {
+            userData['fcmToken'] = fcmToken;
+          }
+          
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).set(userData);
+        }
+
+        // Google accounts are pre-verified, proceed to main app
+        if (mounted) {
+          setState(() {
+            errorMsg = "";
+          });
+
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('TOS', true);
+
+          final eventProvider = Provider.of<EventProvider>(context, listen: false);
+          await eventProvider.fetchAllEvents();
+          
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MaterialApp(
+                home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print("Google Sign-In Error: $e");
+      
+      String tempErrorMsg = "Failed to sign in with Google.";
+      
+      if (e is FirebaseAuthException) {
+        if (e.code == 'account-exists-with-different-credential') {
+          tempErrorMsg = "An account already exists with this email.";
+        } else if (e.code == 'invalid-credential') {
+          tempErrorMsg = "Invalid credentials. Please try again.";
+        } else {
+          tempErrorMsg = e.message ?? tempErrorMsg;
+        }
+      }
+      
+      if (mounted) {
         setState(() {
           errorMsg = tempErrorMsg;
         });

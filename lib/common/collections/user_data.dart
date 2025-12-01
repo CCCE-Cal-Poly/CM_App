@@ -1,6 +1,4 @@
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 enum UserRole { admin, clubAdmin, student, faculty }
 extension UserRoleExtension on UserRole {
@@ -14,8 +12,6 @@ extension UserRoleExtension on UserRole {
         return 'Student';
       case UserRole.faculty:
         return 'Faculty';
-      default:
-        return 'Student';
     }
   }
 }

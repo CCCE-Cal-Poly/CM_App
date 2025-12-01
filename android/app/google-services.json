@@ -1,8 +1,9 @@
 {
   "project_info": {
     "project_number": "913522987647",
+    "firebase_url": "https://cm-app-90d65-default-rtdb.firebaseio.com",
     "project_id": "cm-app-90d65",
-    "storage_bucket": "cm-app-90d65.appspot.com"
+    "storage_bucket": "cm-app-90d65.firebasestorage.app"
   },
   "client": [
     {
@@ -12,7 +13,20 @@
           "package_name": "com.example.ccce_application"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "913522987647-28ov4ifcm6t8920s760qnmm8mt8so1fu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.ccce_application",
+            "certificate_hash": "e1704c38b6235d3db6fe753d6a7d0ce8c46b07e7"
+          }
+        },
+        {
+          "client_id": "913522987647-q5lun3ko7el8en9t4ang8e4mgj57sjgj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCZMeFauTWi2QMyo24Y4IRlA_lxFXYIfpY"
@@ -20,7 +34,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "913522987647-oo3ap0up9826m2ibjcg4r8pftiiqj7na.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "913522987647-841g9p1qos3cj3lf0tiu1i45jjil8634.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.ccceApplication"
+              }
+            }
+          ]
         }
       }
     }

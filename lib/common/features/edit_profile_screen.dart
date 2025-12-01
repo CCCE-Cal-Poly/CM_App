@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/providers/club_provider.dart';
 import 'package:ccce_application/common/theme/theme.dart';
+import 'package:ccce_application/common/features/sign_in.dart';
 import 'dart:io';
 
 class EditProfileScreen extends StatefulWidget {
@@ -231,6 +232,266 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  Future<void> _showChangePasswordDialog() async {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Change Password'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: currentPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Current Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: newPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'New Password',
+                  border: OutlineInputBorder(),
+                  helperText: 'At least 6 characters',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: confirmPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Confirm New Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final currentPassword = currentPasswordController.text.trim();
+              final newPassword = newPasswordController.text.trim();
+              final confirmPassword = confirmPasswordController.text.trim();
+
+              if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('All fields are required')),
+                );
+                return;
+              }
+
+              if (newPassword != confirmPassword) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('New passwords do not match')),
+                );
+                return;
+              }
+
+              if (newPassword.length < 6) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Password must be at least 6 characters')),
+                );
+                return;
+              }
+
+              try {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null || user.email == null) {
+                  throw Exception('No authenticated user');
+                }
+
+                // Re-authenticate user
+                final credential = EmailAuthProvider.credential(
+                  email: user.email!,
+                  password: currentPassword,
+                );
+                await user.reauthenticateWithCredential(credential);
+
+                // Update password
+                await user.updatePassword(newPassword);
+
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext, true);
+              } on FirebaseAuthException catch (e) {
+                String message = 'Failed to change password';
+                if (e.code == 'wrong-password') {
+                  message = 'Current password is incorrect';
+                } else if (e.code == 'weak-password') {
+                  message = 'New password is too weak';
+                } else if (e.code == 'requires-recent-login') {
+                  message = 'Please sign out and sign in again before changing password';
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(message)),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $e')),
+                );
+              }
+            },
+            child: const Text('Change Password'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password changed successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showDeleteAccountDialog() async {
+    final passwordController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'This action cannot be undone. Your account and all associated data will be permanently deleted.',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+              ),
+              const SizedBox(height: 16),
+              const Text('This includes:'),
+              const Text('• Profile information'),
+              const Text('• Event check-ins'),
+              const Text('• Club memberships'),
+              const Text('• Favorite companies'),
+              const Text('• All preferences'),
+              const SizedBox(height: 16),
+              const Text('Enter your password to confirm:'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final password = passwordController.text.trim();
+              if (password.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Password is required')),
+                );
+                return;
+              }
+
+              try {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null || user.email == null) {
+                  throw Exception('No authenticated user');
+                }
+
+                // Re-authenticate user
+                final credential = EmailAuthProvider.credential(
+                  email: user.email!,
+                  password: password,
+                );
+                await user.reauthenticateWithCredential(credential);
+
+                // Delete user data from Firestore
+                final batch = FirebaseFirestore.instance.batch();
+                
+                // Delete user document
+                final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+                batch.delete(userDocRef);
+
+                // Delete subcollections
+                final subcollections = ['checkedInEvents', 'fcmTokens', 'favoriteCompanies', 'joinedClubs'];
+                for (final subcol in subcollections) {
+                  final snapshot = await userDocRef.collection(subcol).get();
+                  for (final doc in snapshot.docs) {
+                    batch.delete(doc.reference);
+                  }
+                }
+
+                await batch.commit();
+
+                // Delete profile picture from Storage if exists
+                try {
+                  final storageRef = FirebaseStorage.instance
+                      .ref()
+                      .child('profile_pictures')
+                      .child('${user.uid}.jpg');
+                  await storageRef.delete();
+                } catch (e) {
+                  // Profile picture might not exist, that's okay
+                  print('No profile picture to delete or error: $e');
+                }
+
+                // Delete Firebase Auth account
+                await user.delete();
+
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext, true);
+              } on FirebaseAuthException catch (e) {
+                String message = 'Failed to delete account';
+                if (e.code == 'wrong-password') {
+                  message = 'Password is incorrect';
+                } else if (e.code == 'requires-recent-login') {
+                  message = 'Please sign out and sign in again before deleting your account';
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(message)),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error deleting account: $e')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete Account'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      // Account deleted, navigate to sign-in
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const SignIn()),
+        (route) => false,
+      );
+    }
+  }
+
   @override
   void dispose() {
     _firstNameController.dispose();
@@ -403,16 +664,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         label: 'Email',
                         screenHeight: screenHeight,
                         keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Email is required';
-                          }
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                              .hasMatch(value)) {
-                            return 'Please enter a valid email';
-                          }
-                          return null;
-                        },
+                        readOnly: true,
+                        enabled: false,
+                      ),
+                      const SizedBox(height: 8),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4.0),
+                        child: Text(
+                          'Email cannot be changed as it is linked to your account',
+                          style: TextStyle(
+                            color: AppColors.tanText,
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
                       ),
 
                       SizedBox(height: screenHeight * .03),
@@ -441,6 +706,43 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
+                        ),
+                      ),
+
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Divider(),
+                      ),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.yellowButton,
+                            foregroundColor: Colors.black,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                          ),
+                          onPressed: _showChangePasswordDialog,
+                          child: const Text('Change Password'),
+                        ),
+                      ),
+
+                      SizedBox(height: screenHeight * 0.01),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade400,
+                            foregroundColor: Colors.white,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                          ),
+                          onPressed: _showDeleteAccountDialog,
+                          child: const Text('Delete Account'),
                         ),
                       ),
 
@@ -608,14 +910,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required double screenHeight,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    bool readOnly = false,
+    bool enabled = true,
   }) {
     return TextField(
-          style: const TextStyle(color: Colors.black),
+          style: TextStyle(
+            color: enabled ? Colors.black : Colors.grey[600],
+          ),
           controller: controller,
+          readOnly: readOnly,
+          enabled: enabled,
           decoration: InputDecoration(
       labelText: label,
       floatingLabelBehavior: FloatingLabelBehavior.never,
-      fillColor: Colors.white,
+      fillColor: enabled ? Colors.white : Colors.grey[200],
       filled: true,
       border: const OutlineInputBorder(
         borderRadius: BorderRadius.zero,

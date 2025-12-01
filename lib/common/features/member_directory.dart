@@ -3,7 +3,6 @@ import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/company.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 
 class MemberDirectory extends StatefulWidget {
@@ -16,33 +15,29 @@ class MemberDirectory extends StatefulWidget {
 }
 
 class _MemberDirectoryState extends State<MemberDirectory> {
-  
-
-
-  final TextEditingController _searchController = TextEditingController();
   bool _isTextEntered = false;
 
   static List<Company> filteredCompanies = [];
+  
   @override
   void initState() {
     super.initState();
-}
+  }
+  
   Map<String, bool> buttonStates = {
-  'Admin': false,
-  'Faculty': false,
+    'Admin': false,
+    'Faculty': false,
   };
+
+  void sortAlphabetically() {
+    setState(() {
+      // Implementation moved to provider
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<CompanyProvider>(builder: (context, companyProvider, child) {
-
-    bool _isAscending = true;
-
-    void sortAlphabetically() {
-      setState(() {
-        companyProvider.sortAlphabetically();
-      });
-    }
 
     OutlinedButton createButtonSorter(String txt, VoidCallback sortingFunction) {
       bool isActive = buttonStates[txt] ?? false;

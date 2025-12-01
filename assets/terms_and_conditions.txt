@@ -1,10 +1,70 @@
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris in tincidunt risus. Vestibulum venenatis magna aliquam efficitur ullamcorper. Sed nisi neque, scelerisque ut ipsum ac, tempus fringilla velit. Praesent posuere aliquam nulla a imperdiet. Integer et ex mollis, gravida lorem sed, viverra risus. Mauris metus velit, accumsan id lorem eget, porttitor finibus quam. Fusce a augue sed erat feugiat egestas. Nam dignissim imperdiet vehicula. Duis sit amet metus vel massa mattis ullamcorper sit amet et odio. Fusce sed faucibus turpis. Cras ornare ligula augue, non eleifend nulla commodo faucibus. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Nulla porta in arcu at congue.
+TERMS AND CONDITIONS
 
-Vestibulum nibh augue, semper sed quam eget, semper iaculis magna. Aliquam rutrum nisi sed erat dictum gravida. Nam ac tincidunt mi. Curabitur vitae felis et enim viverra sodales. Nunc faucibus gravida massa, non aliquam orci hendrerit et. Donec imperdiet sollicitudin tortor, ac porttitor felis mattis a. Quisque quis ornare ante, quis luctus eros.
+Welcome to the Cal Poly Construction Management (CM) mobile application!
 
-Vestibulum magna ligula, consectetur sed odio eget, hendrerit hendrerit nulla. Pellentesque iaculis neque nec augue fermentum condimentum. Donec aliquam augue in diam convallis, in dignissim orci sagittis. In vulputate non purus nec maximus. Curabitur sagittis dui vel ipsum suscipit, et rhoncus mi bibendum. Interdum et malesuada fames ac ante ipsum primis in faucibus. Ut ullamcorper vehicula dui, a sollicitudin urna placerat ullamcorper.
+By creating an account and using this app, you agree to the following terms:
 
-Mauris lobortis lacus ac mauris pharetra elementum. Quisque sollicitudin non arcu eleifend varius. Praesent pretium lacinia tortor, non varius felis aliquam non. Pellentesque fermentum tincidunt sem in interdum. Aenean ac bibendum nulla, a feugiat nulla. Quisque sodales iaculis arcu, id accumsan est rutrum ut. Ut condimentum nec neque ac vehicula. Donec nisl elit, molestie nec dapibus vitae, imperdiet fringilla ipsum. Nulla a purus sit amet nunc eleifend interdum eget vel urna. Phasellus in nunc leo. Morbi posuere nisi eget urna malesuada, eget finibus nunc pretium. Nulla imperdiet, magna in volutpat condimentum, lorem libero commodo erat, dapibus aliquet velit lectus sed nunc. Etiam porttitor purus nec arcu dictum, eu molestie felis interdum. Maecenas lacinia vitae tellus sit amet porttitor.
+ACCOUNT AND USAGE
+• You must provide accurate information during registration
+• You are responsible for maintaining your account security
+• Email verification is required for account activation
+• You must be affiliated with Cal Poly's Construction Management program
 
-Donec at suscipit nibh. Nam ornare orci nec nisl sollicitudin rhoncus. Suspendisse at tortor eget lacus rhoncus venenatis at vel sem. Aliquam erat volutpat. Pellentesque velit dui, efficitur sed tristique nec, facilisis quis lectus. Nulla nec orci eu augue pulvinar mattis vel convallis libero. Praesent faucibus, diam non laoreet mollis, ante urna interdum quam, vel suscipit purus purus id arcu. Duis in odio ut diam facilisis venenatis in egestas nunc. Sed id tempor ex. Nam a turpis vitae nisi commodo sagittis. Vivamus porttitor sollicitudin nisi, eget sagittis turpis vulputate ut. Nam nec dignissim est.
+YOUR RESPONSIBILITIES
+• Provide truthful and complete information
+• Keep your password confidential
+• Use the app professionally and respectfully
+• Do not harass, spam, or abuse other users
+• Do not attempt unauthorized access to systems or accounts
+
+DATA AND PRIVACY
+• We collect your name, email, profile information, and usage data
+• Your data is stored securely using Firebase services
+• Event organizers can see attendee lists for their events
+• Club admins can see members of clubs they administer
+• We do NOT sell your personal information to third parties
+• You can delete your account anytime through app settings
+
+EVENTS AND CHECK-INS
+• Event information is provided by organizers; we are not responsible for inaccuracies
+• Check-in data is used for attendance tracking
+• Attendance at events is at your own risk
+
+CLUB ADMINISTRATION
+• Club admin privileges require approval
+• Club admins must provide accurate information
+• Misuse of admin privileges will result in removal
+
+YOUR RIGHTS
+• Access and update your profile information anytime
+• Delete your account and all associated data
+• Request a copy of your data
+• Control push notifications through device settings
+
+DISCLAIMERS
+• The app is provided "AS IS" without warranties
+• We are not liable for third-party content or events
+• This is not an official academic system
+• Event attendance tracked here is not part of official transcripts
+
+ACCOUNT TERMINATION
+• You may delete your account at any time
+• We may suspend accounts that violate these terms
+• Account deletion is permanent and cannot be reversed
+
+CHANGES TO TERMS
+• We may update these terms periodically
+• Continued use after changes means you accept them
+• Material changes will be notified through the app or email
+
+CONTACT US
+If you have questions about these terms:
+
+Cal Poly Construction Management Department
+Email: cmdept@calpoly.edu
+Phone: (805) 756-1323
+
+For complete Terms of Service and Privacy Policy, visit the Profile section in the app.
+
+By continuing, you acknowledge that you have read and agree to these Terms and Conditions.
 

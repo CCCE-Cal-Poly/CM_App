@@ -1,4 +1,3 @@
-import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'welcome_page_1.dart';
 import 'welcome_page_2.dart';

@@ -2,8 +2,10 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/providers/app_state.dart';
+import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/widgets/resilient_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -32,13 +34,6 @@ class Club implements Comparable<Club> {
   factory Club.fromDocument(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
 
-    List<CalEvent> events = [];
-    if (data['Events'] != null) {
-      events = List<Map<String, dynamic>>.from(data['Events'])
-        .map((eventData) => CalEvent.clubEventfromMap(eventData))
-        .toList();
-    }
-
     return Club(
       id: doc.id,
       name: data['Name'] ?? 'No Name',
@@ -46,9 +41,35 @@ class Club implements Comparable<Club> {
       email: data['Email'] ?? 'No Email',
       acronym: data['Acronym'] ?? '',
       instagram: data['Instagram'] ?? '',
-      logo: data['logo'] ?? null,
-      events: events,
+      logo: (data['Logo'] ?? data['logo']) as String?, // Support both 'Logo' and 'logo' field names
+      events: [], // Will be populated by fetchEvents()
     );
+  }
+
+  // Fetch events from document references
+  Future<void> fetchEvents() async {
+    try {
+      final clubDoc = await FirebaseFirestore.instance
+          .collection('clubs')
+          .doc(id)
+          .get();
+      
+      final data = clubDoc.data();
+      if (data != null && data['events'] != null) {
+        final eventRefs = List<DocumentReference>.from(data['events']);
+        
+        final eventDocs = await Future.wait(
+          eventRefs.map((ref) => ref.get())
+        );
+        
+        events = eventDocs
+            .where((doc) => doc.exists)
+            .map((doc) => CalEvent.fromSnapshot(doc))
+            .toList();
+      }
+    } catch (e) {
+      print('Error fetching club events: $e');
+    }
   }
 
   @override
@@ -139,12 +160,40 @@ Widget clubLogoImage(String? url, double width, double height) {
 }
 
 class _ClubPopUpState extends State<ClubPopUp> {
+  bool _isLoadingEvents = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeClub();
+  }
+
+  Future<void> _initializeClub() async {
+    // Auto-join club admins to their clubs if not already joined
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final appState = Provider.of<AppState>(context, listen: false);
+    
+    if (userProvider.isClubAdmin(widget.club.id) && !appState.isJoined(widget.club)) {
+      appState.addJoinedClub(widget.club);
+    }
+
+    // Fetch events from references
+    await widget.club.fetchEvents();
+    
+    if (mounted) {
+      setState(() {
+        _isLoadingEvents = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     double screenHeight = MediaQuery.of(context).size.height;
     double screenWidth = MediaQuery.of(context).size.width;
     final now = DateTime.now();
     final twoWeeksFromNow = now.add(const Duration(days: 14));
+    
     final clubEvents = widget.club.events.where((e) {
       final t = e.eventType.toLowerCase();
       final isClubEvent = t == 'club' || t == 'club event' || t == 'clubevent' || t == 'club_event';
@@ -235,54 +284,141 @@ class _ClubPopUpState extends State<ClubPopUp> {
                               padding: EdgeInsets.symmetric(
                                 vertical: screenHeight * 0.015,
                               ),
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  if (context.read<AppState>().isJoined(widget.club)) {
-                                    context.read<AppState>().removeJoinedClub(widget.club);
-                                  } else {
-                                    context.read<AppState>().addJoinedClub(widget.club);
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  fixedSize: Size(
-                                    screenWidth * 0.5,
-                                    screenHeight * 0.05,
-                                  ),
-                                  backgroundColor: context.watch<AppState>().isJoined(widget.club)
-                                      ? Colors.grey
-                                      : AppColors.calPolyGreen,
-                                  shape: const RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.zero,
-                                  ),
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: screenWidth * .03,
-                                    vertical: screenHeight * .008,
-                                  ),
-                                ),
-                                child: context.watch<AppState>().isJoined(widget.club)
-                                    ? const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.check, color: Colors.black),
-                                          SizedBox(width: 6),
-                                          Text(
-                                            'JOINED',
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                              child: Consumer<UserProvider>(
+                                builder: (context, userProvider, _) {
+                                  final isClubAdmin = userProvider.isClubAdmin(widget.club.id);
+                                  final isJoined = context.watch<AppState>().isJoined(widget.club);
+                                  
+                                  if (isClubAdmin) {
+                                    // Show "Stop Being Club Admin" button for club admins
+                                    return ElevatedButton(
+                                      onPressed: () async {
+                                        // Show confirmation dialog
+                                        final confirmed = await showDialog<bool>(
+                                          context: context,
+                                          builder: (dialogContext) => AlertDialog(
+                                            title: const Text('Remove Admin Access?'),
+                                            content: Text('Are you sure you want to stop being an admin for ${widget.club.name}?'),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.of(dialogContext).pop(false),
+                                                child: const Text('Cancel'),
+                                              ),
+                                              TextButton(
+                                                onPressed: () => Navigator.of(dialogContext).pop(true),
+                                                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                                child: const Text('Remove'),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      )
-                                    : const Text(
-                                        'JOIN CLUB',
+                                        );
+                                        
+                                        if (confirmed == true) {
+                                          try {
+                                            final user = FirebaseAuth.instance.currentUser;
+                                            if (user != null) {
+                                              await FirebaseFirestore.instance
+                                                  .collection('users')
+                                                  .doc(user.uid)
+                                                  .update({
+                                                'clubsAdminOf': FieldValue.arrayRemove([widget.club.id])
+                                              });
+                                              
+                                              if (!mounted) return;
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Removed as admin of ${widget.club.name}'),
+                                                  backgroundColor: Colors.green,
+                                                ),
+                                              );
+                                            }
+                                          } catch (e) {
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text('Failed to remove admin access: $e'),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        fixedSize: Size(
+                                          screenWidth * 0.5,
+                                          screenHeight * 0.05,
+                                        ),
+                                        backgroundColor: Colors.red.shade400,
+                                        shape: const RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: screenWidth * .03,
+                                          vertical: screenHeight * .008,
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'RESIGN CLUB ADMIN',
                                         style: TextStyle(
-                                          color: AppColors.welcomeLightYellow,
-                                          fontSize: 16,
+                                          color: Colors.white,
+                                          fontSize: 13,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
+                                    );
+                                  } else {
+                                    // Show Join/Joined button for non-admins
+                                    return ElevatedButton(
+                                      onPressed: () {
+                                        if (isJoined) {
+                                          context.read<AppState>().removeJoinedClub(widget.club);
+                                        } else {
+                                          context.read<AppState>().addJoinedClub(widget.club);
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        fixedSize: Size(
+                                          screenWidth * 0.5,
+                                          screenHeight * 0.05,
+                                        ),
+                                        backgroundColor: isJoined
+                                            ? Colors.grey
+                                            : AppColors.calPolyGreen,
+                                        shape: const RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: screenWidth * .03,
+                                          vertical: screenHeight * .008,
+                                        ),
+                                      ),
+                                      child: isJoined
+                                          ? const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.check, color: Colors.black),
+                                                SizedBox(width: 6),
+                                                Text(
+                                                  'JOINED',
+                                                  style: TextStyle(
+                                                    color: Colors.black,
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            )
+                                          : const Text(
+                                              'JOIN CLUB',
+                                              style: TextStyle(
+                                                color: AppColors.welcomeLightYellow,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                    );
+                                  }
+                                },
                               ),
                             ),
                           ],
@@ -312,22 +448,21 @@ class _ClubPopUpState extends State<ClubPopUp> {
                       ),
                     ),
                     const SizedBox(height: 5),
+                    // Show loading indicator while fetching events
+                    if (_isLoadingEvents)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                      )
                     // Only show events that represent club events (not info sessions or other types)
-                    if (clubEvents.isNotEmpty)
+                    else if (clubEvents.isNotEmpty)
                       ...clubEvents.map((event) => Padding(
                             padding: const EdgeInsets.only(bottom: 8.0),
-                            child: _EventTile(
-                              event: event,
-                              onTap: () {
-                                // Open the event popup by pushing the existing InfoSessionPopUp
-                                Navigator.of(context).push(MaterialPageRoute(
-                                  builder: (_) => InfoSessionPopUp(
-                                    infoSession: event,
-                                    onClose: () => Navigator.of(context).pop(),
-                                  ),
-                                ));
-                              },
-                            ),
+                            child: _EventTile(event: event),
                           ))
                     else
                       const Text(
@@ -468,9 +603,8 @@ class _ClubPopUpState extends State<ClubPopUp> {
 // Compact event tile used in ClubPopUp
 class _EventTile extends StatelessWidget {
   final CalEvent event;
-  final VoidCallback? onTap;
 
-  const _EventTile({required this.event, this.onTap, Key? key}) : super(key: key);
+  const _EventTile({required this.event, Key? key}) : super(key: key);
 
   String _formatShortDate(DateTime dt) {
     // e.g. 'Oct 3 · 3:30pm'
@@ -489,46 +623,39 @@ class _EventTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(6),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      padding: const EdgeInsets.all(8.0),
+      child: Row(
+        children: [
+          SizedBox(
+            width: screenWidth * 0.12,
+            height: screenWidth * 0.12,
+            child: clubLogoImage(event.logo, screenWidth * 0.12, screenWidth * 0.12),
           ),
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              SizedBox(
-                width: screenWidth * 0.12,
-                height: screenWidth * 0.12,
-                child: clubLogoImage(event.logo, screenWidth * 0.12, screenWidth * 0.12),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      event.eventName,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatShortDate(event.startTime),
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                  ],
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.eventName,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const Icon(Icons.chevron_right, color: Colors.white70),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  _formatShortDate(event.startTime),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
