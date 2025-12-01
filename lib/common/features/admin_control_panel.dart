@@ -319,6 +319,9 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                     final endTime = request['endTime'] is Timestamp 
                         ? (request['endTime'] as Timestamp).toDate() 
                         : null;
+                    final recurrenceEndDate = request['recurrenceEndDate'] is Timestamp 
+                        ? (request['recurrenceEndDate'] as Timestamp).toDate() 
+                        : null;
 
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
@@ -345,6 +348,10 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                               Text('End: ${endTime.toString().substring(0, 16)}'),
                             if (request['eventLocation'] != null)
                               Text('Location: ${request['eventLocation']}'),
+                            if (request['recurrenceType'] != null && request['recurrenceType'].toString().isNotEmpty)
+                              Text('Recurrence: ${request['recurrenceType']}'),
+                            if (recurrenceEndDate != null)
+                              Text('Recurs until: ${recurrenceEndDate.toString().substring(0, 16)}'),
                             if (request['description'] != null && request['description'].toString().isNotEmpty) ...[
                               const SizedBox(height: 4),
                               Text(

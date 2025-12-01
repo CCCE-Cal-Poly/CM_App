@@ -22,12 +22,19 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
   
   List<Map<String, dynamic>> _clubs = [];
   String? _selectedClubId;
+  String? _selectedRecurrence;
+  // recurrence details
+  String? _recurrenceWeekday;
+  int? _recurrenceMonthDay;
+  int? _recurrenceInterval;
+  // TimeOfDay? _recurrenceTime;
   bool _isLoading = true;
   bool _hasError = false;
   bool _isSubmitting = false;
 
   DateTime? _startTime;
   DateTime? _endTime;
+  DateTime? _recurrenceEndDate;
 
   @override
   void initState() {
@@ -182,6 +189,13 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
         'requestedByName': userName,
         'requestedByEmail': currentUser.email,
         'status': 'pending',
+        // recurrence details
+        'recurrenceType': _selectedRecurrence ?? 'Never',
+        'recurrenceWeekday': _recurrenceWeekday,
+        'recurrenceMonthDay': _recurrenceMonthDay,
+        'recurrenceIntervalDays': _recurrenceInterval,
+        'recurrenceEndDate': _recurrenceEndDate != null ? Timestamp.fromDate(_recurrenceEndDate!) : null,
+
         'submittedAt': FieldValue.serverTimestamp(),
       });
 
@@ -202,6 +216,11 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
       setState(() {
         _startTime = null;
         _endTime = null;
+        _selectedRecurrence = null;
+        _recurrenceWeekday = null;
+        _recurrenceMonthDay = null;
+        _recurrenceInterval = null;
+        // _recurrenceTime = null;
       });
     } catch (e) {
       if (!mounted) return;
@@ -414,6 +433,184 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                                         .format(_endTime!),
                                 style: TextStyle(
                                   color: _endTime == null
+                                      ? Colors.grey
+                                      : Colors.black,
+                                ),
+                              ),
+                              const Icon(Icons.calendar_today),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Repeat Frequency *',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                          value: _selectedRecurrence,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            hintText: 'Choose how often this event occurs',
+                          ),
+                          items: ["Never", "Weekly", "Monthly", "Interval"]
+                              .map((type) => DropdownMenuItem<String>(
+                                    value: type,
+                                    child: Text(type),
+                                  ))
+                              .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedRecurrence = value;
+                              // clear recurrence details when type changes
+                              _recurrenceWeekday = null;
+                              _recurrenceMonthDay = null;
+                              // _recurrenceTime = null;
+                            });
+                          },
+                          validator: (value) =>
+                              value == null ? 'Please specify how often the event will reccur' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Conditional UI: show recurrence-specific controls
+                      if (_selectedRecurrence == 'Weekly') ...[
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          value: _recurrenceWeekday,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: 'Repeat weekly on',
+                          ),
+                          items: [
+                            'Monday',
+                            'Tuesday',
+                            'Wednesday',
+                            'Thursday',
+                            'Friday',
+                            'Saturday',
+                            'Sunday',
+                          ].map((d) => DropdownMenuItem<String>(value: d, child: Text(d))).toList(),
+                          onChanged: (value) => setState(() => _recurrenceWeekday = value),
+                          validator: (value) => value == null ? 'Please choose a weekday' : null,
+                        ),
+                        const SizedBox(height: 12),
+                        InkWell(
+                        onTap: () => _selectDateTime(context, false),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _recurrenceEndDate == null
+                                    ? 'Select date to repeat until'
+                                    : DateFormat('MMM dd, yyyy - hh:mm a')
+                                        .format(_recurrenceEndDate!),
+                                style: TextStyle(
+                                  color: _recurrenceEndDate == null
+                                      ? Colors.grey
+                                      : Colors.black,
+                                ),
+                              ),
+                              const Icon(Icons.calendar_today),
+                            ],
+                          ),
+                        ),
+                      ),
+                      ] else if (_selectedRecurrence == 'Monthly') ...[
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Day of month (1–31)',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (v) {
+                            final parsed = int.tryParse(v);
+                            setState(() => _recurrenceMonthDay = parsed);
+                          },
+                          validator: (value) {
+                            final n = int.tryParse(value ?? '');
+                            if (n == null || n < 1 || n > 31) return 'Enter a valid day (1–31)';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        InkWell(
+                        onTap: () => _selectDateTime(context, false),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _recurrenceEndDate == null
+                                    ? 'Select date to repeat until'
+                                    : DateFormat('MMM dd, yyyy - hh:mm a')
+                                        .format(_recurrenceEndDate!),
+                                style: TextStyle(
+                                  color: _recurrenceEndDate == null
+                                      ? Colors.grey
+                                      : Colors.black,
+                                ),
+                              ),
+                              const Icon(Icons.calendar_today),
+                            ],
+                          ),
+                        ),
+                      ),
+                      ] else if (_selectedRecurrence == 'Interval') ...[
+                        const SizedBox(height: 8),
+                          TextFormField(
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Time interval between events in days',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (v) {
+                            final parsed = int.tryParse(v);
+                            setState(() => _recurrenceInterval = parsed);
+                          },
+                          validator: (value) {
+                            final n = int.tryParse(value ?? '');
+                            if (n == null || n < 1) return 'Enter a valid number of days';
+                            return null;
+                          },
+                        ),
+                      ],
+                      InkWell(
+                        onTap: () => _selectDateTime(context, false),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _recurrenceEndDate == null
+                                    ? 'Select date to repeat until'
+                                    : DateFormat('MMM dd, yyyy - hh:mm a')
+                                        .format(_recurrenceEndDate!),
+                                style: TextStyle(
+                                  color: _recurrenceEndDate == null
                                       ? Colors.grey
                                       : Colors.black,
                                 ),
