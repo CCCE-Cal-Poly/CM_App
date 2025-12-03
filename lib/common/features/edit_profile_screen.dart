@@ -819,7 +819,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                           return;
                                         }
                                         
-                                        final existing = await FirebaseFirestore.instance.collection('clubAdminRequests').where('uid', isEqualTo: user.uid).get();
+                                        // Only check pending requests to avoid blocking after denial/approval
+                                        final existing = await FirebaseFirestore.instance
+                                            .collection('clubAdminRequests')
+                                            .where('uid', isEqualTo: user.uid)
+                                            .where('status', isEqualTo: 'pending')
+                                            .get();
                                         
                                         if (!context.mounted) return;
                                         
