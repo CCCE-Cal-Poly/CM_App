@@ -193,9 +193,6 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
         // recurrence details
         'recurrenceType': _selectedRecurrence ?? 'Never',
         'recurrenceInterval': _recurrenceInterval,
-        // 'recurrenceWeekday': _recurrenceWeekday, 
-        // 'recurrenceMonthDay': _recurrenceMonthDay,
-        // 'recurrenceIntervalDays': _recurrenceInterval,
         'recurrenceEndDate': _recurrenceEndDate != null ? Timestamp.fromDate(_recurrenceEndDate!) : null,
 
         'submittedAt': FieldValue.serverTimestamp(),
@@ -219,10 +216,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
         _startTime = null;
         _endTime = null;
         _selectedRecurrence = null;
-        _recurrenceWeekday = null;
-        _recurrenceMonthDay = null;
         _recurrenceInterval = null;
-        // _recurrenceTime = null;
       });
     } catch (e) {
       if (!mounted) return;
@@ -595,32 +589,32 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                           },
                         ),
                         InkWell(
-                        onTap: () => _selectDateTime(context, false),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                _recurrenceEndDate == null
-                                    ? 'Select date to repeat until'
-                                    : DateFormat('MMM dd, yyyy - hh:mm a')
-                                        .format(_recurrenceEndDate!),
-                                style: TextStyle(
-                                  color: _recurrenceEndDate == null
-                                      ? Colors.grey
-                                      : Colors.black,
+                          onTap: () => _selectDateTime(context, false),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _recurrenceEndDate == null
+                                      ? 'Select date to repeat until'
+                                      : DateFormat('MMM dd, yyyy - hh:mm a')
+                                          .format(_recurrenceEndDate!),
+                                  style: TextStyle(
+                                    color: _recurrenceEndDate == null
+                                        ? Colors.grey
+                                        : Colors.black,
+                                  ),
                                 ),
-                              ),
-                              const Icon(Icons.calendar_today),
-                            ],
+                                const Icon(Icons.calendar_today),
+                              ],
+                            ),
                           ),
-                        ),
-                      )
+                        )
                       ],
                       const SizedBox(height: 32),
                       SizedBox(
