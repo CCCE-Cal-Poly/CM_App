@@ -26,7 +26,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
   // recurrence details
   String? _recurrenceWeekday;
   int? _recurrenceMonthDay;
-  int? _recurrenceInterval;
+  String? _recurrenceInterval;
   // TimeOfDay? _recurrenceTime;
   bool _isLoading = true;
   bool _hasError = false;
@@ -192,13 +192,22 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
         'status': 'pending',
         // recurrence details
         'recurrenceType': _selectedRecurrence ?? 'Never',
-        'recurrenceWeekday': _recurrenceWeekday,
-        'recurrenceMonthDay': _recurrenceMonthDay,
-        'recurrenceIntervalDays': _recurrenceInterval,
+        'recurrenceInterval': _recurrenceInterval,
+        // 'recurrenceWeekday': _recurrenceWeekday, 
+        // 'recurrenceMonthDay': _recurrenceMonthDay,
+        // 'recurrenceIntervalDays': _recurrenceInterval,
         'recurrenceEndDate': _recurrenceEndDate != null ? Timestamp.fromDate(_recurrenceEndDate!) : null,
 
         'submittedAt': FieldValue.serverTimestamp(),
       });
+
+      //********************************************************************************** */
+      // THE BELOW CODE IS TEST CODE
+      await FirebaseFirestore.instance.collection('SeriesNotifications').add({
+        
+
+      });
+      //********************************************************************************** */
 
       if (!mounted) return;
       
@@ -459,7 +468,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                             border: OutlineInputBorder(),
                             hintText: 'Choose how often this event occurs',
                           ),
-                          items: ["Never", "Weekly", "Monthly", "Interval"]
+                          items: ["Never", "Weekly", "Monthly", "Interval (days)"]
                               .map((type) => DropdownMenuItem<String>(
                                     value: type,
                                     child: Text(type),
@@ -498,7 +507,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                             'Saturday',
                             'Sunday',
                           ].map((d) => DropdownMenuItem<String>(value: d, child: Text(d))).toList(),
-                          onChanged: (value) => setState(() => _recurrenceWeekday = value),
+                          onChanged: (value) => setState(() => _recurrenceInterval = value),
                           validator: (value) => value == null ? 'Please choose a weekday' : null,
                         ),
                         const SizedBox(height: 12),
@@ -538,8 +547,8 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                             border: OutlineInputBorder(),
                           ),
                           onChanged: (v) {
-                            final parsed = int.tryParse(v);
-                            setState(() => _recurrenceMonthDay = parsed);
+                            // final parsed = int.tryParse(v);
+                            setState(() => _recurrenceInterval = v);
                           },
                           validator: (value) {
                             final n = int.tryParse(value ?? '');
@@ -584,8 +593,8 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                             border: OutlineInputBorder(),
                           ),
                           onChanged: (v) {
-                            final parsed = int.tryParse(v);
-                            setState(() => _recurrenceInterval = parsed);
+                            // final parsed = int.tryParse(v);
+                            setState(() => _recurrenceInterval = v);
                           },
                           validator: (value) {
                             final n = int.tryParse(value ?? '');
@@ -593,8 +602,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                             return null;
                           },
                         ),
-                      ],
-                      InkWell(
+                        InkWell(
                         onTap: () => _selectDateTime(context, false),
                         child: Container(
                           padding: const EdgeInsets.all(16),
@@ -620,7 +628,8 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                             ],
                           ),
                         ),
-                      ),
+                      )
+                      ],
                       const SizedBox(height: 32),
                       SizedBox(
                         width: double.infinity,
