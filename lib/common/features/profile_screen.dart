@@ -63,6 +63,24 @@ class ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<List<String>> _getClubAcronyms(List<String> clubIds) async {
+    if (clubIds.isEmpty) return [];
+    
+    try {
+      final clubDocs = await FirebaseFirestore.instance
+          .collection('clubs')
+          .where(FieldPath.documentId, whereIn: clubIds)
+          .get();
+      
+      return clubDocs.docs
+          .map((doc) => doc.data()['Acronym'] as String? ?? '')
+          .where((acronym) => acronym.isNotEmpty)
+          .toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
   Container createProfileAttributeContainer(
       TextFormField attributeField, Color color) {
     return Container(
@@ -248,22 +266,30 @@ class ProfileScreenState extends State<ProfileScreen> {
                     ),
                     SizedBox(height: screenHeight * 0.02),
                     Consumer<UserProvider>(builder: (context, userProvider, child) {
-                      final clubs = userProvider.clubsAdminOf;
-                      if (clubs.isEmpty) return const SizedBox.shrink();
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Clubs you administer', style: TextStyle(color: AppColors.tanText)),
-                            const SizedBox(height: 6),
-                            Wrap(
-                              spacing: 6,
-                              runSpacing: 6,
-                              children: clubs.map((c) => Chip(label: Text(c), backgroundColor: Colors.white)).toList(),
+                      final clubIds = userProvider.clubsAdminOf;
+                      if (clubIds.isEmpty) return const SizedBox.shrink();
+                      
+                      return FutureBuilder<List<String>>(
+                        future: _getClubAcronyms(clubIds),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const SizedBox.shrink();
+                          }
+                          
+                          final acronyms = snapshot.data!;
+                          if (acronyms.isEmpty) return const SizedBox.shrink();
+                          
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                            child: Text(
+                              'Clubs you administer: ${acronyms.join(', ')}',
+                              style: const TextStyle(
+                                color: AppColors.tanText,
+                                fontSize: 14,
+                              ),
                             ),
-                          ],
-                        ),
+                          );
+                        },
                       );
                     }),
                     Center(

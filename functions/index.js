@@ -727,3 +727,200 @@ exports.setEventUpdatedAt = onDocumentWritten("events/{eventId}", async (event) 
     console.error(`Error setting updatedAt for event ${event.params.eventId}:`, err);
   }
 });
+
+exports.deleteClubEvent = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+
+  const callerUid = request.auth.uid;
+  const eventId = request.data.eventId;
+
+  if (!eventId || typeof eventId !== "string") {
+    throw new HttpsError("invalid-argument", "Must provide a valid eventId");
+  }
+
+  try {
+    const db = admin.firestore();
+    const eventRef = db.collection("events").doc(eventId);
+    const eventSnap = await eventRef.get();
+
+    if (!eventSnap.exists) {
+      throw new HttpsError("not-found", "Event not found");
+    }
+
+    const eventData = eventSnap.data();
+    const clubId = eventData.clubId;
+
+    if (!clubId) {
+      throw new HttpsError("invalid-argument", "Event is not associated with a club");
+    }
+
+    // Verify caller is a club admin of this club or a system admin
+    const callerRecord = await admin.auth().getUser(callerUid);
+    const callerRole = (callerRecord.customClaims && callerRecord.customClaims.role);
+
+    if (callerRole !== "admin") {
+      // Check if user is club admin for this specific club
+      const userDoc = await db.collection("users").doc(callerUid).get();
+      const userData = userDoc.data() || {};
+      const clubsAdminOf = userData.clubsAdminOf || [];
+
+      if (!clubsAdminOf.includes(clubId)) {
+        throw new HttpsError(
+          "permission-denied",
+          "You do not have permission to delete this event",
+        );
+      }
+    }
+
+    // Delete the event document
+    await eventRef.delete();
+    console.log(`Deleted event ${eventId} by user ${callerUid}`);
+
+    // Delete all notifications for this event
+    const notificationsSnapshot = await db
+      .collection("notifications")
+      .where("eventId", "==", eventId)
+      .get();
+
+    if (!notificationsSnapshot.empty) {
+      const batch = db.batch();
+      notificationsSnapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      console.log(`Deleted ${notificationsSnapshot.size} notifications for event ${eventId}`);
+    }
+
+    // Also check targetId field for notifications (different field name)
+    const targetNotificationsSnapshot = await db
+      .collection("notifications")
+      .where("targetId", "==", eventId)
+      .where("targetType", "==", "event")
+      .get();
+
+    if (!targetNotificationsSnapshot.empty) {
+      const batch = db.batch();
+      targetNotificationsSnapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      console.log(`Deleted ${targetNotificationsSnapshot.size} target notifications for event ${eventId}`);
+    }
+
+    // Remove event reference from club's events array
+    if (clubId) {
+      try {
+        const clubRef = db.collection("clubs").doc(clubId);
+        await clubRef.update({
+          events: admin.firestore.FieldValue.arrayRemove(eventRef),
+        });
+        console.log(`Removed event ${eventId} from club ${clubId} events array`);
+      } catch (err) {
+        console.warn(`Could not remove event from club events array: ${err.message}`);
+      }
+    }
+
+    return {
+      success: true,
+      message: `Event ${eventId} deleted successfully`,
+    };
+  } catch (error) {
+    console.error("Error deleting club event:", error);
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    throw new HttpsError("internal", error.message || "Internal server error");
+  }
+});
+
+exports.autoDeleteOldClubEvents = onSchedule("every day 02:00", async () => {
+  console.log("Scheduled run: auto-deleting old club events");
+  const db = admin.firestore();
+
+  try {
+    const sevenDaysAgo = admin.firestore.Timestamp.fromMillis(
+      Date.now() - (7 * 24 * 60 * 60 * 1000),
+    );
+
+    const oldEventsSnapshot = await db
+      .collection("events")
+      .where("eventType", "==", "club")
+      .where("endTime", "<", sevenDaysAgo)
+      .limit(100)
+      .get();
+
+    if (oldEventsSnapshot.empty) {
+      console.log("No old club events to delete");
+      return;
+    }
+
+    let deletedCount = 0;
+    let errorCount = 0;
+
+    for (const eventDoc of oldEventsSnapshot.docs) {
+      try {
+        const eventId = eventDoc.id;
+        const eventData = eventDoc.data();
+        const clubId = eventData.clubId;
+
+        // Delete the event
+        await eventDoc.ref.delete();
+
+        // Delete associated notifications by eventId field
+        const notificationsSnapshot = await db
+          .collection("notifications")
+          .where("eventId", "==", eventId)
+          .get();
+
+        if (!notificationsSnapshot.empty) {
+          const batch = db.batch();
+          notificationsSnapshot.docs.forEach((doc) => {
+            batch.delete(doc.ref);
+          });
+          await batch.commit();
+        }
+
+        // Delete associated notifications by targetId field
+        const targetNotificationsSnapshot = await db
+          .collection("notifications")
+          .where("targetId", "==", eventId)
+          .where("targetType", "==", "event")
+          .get();
+
+        if (!targetNotificationsSnapshot.empty) {
+          const batch = db.batch();
+          targetNotificationsSnapshot.docs.forEach((doc) => {
+            batch.delete(doc.ref);
+          });
+          await batch.commit();
+        }
+
+        // Remove event reference from club's events array
+        if (clubId) {
+          try {
+            const clubRef = db.collection("clubs").doc(clubId);
+            await clubRef.update({
+              events: admin.firestore.FieldValue.arrayRemove(eventDoc.ref),
+            });
+          } catch (err) {
+            console.warn(`Could not remove event ${eventId} from club ${clubId}: ${err.message}`);
+          }
+        }
+
+        deletedCount++;
+        console.log(`Auto-deleted old event ${eventId} (${eventData.eventName || "unnamed"})`);
+      } catch (err) {
+        errorCount++;
+        console.error(`Error deleting event ${eventDoc.id}:`, err);
+      }
+    }
+
+    console.log(
+      `Auto-delete complete: ${deletedCount} events deleted, ${errorCount} errors`,
+    );
+  } catch (err) {
+    console.error("Error in auto-delete old club events:", err);
+  }
+});
