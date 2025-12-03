@@ -201,14 +201,6 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
         'submittedAt': FieldValue.serverTimestamp(),
       });
 
-      //********************************************************************************** */
-      // THE BELOW CODE IS TEST CODE
-      await FirebaseFirestore.instance.collection('SeriesNotifications').add({
-        
-
-      });
-      //********************************************************************************** */
-
       if (!mounted) return;
       
       ScaffoldMessenger.of(context).showSnackBar(

@@ -220,6 +220,8 @@ class ProfileScreenState extends State<ProfileScreen> {
                                     displayEmail = 'user@example.com';
                                   }
 
+                                  final clubIds = userData?.clubsAdminOf ?? [];
+
                                   return Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -254,7 +256,28 @@ class ProfileScreenState extends State<ProfileScreen> {
                                               decoration:
                                                   TextDecoration.underline,
                                               decorationColor:
-                                                  AppColors.tanText))
+                                                  AppColors.tanText)),
+                                      if (clubIds.isNotEmpty)
+                                        FutureBuilder<List<String>>(
+                                          future: _getClubAcronyms(clubIds),
+                                          builder: (context, snapshot) {
+                                            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                                              return const SizedBox.shrink();
+                                            }
+                                            return Padding(
+                                              padding: const EdgeInsets.only(top: 4.0),
+                                              child: AutoSizeText(
+                                                'Clubs: ${snapshot.data!.join(', ')}',
+                                                maxLines: 2,
+                                                minFontSize: 7,
+                                                style: const TextStyle(
+                                                  color: AppColors.tanText,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
                                     ],
                                   );
                                 },
@@ -265,33 +288,6 @@ class ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     SizedBox(height: screenHeight * 0.02),
-                    Consumer<UserProvider>(builder: (context, userProvider, child) {
-                      final clubIds = userProvider.clubsAdminOf;
-                      if (clubIds.isEmpty) return const SizedBox.shrink();
-                      
-                      return FutureBuilder<List<String>>(
-                        future: _getClubAcronyms(clubIds),
-                        builder: (context, snapshot) {
-                          if (!snapshot.hasData) {
-                            return const SizedBox.shrink();
-                          }
-                          
-                          final acronyms = snapshot.data!;
-                          if (acronyms.isEmpty) return const SizedBox.shrink();
-                          
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                            child: Text(
-                              'Clubs you administer: ${acronyms.join(', ')}',
-                              style: const TextStyle(
-                                color: AppColors.tanText,
-                                fontSize: 14,
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    }),
                     Center(
                       child: SizedBox(
                         width: double.infinity,
