@@ -287,6 +287,16 @@ class AppState extends ChangeNotifier {
 
       // Dual-write: Write to both user's joinedClubs AND club's members collection
       // This ensures club notifications can efficiently find all members
+      // Get user's name from Firestore
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      
+      final userData = userDoc.data();
+      final userName = userData?['name'] ?? 
+          '${userData?['firstName'] ?? ''} ${userData?['lastName'] ?? ''}'.trim();
+
       await Future.wait([
         // User's personal club list (full club data)
         FirebaseFirestore.instance
@@ -304,6 +314,7 @@ class AppState extends ChangeNotifier {
             .doc(user.uid)
             .set({
           'uid': user.uid,
+          'name': userName.isNotEmpty ? userName : user.email ?? 'Unknown',
           'joinedAt': FieldValue.serverTimestamp(),
         }),
       ]);
