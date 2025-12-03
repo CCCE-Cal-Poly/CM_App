@@ -47,6 +47,22 @@ class _MyClubEventsScreenState extends State<MyClubEventsScreen> {
         return;
       }
 
+      // Get club info for matching
+      final clubsSnapshot = await FirebaseFirestore.instance
+          .collection('clubs')
+          .where(FieldPath.documentId, whereIn: clubIds)
+          .get();
+      
+      final clubNames = <String>{};
+      final clubAcronyms = <String>{};
+      for (final doc in clubsSnapshot.docs) {
+        final data = doc.data();
+        final name = data['Name'] as String?;
+        final acronym = data['Acronym'] as String?;
+        if (name != null) clubNames.add(name);
+        if (acronym != null) clubAcronyms.add(acronym);
+      }
+
       // Query all club events
       final snapshot = await FirebaseFirestore.instance
           .collection('events')
@@ -60,8 +76,14 @@ class _MyClubEventsScreenState extends State<MyClubEventsScreen> {
           final event = CalEvent.fromSnapshot(doc);
           final eventData = doc.data();
           final eventClubId = eventData['clubId'] as String?;
+          final eventCompany = eventData['company'] as String?;
+          final eventClubName = eventData['clubName'] as String?;
           
-          if (eventClubId != null && clubIds.contains(eventClubId)) {
+          // Check if this event belongs to a club the user administers
+          // by checking clubId, company name, or clubName field
+          if ((eventClubId != null && clubIds.contains(eventClubId)) ||
+              (eventCompany != null && (clubNames.contains(eventCompany) || clubAcronyms.contains(eventCompany))) ||
+              (eventClubName != null && (clubNames.contains(eventClubName) || clubAcronyms.contains(eventClubName)))) {
             events.add(event);
           }
         } catch (e) {

@@ -82,6 +82,11 @@ exports.setUserRole = onCall(async (request) => {
 
     // If making someone a club admin, also add them as members of those clubs
     if (normalizedRole === "club admin" && mergedClubs.length > 0) {
+      // Get user's name from users collection
+      const userDocSnap = await admin.firestore().collection("users").doc(uid).get();
+      const userData = userDocSnap.data() || {};
+      const userName = userData.name || `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || "Unknown";
+      
       for (const clubId of mergedClubs) {
         promises.push(
           admin
@@ -92,6 +97,7 @@ exports.setUserRole = onCall(async (request) => {
             .doc(uid)
             .set({
               uid: uid,
+              name: userName,
               joinedAt: admin.firestore.FieldValue.serverTimestamp(),
               isAdmin: true,
             }, {merge: true}),
@@ -147,7 +153,9 @@ exports.approveClubEvent = onCall(async (request) => {
   const reqData = reqSnap.data() || {};
   const clubId = reqData.clubId || null;
   const eventDoc = {
+    clubId: clubId,
     company: reqData.clubName || "",
+    clubName: reqData.clubName || "",
     eventName: reqData.eventName || "",
     startTime:
       reqData.startTime || admin.firestore.FieldValue.serverTimestamp(),
