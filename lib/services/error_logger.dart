@@ -6,11 +6,15 @@ class ErrorLogger {
   /// Log an error with context
   static void logError(
     String context,
-    dynamic error, {
+    String message, {
+    Object? error,
     StackTrace? stackTrace,
   }) {
     if (kDebugMode) {
-      print('❌ ERROR [$context]: $error');
+      print('❌ ERROR [$context]: $message');
+      if (error != null) {
+        print('Error: $error');
+      }
       if (stackTrace != null) {
         print('Stack trace: $stackTrace');
       }

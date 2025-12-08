@@ -1,10 +1,12 @@
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
+import 'package:ccce_application/common/providers/event_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:provider/provider.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -379,11 +381,18 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                                       // Get fresh token
                                       await currentUser.getIdToken(true);
                                       
-                                      await FirebaseFunctions.instance
+                                      final result = await FirebaseFunctions.instance
                                           .httpsCallable('approveClubEvent')
                                           .call(<String, dynamic>{
                                             'requestId': doc.id,
                                           });
+                                      
+                                      // Add just the new event (cost-efficient)
+                                      if (mounted && result.data['eventId'] != null) {
+                                        final eventProvider = Provider.of<EventProvider>(outerContext, listen: false);
+                                        await eventProvider.addEventById(result.data['eventId']);
+                                      }
+                                      
                                       if (!mounted) return;
                                       ScaffoldMessenger.of(outerContext).showSnackBar(
                                         const SnackBar(content: Text('Event approved and added to calendar'))

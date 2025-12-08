@@ -3,6 +3,7 @@ import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/club.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ccce_application/services/error_logger.dart';
 
 class ClubDirectory extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -26,7 +27,7 @@ class _ClubDirectoryState extends State<ClubDirectory> {
       clubs.add(newClub);
     });
   } catch (e) {
-    print('Error fetching data: $e');
+    ErrorLogger.logError('ClubDirectory', 'Error fetching data', error: e);
   }
 
     return clubs;

@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:ccce_application/services/error_logger.dart';
 
 class SignIn extends StatefulWidget {
   const SignIn({super.key});
@@ -287,7 +288,7 @@ class _SignInState extends State<SignIn> {
         return; // Stop execution if fields are empty
       }
 
-      print("Attempting to sign in with email: $email");
+      ErrorLogger.logInfo('SignIn', 'Attempting to sign in with email: $email');
 
       UserCredential userCredential =
           await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -295,14 +296,14 @@ class _SignInState extends State<SignIn> {
         password: password,
       );
 
-      print("FirebaseAuth.instance.signInWithEmailAndPassword completed.");
+      ErrorLogger.logInfo('SignIn', 'FirebaseAuth.instance.signInWithEmailAndPassword completed.');
 
       if (userCredential.user != null) {
-        print("Sign-in successful, user UID: ${userCredential.user!.uid}");
+        ErrorLogger.logInfo('SignIn', 'Sign-in successful, user UID: ${userCredential.user!.uid}');
         
         // Check if email is verified
         if (!userCredential.user!.emailVerified) {
-          print("Email not verified, redirecting to verification screen");
+          ErrorLogger.logInfo('SignIn', 'Email not verified, redirecting to verification screen');
           if (mounted) {
             setState(() {
               errorMsg = "";
@@ -325,7 +326,7 @@ class _SignInState extends State<SignIn> {
             });
           }
 
-          print("Navigating to RenderedPage...");
+          ErrorLogger.logInfo('SignIn', 'Navigating to RenderedPage...');
           if (mounted) {
             // Check if the widget is still in the tree before navigating
             final prefs = await SharedPreferences.getInstance();
@@ -342,20 +343,13 @@ class _SignInState extends State<SignIn> {
               ),
             );
           }
-          print("Navigation call to RenderedPage completed.");
+          ErrorLogger.logInfo('SignIn', 'Navigation call to RenderedPage completed.');
         } catch (navError, navStack) {
-          print("Error during setState or navigation: $navError");
-          print("Navigation Error StackTrace: $navStack");
-          if (mounted) {
-            setState(() {
-              errorMsg = "Error navigating: ${navError.toString()}";
-            });
-          }
+          ErrorLogger.logError('SignIn', 'Error during setState or navigation', error: navError, stackTrace: navStack);
         }
       } else {
         // This case should ideally not be reached if signInWithEmailAndPassword throws an error for failure
-        print(
-            "Sign-in attempt returned null user, but no exception was thrown.");
+        ErrorLogger.logWarning('SignIn', 'Sign-in attempt returned null user, but no exception was thrown.');
         if (mounted) {
           setState(() {
             errorMsg = "Sign-in failed: No user data returned.";
@@ -364,12 +358,11 @@ class _SignInState extends State<SignIn> {
       }
     } catch (e, s) {
       // Catching both exception and stack trace
-      print("SIGN_IN_ERROR: $e");
-      print("SIGN_IN_STACK_TRACE: $s");
+      ErrorLogger.logError('SignIn', 'SIGN_IN_ERROR', error: e, stackTrace: s);
       String tempErrorMsg = "An unexpected error occurred."; // Default message
 
       if (e is FirebaseAuthException) {
-        print("Firebase Auth Exception Code: ${e.code}");
+        ErrorLogger.logInfo('SignIn', 'Firebase Auth Exception Code: ${e.code}');
         if (e.code == "wrong-password" ||
             e.code == "invalid-credential" ||
             e.code == "INVALID_LOGIN_CREDENTIALS") {
@@ -435,7 +428,7 @@ class _SignInState extends State<SignIn> {
       
       if (userCredential.user != null) {
         final user = userCredential.user!;
-        print("Google sign-in successful, user UID: ${user.uid}");
+        ErrorLogger.logInfo('SignIn', 'Google sign-in successful, user UID: ${user.uid}');
 
         // Check if this is a new user - if so, create Firestore document
         final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
@@ -484,7 +477,7 @@ class _SignInState extends State<SignIn> {
         }
       }
     } catch (e) {
-      print("Google Sign-In Error: $e");
+      ErrorLogger.logError('SignIn', 'Google Sign-In Error', error: e);
       
       String tempErrorMsg = "Failed to sign in with Google.";
       

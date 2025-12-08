@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:ccce_application/services/error_logger.dart';
 
 enum UserRole { admin, clubAdmin, student, faculty }
 extension UserRoleExtension on UserRole {
@@ -64,5 +65,5 @@ Future<void> setUserRole(String uid, String role, [List<String>? clubs]) async {
   final payload = <String, dynamic>{'uid': uid, 'role': role};
   if (clubs != null) payload['clubs'] = clubs;
   final result = await callable.call(payload);
-  print(result.data);
+  ErrorLogger.logInfo('UserData', 'setUserRole result: ${result.data}');
 }

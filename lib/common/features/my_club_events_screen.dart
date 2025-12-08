@@ -7,6 +7,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 class MyClubEventsScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -372,6 +373,9 @@ class _EventCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(4),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
@@ -413,12 +417,14 @@ class _EventCard extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(
+                        child: AutoSizeText(
                           event.eventName,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
+                          minFontSize: 12,
+                          maxLines: 2,
                         ),
                       ),
                       if (!_isUpcoming)
@@ -448,12 +454,14 @@ class _EventCard extends StatelessWidget {
                       const Icon(Icons.access_time, size: 14, color: Colors.grey),
                       const SizedBox(width: 4),
                       Expanded(
-                        child: Text(
+                        child: AutoSizeText(
                           _formatDateTime(event.startTime),
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],
                           ),
+                          minFontSize: 9,
+                          maxLines: 1,
                         ),
                       ),
                     ],
@@ -465,12 +473,14 @@ class _EventCard extends StatelessWidget {
                         const Icon(Icons.location_on, size: 14, color: Colors.grey),
                         const SizedBox(width: 4),
                         Expanded(
-                          child: Text(
+                          child: AutoSizeText(
                             event.eventLocation,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[600],
                             ),
+                            minFontSize: 9,
+                            maxLines: 1,
                           ),
                         ),
                       ],

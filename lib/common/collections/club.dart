@@ -53,22 +53,46 @@ class Club implements Comparable<Club> {
           .collection('clubs')
           .doc(id)
           .get();
-      
+
       final data = clubDoc.data();
       if (data != null && data['events'] != null) {
         final eventRefs = List<DocumentReference>.from(data['events']);
-        
+
         final eventDocs = await Future.wait(
           eventRefs.map((ref) => ref.get())
         );
-        
+
         events = eventDocs
             .where((doc) => doc.exists)
-            .map((doc) => CalEvent.fromSnapshot(doc))
+            .map((doc) {
+              try {
+                return CalEvent.fromSnapshot(doc);
+              } catch (e) {
+                return null;
+              }
+            })
+            .whereType<CalEvent>()
+            .toList();
+      } else {
+        // Fallback: Query events collection directly by clubId
+        final eventQuery = await FirebaseFirestore.instance
+            .collection('events')
+            .where('clubId', isEqualTo: id)
+            .get();
+
+        events = eventQuery.docs
+            .map((doc) {
+              try {
+                return CalEvent.fromSnapshot(doc);
+              } catch (e) {
+                return null;
+              }
+            })
+            .whereType<CalEvent>()
             .toList();
       }
     } catch (e) {
-      print('Error fetching club events: $e');
+      debugPrint('Error fetching club events: $e');
     }
   }
 
@@ -201,6 +225,7 @@ class _ClubPopUpState extends State<ClubPopUp> {
       return isClubEvent && isUpcoming;
     }).toList()
     ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    
     return Scaffold(
       backgroundColor: AppColors.calPolyGreen,
       body: ListView(
@@ -324,10 +349,27 @@ class _ClubPopUpState extends State<ClubPopUp> {
                                                 'clubsAdminOf': FieldValue.arrayRemove([widget.club.id])
                                               });
                                               
+                                              // Check if user has any clubs left - if not, downgrade to student
+                                              final updatedDoc = await FirebaseFirestore.instance
+                                                  .collection('users')
+                                                  .doc(user.uid)
+                                                  .get();
+                                              final clubsLeft = List<String>.from(updatedDoc.data()?['clubsAdminOf'] ?? []);
+                                              
+                                              if (clubsLeft.isEmpty) {
+                                                // No clubs left - downgrade to student
+                                                await FirebaseFirestore.instance
+                                                    .collection('users')
+                                                    .doc(user.uid)
+                                                    .update({'role': 'student'});
+                                              }
+                                              
                                               if (!mounted) return;
                                               ScaffoldMessenger.of(context).showSnackBar(
                                                 SnackBar(
-                                                  content: Text('Removed as admin of ${widget.club.name}'),
+                                                  content: Text(clubsLeft.isEmpty 
+                                                      ? 'Removed as admin of ${widget.club.name}. Role changed to Student.'
+                                                      : 'Removed as admin of ${widget.club.name}'),
                                                   backgroundColor: Colors.green,
                                                 ),
                                               );

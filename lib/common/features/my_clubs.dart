@@ -6,13 +6,14 @@ import 'package:ccce_application/common/providers/app_state.dart';
 import 'package:ccce_application/common/widgets/resilient_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:ccce_application/services/error_logger.dart';
 
 Widget buildMyClubsList(context) {
   final joinedClubs =
       Provider.of<AppState>(context, listen: true).joinedClubs?.toList() ??
           [];
   
-  print("My joined clubs: ${joinedClubs.map((c) => c.name)}");
+  ErrorLogger.logInfo('MyClubs', 'My joined clubs: ${joinedClubs.map((c) => c.name)}');
 
   Widget sectionHeader(String text, {bool italic = false}) => Padding(
         padding: const EdgeInsets.only(left: 16, top: 12, bottom: 8),

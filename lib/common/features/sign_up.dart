@@ -6,6 +6,7 @@ import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:ccce_application/services/error_logger.dart';
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
@@ -231,28 +232,23 @@ class _SignUpState extends State<SignUp> {
         });
         return;
       }
-      print('hit0');
       await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
-      print('hit1');
       UserCredential userCredential =
           await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
       String? userID = userCredential.user?.uid;
-      print('hit2');
       if (userID == null) {
         setState(() {
           errorMsg = "Failed to create user.  Please try again.";
         });
         return;
       }
-      print('hit3');
       // 3. Get FCM Token and add to user document in Firestore
       String? fcmToken = await FirebaseMessaging.instance.getToken();
-      print('FCM Token on signup: $fcmToken'); // For debugging
-      print('hit4');
+      ErrorLogger.logInfo('SignUp', 'FCM Token on signup: $fcmToken');
       // Prepare user data map
       Map<String, dynamic> userData = {
         'email': email,
@@ -263,12 +259,11 @@ class _SignUpState extends State<SignUp> {
         'role': "",
         'admin': false
       };
-      print('hit5');
       // Add FCM token if available
       if (fcmToken != null) {
         userData['fcmToken'] = fcmToken;
       } else {
-        print('Warning: FCM token was null during signup for user: $userID');
+        ErrorLogger.logWarning('SignUp', 'FCM token was null during signup for user: $userID');
         // Consider if you want to handle this more robustly, e.g.,
         // retrying token retrieval later or logging to an error reporting service.
       }
@@ -296,7 +291,7 @@ class _SignUpState extends State<SignUp> {
     } catch (e) {
       if (e is FirebaseAuthException) {
         if (e.code == "weak-password") {
-          print(_emailController.text.trim().isEmpty);
+          ErrorLogger.logInfo('SignUp', 'Email empty check: ${_emailController.text.trim().isEmpty}');
           if (_emailController.text.trim().isEmpty) {
             setState(() {
               errorMsg = "Invalid Credentials";

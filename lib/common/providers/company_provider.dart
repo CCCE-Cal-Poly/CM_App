@@ -1,6 +1,7 @@
 import 'package:ccce_application/common/collections/company.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ccce_application/services/error_logger.dart';
 
 class CompanyProvider extends ChangeNotifier {
   List<Company> _allCompanies = [];
@@ -29,14 +30,14 @@ class CompanyProvider extends ChangeNotifier {
             .get(const GetOptions(source: Source.cache));
         
         if (cacheSnapshot.docs.isNotEmpty) {
-          print("📦 Loaded ${cacheSnapshot.docs.length} companies from cache");
+          ErrorLogger.logInfo('CompanyProvider', 'Loaded ${cacheSnapshot.docs.length} companies from cache');
           _allCompanies.clear();
           for (final doc in cacheSnapshot.docs) {
             try {
               final company = Company.fromSnapshot(doc);
               _allCompanies.add(company);
             } catch (e) {
-              print("⚠️ Failed to parse cached company");
+              ErrorLogger.logWarning('CompanyProvider', 'Failed to parse cached company');
             }
           }
           _allCompanies.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
@@ -45,13 +46,13 @@ class CompanyProvider extends ChangeNotifier {
           notifyListeners();
         }
       } catch (cacheError) {
-        print("💾 Cache miss for companies");
+        ErrorLogger.logInfo('CompanyProvider', 'Cache miss for companies');
       }
       
       final snapshot = await FirebaseFirestore.instance
           .collection('companies')
           .get(const GetOptions(source: Source.server));
-      print("🌐 ${loadedFromCache ? 'Refreshed' : 'Fetched'} ${snapshot.docs.length} companies from server");
+      ErrorLogger.logInfo('CompanyProvider', '${loadedFromCache ? 'Refreshed' : 'Fetched'} ${snapshot.docs.length} companies from server');
       _allCompanies.clear();
 
       for (final doc in snapshot.docs) {
@@ -59,14 +60,14 @@ class CompanyProvider extends ChangeNotifier {
           final company = Company.fromSnapshot(doc);
           _allCompanies.add(company);
         } catch (e) {
-          print("⚠️ Failed to parse company doc");
+          ErrorLogger.logWarning('CompanyProvider', 'Failed to parse company doc');
         }
       }
       _allCompanies.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       _isLoaded = true;
       notifyListeners();
     } catch (e) {
-      print('❌ Error fetching companies: $e');
+      ErrorLogger.logError('CompanyProvider', 'Error fetching companies', error: e);
     }
   }
   

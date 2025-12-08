@@ -3,6 +3,8 @@ import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/faculty.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ccce_application/services/error_logger.dart';
+
 
 class FacultyDirectory extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -52,7 +54,7 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
       });
     } catch (e) {
       // Handle any errors that occur
-      print('Error fetching data: $e');
+      ErrorLogger.logError('FacultyDirectory', 'Error fetching data', error: e);
     }
 
     return facultyList;

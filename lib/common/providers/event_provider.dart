@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ccce_application/services/error_logger.dart';
 
 class EventProvider extends ChangeNotifier {
   final List<CalEvent> _allEvents = [];
@@ -72,7 +73,7 @@ class EventProvider extends ChangeNotifier {
     }
     
     if (linkedCount > 0) {
-      print('✅ Linked $linkedCount company logos to info sessions');
+      ErrorLogger.logInfo('EventProvider', 'Linked $linkedCount company logos to info sessions');
       _needsLogoLinking = false;
       notifyListeners();
     }
@@ -80,6 +81,11 @@ class EventProvider extends ChangeNotifier {
   
   Future<void> fetchAllEvents() async {
     try {
+      // Retry logic for auth token propagation (handles fresh sign-in edge case)
+      int retries = 0;
+      const maxRetries = 3;
+      Exception? lastError;
+      
       if (!_isLoaded) {
         try {
           final cacheSnapshot = await FirebaseFirestore.instance
@@ -87,21 +93,21 @@ class EventProvider extends ChangeNotifier {
               .get(const GetOptions(source: Source.cache));
           
           if (cacheSnapshot.docs.isNotEmpty) {
-            print("📦 Loaded ${cacheSnapshot.docs.length} events from cache (instant)");
+            ErrorLogger.logInfo('EventProvider', 'Loaded ${cacheSnapshot.docs.length} events from cache (instant)');
             _allEvents.clear();
             for (final doc in cacheSnapshot.docs) {
               try {
                 final event = CalEvent.fromSnapshot(doc);
                 _allEvents.add(event);
               } catch (e) {
-                print('⚠️ Failed to parse cached event: $e');
+                ErrorLogger.logWarning('EventProvider', 'Failed to parse cached event: $e');
               }
             }
             _isLoaded = true;
             notifyListeners();
           }
         } catch (cacheError) {
-          print('💾 Cache miss, fetching from server...');
+          ErrorLogger.logInfo('EventProvider', 'Cache miss, fetching from server...');
         }
       }
       
@@ -109,59 +115,108 @@ class EventProvider extends ChangeNotifier {
       
       if (_lastSyncTime != null) {
         query = query.where('updatedAt', isGreaterThan: Timestamp.fromDate(_lastSyncTime!));
-        print("🔄 Incremental sync: fetching events updated after ${_lastSyncTime!.toLocal()}");
+        ErrorLogger.logInfo('EventProvider', 'Incremental sync: fetching events updated after ${_lastSyncTime!.toLocal()}');
       } else {
-        print("🌐 Full sync: fetching all events");
+        ErrorLogger.logInfo('EventProvider', 'Full sync: fetching all events');
       }
       
-      final snapshot = await query.get(const GetOptions(source: Source.server));
-      
-      if (_lastSyncTime != null) {
-        int added = 0, updated = 0;
-        
-        for (final doc in snapshot.docs) {
-          try {
-            final newEvent = CalEvent.fromSnapshot(doc);
-            final existingIndex = _allEvents.indexWhere((e) => e.id == newEvent.id);
+      // Retry server fetch with exponential backoff (handles auth token propagation delay)
+      while (retries < maxRetries) {
+        try {
+          final snapshot = await query.get(const GetOptions(source: Source.server));
+          lastError = null; // Success!
+          
+          if (_lastSyncTime != null) {
+            int added = 0, updated = 0;
             
-            if (existingIndex >= 0) {
-              _allEvents[existingIndex] = newEvent;
-              updated++;
-            } else {
-              _allEvents.add(newEvent);
-              added++;
+            for (final doc in snapshot.docs) {
+              try {
+                final newEvent = CalEvent.fromSnapshot(doc);
+                final existingIndex = _allEvents.indexWhere((e) => e.id == newEvent.id);
+                
+                if (existingIndex >= 0) {
+                  _allEvents[existingIndex] = newEvent;
+                  updated++;
+                } else {
+                  _allEvents.add(newEvent);
+                  updated++;
+                }
+              } catch (e) {
+                ErrorLogger.logWarning('EventProvider', 'Failed to parse event doc ${doc.id}: $e');
+              }
             }
-          } catch (e) {
-            print('⚠️ Failed to parse event doc ${doc.id}: $e');
+            
+            ErrorLogger.logInfo('EventProvider', 'Incremental sync complete: $added new, $updated updated (${snapshot.docs.length} total changed)');
+            
+            // If new events were added, mark that we need to re-link logos
+            if (added > 0 || updated > 0) {
+              _needsLogoLinking = true;
+            }
+          } else {
+            _allEvents.clear();
+            for (final doc in snapshot.docs) {
+              try {
+                final event = CalEvent.fromSnapshot(doc);
+                _allEvents.add(event);
+              } catch (e) {
+                ErrorLogger.logWarning('EventProvider', 'Failed to parse event doc ${doc.id}: $e');
+              }
+            }
+            ErrorLogger.logInfo('EventProvider', 'Full sync complete: ${snapshot.docs.length} events loaded');
+            _needsLogoLinking = true;
+          }
+          
+          _lastSyncTime = DateTime.now();
+          _isLoaded = true;
+          notifyListeners();
+          break; // Success - exit retry loop
+          
+        } catch (e) {
+          retries++;
+          lastError = e is Exception ? e : Exception(e.toString());
+          
+          if (retries < maxRetries) {
+            final delayMs = 200 * retries; // 200ms, 400ms, 600ms
+            ErrorLogger.logWarning('EventProvider', 'Server fetch failed (attempt $retries/$maxRetries), retrying in ${delayMs}ms: $e');
+            await Future.delayed(Duration(milliseconds: delayMs));
+          } else {
+            ErrorLogger.logError('EventProvider', 'Server fetch failed after $maxRetries attempts', error: lastError);
+            throw lastError!;
           }
         }
-        
-        print("✅ Incremental sync complete: $added new, $updated updated (${snapshot.docs.length} total changed)");
-        
-        // If new events were added, mark that we need to re-link logos
-        if (added > 0 || updated > 0) {
-          _needsLogoLinking = true;
-        }
-      } else {
-        _allEvents.clear();
-        for (final doc in snapshot.docs) {
-          try {
-            final event = CalEvent.fromSnapshot(doc);
-            _allEvents.add(event);
-          } catch (e) {
-            print('⚠️ Failed to parse event doc ${doc.id}: $e');
-          }
-        }
-        print("✅ Full sync complete: ${snapshot.docs.length} events loaded");
-        _needsLogoLinking = true;
       }
-      
-      _lastSyncTime = DateTime.now();
-      _isLoaded = true;
-      notifyListeners();
       
     } catch (e) {
-      print('❌ Error fetching events: $e');
+      ErrorLogger.logError('EventProvider', 'Error fetching events', error: e);
+    }
+  }
+
+  /// Fetch a single event by ID and add it to the provider (cost-efficient)
+  Future<void> addEventById(String eventId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('events')
+          .doc(eventId)
+          .get();
+      
+      if (doc.exists) {
+        final newEvent = CalEvent.fromSnapshot(doc);
+        
+        // Check if event already exists and update, otherwise add
+        final existingIndex = _allEvents.indexWhere((e) => e.id == newEvent.id);
+        if (existingIndex >= 0) {
+          _allEvents[existingIndex] = newEvent;
+          ErrorLogger.logInfo('EventProvider', 'Updated existing event: ${newEvent.eventName}');
+        } else {
+          _allEvents.add(newEvent);
+          ErrorLogger.logInfo('EventProvider', 'Added new event to calendar: ${newEvent.eventName}');
+        }
+        
+        _needsLogoLinking = true;
+        notifyListeners();
+      }
+    } catch (e) {
+      ErrorLogger.logError('EventProvider', 'Error fetching single event', error: e);
     }
   }
 
