@@ -44,16 +44,23 @@ service cloud.firestore {
     match /companies/{companyId} {
       allow read: if request.auth != null;
     }
-
+		
     // Allow authenticated users to read from the 'events' collection
     match /events/{eventId} {
       allow read: if request.auth != null;
-      
+      allow delete: if request.auth != null 
+&& get(/databases/$(database)/documents/events/$(eventId)).eventType == 'club'
+&& get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'club admin'
+&& exists(/databases/$(database)/documents/clubs/$(get(/databases/$(database)/documents/events/$(eventId)).clubId)/members/$(request.auth.uid))
+
       // Allow users to manage their own check-in status in event attending collection
       match /attending/{userId} {
         allow read: if request.auth != null;
         allow write: if request.auth != null && request.auth.uid == userId;
       }
+      match /exceptions/{exceptionId} {
+  			allow read: if request.auth != null;
+			}
     }
 
     // Allow authenticated users to read from the 'faculty' collection
@@ -83,6 +90,12 @@ service cloud.firestore {
     // For all other documents, deny read and write by default
     match /{document=**} {
       allow read, write: if false;
+    }
+    
+    match /facultyRequests/{docID} {
+			allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;	
     }
   }
 }
