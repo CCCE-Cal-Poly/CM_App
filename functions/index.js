@@ -82,11 +82,6 @@ exports.setUserRole = onCall(async (request) => {
 
     // If making someone a club admin, also add them as members of those clubs
     if (normalizedRole === "club admin" && mergedClubs.length > 0) {
-      // Get user's name from users collection
-      const userDocSnap = await admin.firestore().collection("users").doc(uid).get();
-      const userData = userDocSnap.data() || {};
-      const userName = userData.name || `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || "Unknown";
-      
       for (const clubId of mergedClubs) {
         promises.push(
           admin
@@ -97,7 +92,6 @@ exports.setUserRole = onCall(async (request) => {
             .doc(uid)
             .set({
               uid: uid,
-              name: userName,
               joinedAt: admin.firestore.FieldValue.serverTimestamp(),
               isAdmin: true,
             }, {merge: true}),
@@ -153,9 +147,7 @@ exports.approveClubEvent = onCall(async (request) => {
   const reqData = reqSnap.data() || {};
   const clubId = reqData.clubId || null;
   const eventDoc = {
-    clubId: clubId,
     company: reqData.clubName || "",
-    clubName: reqData.clubName || "",
     eventName: reqData.eventName || "",
     startTime:
       reqData.startTime || admin.firestore.FieldValue.serverTimestamp(),
@@ -168,6 +160,9 @@ exports.approveClubEvent = onCall(async (request) => {
     logo: reqData.logoUrl || reqData.logo || "",
     Status: "approved",
     description: reqData.description || "",
+    recurrenceType: reqData.recurrenceType || "Never",
+    recurrenceInterval: reqData.recurrenceInterval || null,
+    recurrenceEndDate: reqData.recurrenceEndDate || null,
     submittedBy: {
       uid: reqData.requestedByUid || null,
       name: reqData.requestedByName || null,
@@ -178,29 +173,29 @@ exports.approveClubEvent = onCall(async (request) => {
 
   try {
     const newEventRef = await db.collection("events").add(eventDoc);
-    
+
     // Add event reference to club's events array if clubId exists
     if (clubId) {
       const clubRef = db.collection("clubs").doc(clubId);
       const clubSnap = await clubRef.get();
-      
+
       if (clubSnap.exists) {
         // Get the club's logo to use for the event
         const clubData = clubSnap.data() || {};
         const clubLogo = clubData.logo || "";
-        
+
         // Update event with club logo if not already set
         if (!eventDoc.logo && clubLogo) {
           await newEventRef.update({logo: clubLogo});
         }
-        
+
         // Add document reference to club's events array (lowercase 'events')
         await clubRef.update({
           events: admin.firestore.FieldValue.arrayUnion(newEventRef),
         });
       }
     }
-    
+
     await reqRef.delete();
     return {success: true, eventId: newEventRef.id};
   } catch (err) {
@@ -272,7 +267,7 @@ exports.sendNotificationOnCreate = onDocumentCreated("notifications/{notificatio
   const targetId = notification.targetId || notification.uid || null;
   const sendAt = notification.sendAt || null;
 
-  if (sendAt && sendAt.toMillis && sendAt.toMillis() > Date.now()) {
+  if (sendAt && sendAt.toMillis() && sendAt.toMillis() > Date.now()) {
     await snapshot.ref.set({status: "pending"}, {merge: true});
     console.log(`Notification ${event.params.notificationId} scheduled for ${sendAt.toDate()}`);
     return;
@@ -546,7 +541,10 @@ exports.processPendingNotifications = onSchedule("every 5 minutes", async (event
       return;
     }
     const sends = [];
-    q.forEach((doc) => {
+    q.forEach(async (doc) => {
+      if (doc.data().eventData.recurrenceInterval) {
+            scheduleRecurringEventNotification(doc);
+      }
       sends.push(sendNotificationDocNow(doc));
     });
     await Promise.all(sends);
@@ -563,7 +561,7 @@ exports.scheduleEventReminder = onDocumentCreated("events/{eventId}", async (eve
   const eventId = event.params.eventId;
   const startTime = eventData.startTime;
 
-  if (!startTime || !startTime.toMillis || typeof startTime.toMillis !== "function") {
+  if (!startTime || !startTime.toMillis() || typeof startTime.toMillis() !== "function") {
     console.log(`Event ${eventId} has invalid startTime, skipping reminder`);
     return;
   }
@@ -613,6 +611,8 @@ exports.scheduleEventReminder = onDocumentCreated("events/{eventId}", async (eve
         company: eventData.company || null,
         startTime: startTime,
         location: eventLocation,
+        recurrenceInterval: eventData.recurrenceInterval || null,
+        recurrenceEndDate: eventData.recurrenceEndDate || null,
       },
     };
 
@@ -684,6 +684,273 @@ async function sendNotificationDocNow(docSnapshot) {
   }
 }
 
+// exports.onNotificationStatusChange = onDocumentWritten("notifications/{notificationId}", async (event) => {
+//   const after = event.data.after;
+//   const before = event.data.before;
+//   if (!after || !after.exists) return;
+
+
+//   const afterData = after.data() || {};
+//   const beforeData = (before && before.exists) ? before.data() : {};
+
+
+//   // Only act on transitions to 'sent' and only for system-created event reminders
+//   if (afterData.status !== "sent") return;
+//   if (beforeData && beforeData.status === "sent") return; // already processed
+//   if (afterData.createdBy !== "system") return;
+//   if (afterData.targetType !== "event") return;
+
+
+//   const eventId = afterData.targetId || afterData.eventId;
+//   if (!eventId) return;
+
+
+//   // Determine the start time this notification was for
+//   const currentStartTs = afterData.eventData && afterData.eventData.startTime;
+//   let currentStart = null;
+//   if (currentStartTs) {
+//     currentStart = currentStartTs.toDate ? currentStartTs.toDate() : new Date(currentStartTs);
+//   }
+//   if (!currentStart) return;
+
+
+//   try {
+//     const eventSnap = await admin.firestore().collection("events").doc(eventId).get();
+//     if (!eventSnap.exists) return;
+//     const ev = eventSnap.data() || {};
+
+
+//     // Compute next occurrence
+//     const nextStart = computeNextOccurrence(ev, currentStart);
+//     if (!nextStart) return;
+
+
+//     const recurrenceEndTs = ev.recurrenceEndDate;
+//     if (recurrenceEndTs && recurrenceEndTs.toMillis() && nextStart.getTime() > recurrenceEndTs.toMillis()) {
+//       console.log("Next occurrence beyond recurrence end date, skipping");
+//       return;
+//     }
+
+
+//     const sendAt = new Date(nextStart.getTime() - (60 * 60 * 1000)); // 1 hour before
+//     if (sendAt.getTime() <= Date.now()) {
+//       console.log("Next notification sendAt already passed, skipping");
+//       return;
+//     }
+
+
+//     // Avoid duplicates
+//     const existing = await admin.firestore().collection("notifications")
+//       .where("targetType", "==", "event")
+//       .where("targetId", "==", eventId)
+//       .where("createdBy", "==", "system")
+//       .where("status", "==", "pending")
+//       .where("sendAt", "==", admin.firestore.Timestamp.fromDate(sendAt))
+//       .limit(1)
+//       .get();
+
+
+//     if (!existing.empty) {
+//       console.log("Pending notification for next occurrence already exists, skipping");
+//       return;
+//     }
+
+
+//     const eventName = ev.eventName || ev.company || "Upcoming Event";
+//     const eventLocation = ev.mainLocation || "No Listed Location";
+//     const eventDescription = ev.description || "";
+
+
+//     const notification = {
+//       targetType: "event",
+//       targetId: eventId,
+//       title: `${eventName} starts in 1 hour`,
+//       message: `${eventName} at ${eventLocation}. ${eventDescription}`.trim(),
+//       sendAt: admin.firestore.Timestamp.fromDate(sendAt),
+//       createdBy: "system",
+//       createdAt: admin.firestore.FieldValue.serverTimestamp(),
+//       status: "pending",
+//       eventData: {
+//         eventId: eventId,
+//         eventName: eventName,
+//         company: ev.company || null,
+//         startTime: admin.firestore.Timestamp.fromDate(nextStart),
+//         location: eventLocation,
+//         recurrenceInterval: ev.recurrenceInterval || null,
+//         recurrenceEndDate: ev.recurrenceEndDate || null,
+//       },
+//     };
+
+
+//     await admin.firestore().collection("notifications").add(notification);
+//     console.log(`Scheduled next recurring reminder for event ${eventId} at ${sendAt.toISOString()}`);
+//   } catch (err) {
+//     console.error("Error scheduling next recurring notification:", err);
+//   }
+// });
+
+
+function computeNextOccurrence(ev, currentStart) {
+  const recurrenceType = (ev.recurrenceType || "").toString();
+  if (!recurrenceType || recurrenceType === "Never") return null;
+
+
+  // Interval (days)
+  if (recurrenceType === "Interval (days)") {
+    const intervalDays = parseInt(ev.recurrenceInterval) || 1;
+    return new Date(currentStart.getTime() + intervalDays * 24 * 60 * 60 * 1000);
+  }
+
+
+  // Weekly: either specific weekdays in recurrenceDays or weekly intervals
+  if (recurrenceType === "Weekly") {
+    const daysRaw = ev.recurrenceDays;
+    let days = null;
+    if (Array.isArray(daysRaw)) {
+      days = daysRaw.map((d) => parseInt(d)).filter((n) => !Number.isNaN(n));
+    }
+
+
+    if (days && days.length > 0) {
+      // Search up to 4 weeks ahead for the next matching weekday
+      let dt = new Date(currentStart.getTime() + 24 * 60 * 60 * 1000);
+      for (let i = 0; i < 28; i++) {
+        const w = dt.getDay(); // 0=Sun..6=Sat
+        if (days.includes(w)) return dt;
+        dt = new Date(dt.getTime() + 24 * 60 * 60 * 1000);
+      }
+      return null;
+    }
+
+
+    const weeks = parseInt(ev.recurrenceInterval) || 1;
+    return new Date(currentStart.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
+  }
+
+
+  // Monthly: advance by recurrenceInterval months and try to keep the same day-of-month
+  if (recurrenceType === "Monthly") {
+    const intervalMonths = parseInt(ev.recurrenceInterval) || 1;
+    const dayOfMonth = parseInt(ev.recurrenceDayOfMonth) || currentStart.getDate();
+
+
+    let dt = new Date(currentStart.getTime());
+    dt.setMonth(dt.getMonth() + intervalMonths);
+    dt.setDate(dayOfMonth);
+
+
+    // If result is not after currentStart, advance again
+    if (dt <= currentStart) {
+      dt = new Date(currentStart.getTime());
+      dt.setMonth(dt.getMonth() + intervalMonths);
+      dt.setDate(dayOfMonth);
+    }
+
+
+    // If dayOfMonth doesn't exist in that month (Date rolls), try the next several months
+    if (dt.getDate() !== dayOfMonth) {
+      for (let i = 0; i < 12; i++) {
+        dt.setMonth(dt.getMonth() + 1);
+        dt.setDate(dayOfMonth);
+        if (dt.getDate() === dayOfMonth) return dt;
+      }
+      return null;
+    }
+
+
+    return dt;
+  }
+
+
+  return null;
+}
+
+
+async function scheduleRecurringEventNotification(notificationDoc) {
+  // Pre-schedule the next occurrence (idempotent)
+  const notificationData = notificationDoc.data() || {};
+  const eventData = notificationData.eventData || {};
+  if (!eventData.recurrenceInterval) return;
+
+
+  const currentStartTs = eventData.startTime;
+  let currentStart = null;
+  if (currentStartTs) {
+    currentStart = currentStartTs.toDate ? currentStartTs.toDate() : new Date(currentStartTs);
+  }
+  if (!currentStart) return;
+
+
+  const eventId = eventData.eventId || notificationData.targetId || notificationData.targetId;
+  if (!eventId) return;
+
+
+  try {
+    const eventSnap = await admin.firestore().collection("events").doc(eventId).get();
+    if (!eventSnap.exists) return;
+    const ev = eventSnap.data() || {};
+
+
+    const nextStart = computeNextOccurrence(ev, currentStart);
+    if (!nextStart) return;
+
+
+    const recurrenceEndTs = ev.recurrenceEndDate;
+    if (recurrenceEndTs && recurrenceEndTs.toMillis() && nextStart.getTime() > recurrenceEndTs.toMillis()) return;
+
+
+    const sendAt = new Date(nextStart.getTime() - (60 * 60 * 1000));
+    if (sendAt.getTime() <= Date.now()) return;
+
+
+    // Avoid duplicates
+    const existing = await admin.firestore().collection("notifications")
+      .where("targetType", "==", "event")
+      .where("targetId", "==", eventId)
+      .where("createdBy", "==", "system")
+      .where("status", "==", "pending")
+      .where("sendAt", "==", admin.firestore.Timestamp.fromDate(sendAt))
+      .limit(1)
+      .get();
+
+
+    if (!existing.empty) return;
+
+
+    const eventName = ev.eventName || ev.company || "Upcoming Event";
+    const eventLocation = ev.mainLocation || "No Listed Location";
+    const eventDescription = ev.description || "";
+
+
+    const notification = {
+      targetType: "event",
+      targetId: eventId,
+      title: `${eventName} starts in 1 hour`,
+      message: `${eventName} at ${eventLocation}. ${eventDescription}`.trim(),
+      sendAt: admin.firestore.Timestamp.fromDate(sendAt),
+      createdBy: "system",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      status: "pending",
+      eventData: {
+        eventId: eventId,
+        eventName: eventName,
+        company: ev.company || null,
+        startTime: admin.firestore.Timestamp.fromDate(nextStart),
+        location: eventLocation,
+        recurrenceInterval: ev.recurrenceInterval || null,
+        recurrenceEndDate: ev.recurrenceEndDate || null,
+      },
+    };
+
+
+    await admin.firestore().collection("notifications").add(notification);
+    console.log(`Pre-scheduled next recurring reminder for event ${eventId} at ${sendAt.toISOString()}`);
+  } catch (err) {
+    console.error("Error in pre-scheduling recurring notification:", err);
+  }
+}
+
+
 exports.sendBroadcastNotification = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be authenticated to call this function");
@@ -722,7 +989,7 @@ exports.setEventUpdatedAt = onDocumentWritten("events/{eventId}", async (event) 
   const now = admin.firestore.Timestamp.now();
   const existing = data.updatedAt;
 
-  if (existing && existing.toMillis && (now.toMillis() - existing.toMillis()) < 5000) {
+  if (existing && existing.toMillis() && (now.toMillis() - existing.toMillis()) < 5000) {
     return;
   }
 
@@ -932,3 +1199,4 @@ exports.autoDeleteOldClubEvents = onSchedule("every day 02:00", async () => {
     console.error("Error in auto-delete old club events:", err);
   }
 });
+

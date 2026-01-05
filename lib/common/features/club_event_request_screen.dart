@@ -24,8 +24,6 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
   String? _selectedClubId;
   String? _selectedRecurrence;
   // recurrence details
-  String? _recurrenceWeekday;
-  int? _recurrenceMonthDay;
   String? _recurrenceInterval;
   // TimeOfDay? _recurrenceTime;
   bool _isLoading = true;
@@ -129,6 +127,22 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
           }
         });
       }
+    }
+  }
+
+
+  Future<void> _selectRecurrenceEndDate(BuildContext context) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        _recurrenceEndDate = pickedDate;
+      });
     }
   }
 
@@ -464,8 +478,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                             setState(() {
                               _selectedRecurrence = value;
                               // clear recurrence details when type changes
-                              _recurrenceWeekday = null;
-                              _recurrenceMonthDay = null;
+                              _recurrenceInterval = null;
                               // _recurrenceTime = null;
                             });
                           },
@@ -478,7 +491,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                       if (_selectedRecurrence == 'Weekly') ...[
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String>(
-                          value: _recurrenceWeekday,
+                          value: _recurrenceInterval,
                           isExpanded: true,
                           decoration: const InputDecoration(
                             border: OutlineInputBorder(),
@@ -498,7 +511,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                         ),
                         const SizedBox(height: 12),
                         InkWell(
-                        onTap: () => _selectDateTime(context, false),
+                        onTap: () => _selectRecurrenceEndDate(context),
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -544,7 +557,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                         ),
                         const SizedBox(height: 12),
                         InkWell(
-                        onTap: () => _selectDateTime(context, false),
+                        onTap: () => _selectRecurrenceEndDate(context),
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -570,7 +583,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                           ),
                         ),
                       ),
-                      ] else if (_selectedRecurrence == 'Interval') ...[
+                      ] else if (_selectedRecurrence == 'Interval (days)') ...[
                         const SizedBox(height: 8),
                           TextFormField(
                           keyboardType: TextInputType.number,
@@ -589,7 +602,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                           },
                         ),
                         InkWell(
-                          onTap: () => _selectDateTime(context, false),
+                          onTap: () => _selectRecurrenceEndDate(context),
                           child: Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(

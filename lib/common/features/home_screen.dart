@@ -26,7 +26,7 @@ HashMap<DateTime, List<CalEvent>> getEventsGroupedByDate(
 
   for (final event in provider.allEvents) {
     final start = event.startTime;
-    final date = DateTime.utc(start.year, start.month, start.day);
+    final date = DateTime(start.year, start.month, start.day); // local date key
 
     events.update(date, (value) {
       value.add(event);
@@ -83,10 +83,10 @@ class CalendarScreenState extends State<HomeScreen> {
       final provider = Provider.of<EventProvider>(context, listen: false);
       if (provider.isLoaded) {
         setState(() {
-                eventMap = getEventsGroupedByDate(provider);
-      });
-    }
-  });
+          eventMap = getEventsGroupedByDate(provider);
+        });
+      }
+    });
   }
 
   Future<void> _handleEventTap(CalEvent event) async {
@@ -156,19 +156,19 @@ class CalendarScreenState extends State<HomeScreen> {
   }
 
   List<CalEvent> _getEventsForDay(DateTime day) {
-    final utcDay = DateTime.utc(day.year, day.month, day.day);
-    return eventMap.putIfAbsent(utcDay, () => <CalEvent>[]);
+    final localDay = DateTime(day.year, day.month, day.day);
+    return eventMap.putIfAbsent(localDay, () => <CalEvent>[]);
   }
 
   List<Widget> _getNextEvents(DateTime day) {
     List<CalEvent> nextEvents = [];
     List<Widget> eventContainers = [];
-    final utcDay = DateTime.utc(day.year, day.month, day.day);
+    final localDay = DateTime(day.year, day.month, day.day);
     List<MapEntry<DateTime, List<CalEvent>>> sortedEntries =
         eventMap.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
     for (var events in sortedEntries) {
       final eventDate = events.key;
-      if (eventDate.isAfter(utcDay) && nextEvents.length < 3) {
+      if (eventDate.isAfter(localDay) && nextEvents.length < 3) {
         nextEvents.addAll(events.value);
       }
       if (nextEvents.length >= 3) {
@@ -258,8 +258,8 @@ class CalendarScreenState extends State<HomeScreen> {
 
   List<Widget> _getDayEvents(DateTime day) {
   List<Widget> eventContainers = [];
-  final utcDay = DateTime.utc(day.year, day.month, day.day);
-  List<CalEvent> evs = eventMap[utcDay] ?? [];
+  final localDay = DateTime(day.year, day.month, day.day);
+  List<CalEvent> evs = eventMap[localDay] ?? [];
   
   // Sort events by start time
   evs.sort((a, b) => a.startTime.compareTo(b.startTime));

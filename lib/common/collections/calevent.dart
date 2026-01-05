@@ -28,6 +28,8 @@ class CalEvent {
   String? companyId; 
   DateTime? updatedAt;
   InfoSessionData? isd;
+  String? seriesId;      // Parent series ID if this is a recurring instance
+  bool isInstance;       // True if this is a generated occurrence instance
 
   CalEvent({
     required this.id,
@@ -41,6 +43,8 @@ class CalEvent {
     this.companyId,
     this.updatedAt,
     this.isd,
+    this.seriesId,
+    this.isInstance = false,
   });
 
   @override
@@ -76,6 +80,8 @@ class CalEvent {
         ? data["updatedAt"].toDate()
         : null;
 
+    // final recurrence = data["recurrence"] ? null
+
     return CalEvent(
       id: doc.id,
       eventName: displayName,
@@ -87,7 +93,9 @@ class CalEvent {
       status: data["Status"] ?? data["status"] ?? "pending",
       companyId: null, 
       updatedAt: updatedAt,
-      isd: null, 
+      isd: null,
+      seriesId: data["seriesId"],
+      isInstance: data["isInstance"] == true,
     );
   } else {
     // Info session - support both new (companyId) and legacy (company name) approaches
@@ -130,6 +138,8 @@ class CalEvent {
         data["jobLocations"],
         data["interviewLink"],
       ),
+      seriesId: data["seriesId"],
+      isInstance: data["isInstance"] == true,
     );
   }
 }

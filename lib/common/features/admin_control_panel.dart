@@ -460,6 +460,155 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
     );
   }
 
+  void _showFacultyRequestsDialog() {
+    final outerContext = context;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          title: const Text("Faculty Role Requests"),
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('facultyRequests')
+                  .where('status', isEqualTo: 'pending')
+                  // .orderBy('requestedAt', descending: false)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final requests = snapshot.data!.docs;
+                if (requests.isEmpty) {
+                  return const Text("No pending faculty role requests");
+                }
+                return ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: requests.length,
+                  itemBuilder: (context, index) {
+                    final doc = requests[index];
+                    final request = doc.data() as Map<String, dynamic>;
+                    final uid = request['uid']?.toString() ?? '';
+                    final requestedAt = request['requestedAt'] is Timestamp
+                        ? (request['requestedAt'] as Timestamp).toDate()
+                        : null;
+
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${request['name'] ?? 'Unknown'}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text('Email: ${request['email'] ?? 'Unknown'}'),
+                            if (requestedAt != null)
+                              Text('Requested at: ${requestedAt.toString().substring(0, 16)}'),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    try {
+                                      // Call Cloud Function to set user role to faculty
+                                      await FirebaseFunctions.instance
+                                          .httpsCallable('setUserRole')
+                                          .call(<String, dynamic>{
+                                            'uid': uid,
+                                            'role': 'faculty',
+                                          });
+
+                                      // Update the request status to approved
+                                      await FirebaseFirestore.instance
+                                          .collection('facultyRequests')
+                                          .doc(doc.id)
+                                          .update({
+                                        'status': 'approved',
+                                        'reviewedBy': FirebaseAuth.instance.currentUser?.uid,
+                                        'reviewedAt': FieldValue.serverTimestamp(),
+                                        'approvedAt': FieldValue.serverTimestamp(),
+                                      });
+
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(outerContext).showSnackBar(
+                                        const SnackBar(content: Text('Faculty role approved'))
+                                      );
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(outerContext).showSnackBar(
+                                        SnackBar(content: Text('Approve failed: $e'))
+                                      );
+                                    }
+                                  },
+                                  child: const Text('Approve'),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                  ),
+                                  onPressed: () async {
+                                    try {
+                                      // Update the request status to denied
+                                      await FirebaseFirestore.instance
+                                          .collection('facultyRequests')
+                                          .doc(doc.id)
+                                          .update({
+                                        'status': 'denied',
+                                        'reviewedBy': FirebaseAuth.instance.currentUser?.uid,
+                                        'reviewedAt': FieldValue.serverTimestamp(),
+                                      });
+
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(outerContext).showSnackBar(
+                                        const SnackBar(content: Text('Faculty role request denied'))
+                                      );
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(outerContext).showSnackBar(
+                                        SnackBar(content: Text('Deny failed: $e'))
+                                      );
+                                    }
+                                  },
+                                  child: const Text(
+                                    'Deny',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Close"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
 Widget build(BuildContext context) {
   var screenHeight = MediaQuery.of(context).size.height;
@@ -507,6 +656,19 @@ Widget build(BuildContext context) {
               ),
             ),
             child: const Text("Pending Club Event Requests"),
+          ),
+          const SizedBox(height: 20),
+
+          ElevatedButton(
+            onPressed: _showFacultyRequestsDialog,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: AppColors.darkGold,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+              ),
+            ),
+            child: const Text("Pending Faculty Role Requests"),
           ),
         ],
       ),
