@@ -895,6 +895,89 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                       ),
 
+                      SizedBox(height: screenHeight * 0.02),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.yellowButton,
+                            foregroundColor: Colors.black,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                          ),
+                          onPressed: () async {
+                            final user = FirebaseAuth.instance.currentUser;
+                            if (user == null) return;
+
+                            // Check for existing pending faculty request
+                            final existing = await FirebaseFirestore.instance
+                                .collection('facultyRequests')
+                                .where('uid', isEqualTo: user.uid)
+                                .where('status', isEqualTo: 'pending')
+                                .get();
+
+                            if (!context.mounted) return;
+
+                            if (existing.docs.isNotEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('You already have a pending faculty role request'))
+                              );
+                              return;
+                            }
+
+                            // Show confirmation dialog
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Request Faculty Role'),
+                                content: const Text(
+                                  'Are you sure you want to request the faculty role? '
+                                  'A member of CCCE will review your request and may reach out for verification.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(context, true),
+                                    child: const Text('Request'),
+                                  ),
+                                ],
+                              ),
+                            ) ?? false;
+
+                            if (!confirmed || !context.mounted) return;
+
+                            final userName = "${_firstNameController.text} ${_lastNameController.text}";
+
+                            try {
+                              await FirebaseFirestore.instance.collection('facultyRequests').add({
+                                'uid': user.uid,
+                                'name': userName,
+                                'email': user.email,
+                                'requestedAt': FieldValue.serverTimestamp(),
+                                'status': 'pending',
+                              });
+
+                              if (!context.mounted) return;
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Faculty role request submitted successfully'))
+                              );
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error submitting request: $e'))
+                              );
+                            }
+                          },
+                          child: const Text('Request Faculty Role'),
+                        ),
+                      ),
+
                       SizedBox(height: screenHeight * 0.03),
                     ],
                   ),
