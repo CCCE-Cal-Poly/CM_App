@@ -82,6 +82,11 @@ exports.setUserRole = onCall(async (request) => {
 
     // If making someone a club admin, also add them as members of those clubs
     if (normalizedRole === "club admin" && mergedClubs.length > 0) {
+      // Get user's name from users collection
+      const userDocSnap = await admin.firestore().collection("users").doc(uid).get();
+      const userData = userDocSnap.data() || {};
+      const userName = userData.name || `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || "Unknown";
+
       for (const clubId of mergedClubs) {
         promises.push(
           admin
@@ -174,12 +179,16 @@ exports.approveClubEvent = onCall(async (request) => {
   try {
     const newEventRef = await db.collection("events").add(eventDoc);
 
+    console.log(`✅ Created event ${newEventRef.id} for club ${clubId}`);
+
     // Add event reference to club's events array if clubId exists
     if (clubId) {
       const clubRef = db.collection("clubs").doc(clubId);
       const clubSnap = await clubRef.get();
 
       if (clubSnap.exists) {
+        console.log(`✅ Club ${clubId} exists, adding event to array`);
+
         // Get the club's logo to use for the event
         const clubData = clubSnap.data() || {};
         const clubLogo = clubData.logo || "";
@@ -193,7 +202,13 @@ exports.approveClubEvent = onCall(async (request) => {
         await clubRef.update({
           events: admin.firestore.FieldValue.arrayUnion(newEventRef),
         });
+
+        console.log(`✅ Added event ${newEventRef.id} to club ${clubId} events array`);
+      } else {
+        console.warn(`⚠️ Club ${clubId} does not exist, cannot add event to array`);
       }
+    } else {
+      console.warn(`⚠️ No clubId provided, cannot add event to club array`);
     }
 
     await reqRef.delete();
@@ -980,23 +995,37 @@ exports.sendBroadcastNotification = onCall(async (request) => {
 });
 
 exports.setEventUpdatedAt = onDocumentWritten("events/{eventId}", async (event) => {
+  const beforeSnap = event.data.before;
   const afterSnap = event.data.after;
+
   if (!afterSnap || !afterSnap.exists) {
     return;
   }
 
-  const data = afterSnap.data();
-  const now = admin.firestore.Timestamp.now();
-  const existing = data.updatedAt;
-
-  if (existing && existing.toMillis() && (now.toMillis() - existing.toMillis()) < 5000) {
+  // If this is a new document, skip (createdAt will be set by creator)
+  if (!beforeSnap || !beforeSnap.exists) {
     return;
   }
 
+  const beforeData = beforeSnap.data();
+  const afterData = afterSnap.data();
+
+  // Check if ONLY updatedAt changed - if so, don't trigger again (prevent infinite loop)
+  const beforeCopy = {...beforeData};
+  const afterCopy = {...afterData};
+  delete beforeCopy.updatedAt;
+  delete afterCopy.updatedAt;
+
+  if (JSON.stringify(beforeCopy) === JSON.stringify(afterCopy)) {
+    // Only updatedAt changed, skip to prevent infinite loop
+    return;
+  }
+
+  // A meaningful field changed, update the timestamp
   try {
-    await afterSnap.ref.set({
+    await afterSnap.ref.update({
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    }, {merge: true});
+    });
     console.log(`Set updatedAt for event ${event.params.eventId}`);
   } catch (err) {
     console.error(`Error setting updatedAt for event ${event.params.eventId}:`, err);

@@ -229,6 +229,26 @@ class InfoSessionItem extends StatelessWidget {
 
   const InfoSessionItem(this.infoSession, {Key? key}) : super(key: key);
 
+  String _getQuarterLabel() {
+    final date = infoSession.startTime;
+    final year = date.year;
+    final month = date.month;
+    final day = date.day;
+
+    // Fall: 2025 only
+    if (year == 2025) {
+      return " (Fall)";
+    }
+    // Winter: Between Jan 1 and March 29th
+    else if (month == 1 || month == 2 || (month == 3 && day <= 29)) {
+      return " (Winter)";
+    }
+    // Spring: Otherwise
+    else {
+      return " (Spring)";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     double screenHeight = MediaQuery.of(context).size.height;
@@ -265,7 +285,7 @@ class InfoSessionItem extends StatelessWidget {
                   screenWidth * .1,
                 ),
                 title: AutoSizeText(
-                              infoSession.eventName,
+                              infoSession.eventName + _getQuarterLabel(),
                   style: const TextStyle(
                     color: Colors.black,
                     fontSize: 13.0,

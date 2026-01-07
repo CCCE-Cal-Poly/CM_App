@@ -12,6 +12,7 @@ import 'dart:collection';
 import 'package:intl/intl.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
+import 'package:ccce_application/services/error_logger.dart';
 
 class HomeScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -117,7 +118,7 @@ class CalendarScreenState extends State<HomeScreen> {
           );
         }
       } catch (e) {
-        print('Error fetching club: $e');
+        ErrorLogger.logError('HomeScreen', 'Error fetching club', error: e);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Error loading club details')),
         );
@@ -277,27 +278,29 @@ class CalendarScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Container(
-                  height: 65,
-                  width: 80,
+                  height: MediaQuery.of(context).size.height * 0.027,
+                  width: MediaQuery.of(context).size.width * 0.074,
                   decoration: BoxDecoration(
                     color: boxColor,
                   ),
                   child: Center(
-                    child: Text(
+                    child: AutoSizeText(
                       "${DateFormat('h:mm a').format(ev.startTime)}\n-\n${DateFormat('h:mm a').format(ev.endTime)}",
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontFamily: "SansSerifPro",
                         fontSize: 11,
                       ),
+                      minFontSize: 8,
+                      maxLines: 1,
                     ),
                   ),
                 ),
                 const SizedBox(width: 1),
                 Expanded(
                   child: Container(
-                    height: 65,
-                    padding: const EdgeInsets.all(16.0),
+                    height: MediaQuery.of(context).size.height * 0.027,
+                    padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.015),
                     decoration: BoxDecoration(
                       color: boxColor,
                     ),
@@ -710,49 +713,55 @@ class CalendarScreenState extends State<HomeScreen> {
         past.sort((a, b) => b.dateTime.compareTo(a.dateTime));
 
         List<Widget> sectionWidgets(String title, List<NotificationItem> list) {
-          if (list.isEmpty) return [Padding(padding: EdgeInsets.all(12), child: Text('No $title notifications', style: TextStyle(color: Colors.white)) )];
+          if (list.isEmpty) return [Padding(padding: EdgeInsets.all(12), child: AutoSizeText('No $title notifications', style: TextStyle(color: Colors.white), minFontSize: 12, maxLines: 1) )];
           final grouped = groupNotifications(list);
           final sortedKeys = grouped.keys.toList()..sort((a, b) => DateTime.parse(a).compareTo(DateTime.parse(b)));
           final widgets = <Widget>[];
-          widgets.add(Padding(padding: const EdgeInsets.only(left: 16, top: 12, bottom: 8), child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 24))));
+          widgets.add(Padding(padding: const EdgeInsets.only(left: 16, top: 12, bottom: 8), child: AutoSizeText(title, style: const TextStyle(color: Colors.white, fontSize: 24), minFontSize: 18, maxLines: 1)));
           for (final key in sortedKeys) {
             widgets.add(Padding(
                 padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
-                child: Text(
+                child: AutoSizeText(
                     DateFormat('EEEE, MMMM d').format(DateTime.parse(key)),
-                    style: const TextStyle(color: AppColors.tanText, fontSize: 18))));
+                    style: const TextStyle(color: AppColors.tanText, fontSize: 18),
+                    minFontSize: 14,
+                    maxLines: 1)));
 
             final mapped = grouped[key]!.map((n) => Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
                   child: SizedBox(
-                    height: 65,
+                    height: MediaQuery.of(context).size.height * 0.027,
                     child: Row(
                       children: [
                         Container(
-                          height: 65,
-                          width: 80,
+                          height: MediaQuery.of(context).size.height * 0.027,
+                          width: MediaQuery.of(context).size.width * 0.074,
                           decoration:
                               const BoxDecoration(color: Colors.white),
                           child: Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text(
+                                AutoSizeText(
                                     DateFormat('MMM d')
                                         .format(n.dateTime),
                                     style: const TextStyle(
                                         fontFamily:
                                             "AppFonts.sansProSemiBold",
                                         fontSize: 11,
-                                        color: AppColors.darkGoldText)),
-                                Text(
+                                        color: AppColors.darkGoldText),
+                                    minFontSize: 8,
+                                    maxLines: 1),
+                                AutoSizeText(
                                     DateFormat('h:mm a')
                                         .format(n.dateTime),
                                     style: const TextStyle(
                                         fontFamily: "SansSerifPro",
                                         fontSize: 10,
-                                        color: AppColors.darkGoldText)),
+                                        color: AppColors.darkGoldText),
+                                    minFontSize: 7,
+                                    maxLines: 1),
                               ],
                             ),
                           ),
@@ -760,18 +769,20 @@ class CalendarScreenState extends State<HomeScreen> {
                         const SizedBox(width: 1),
                         Expanded(
                           child: Container(
-                            padding: const EdgeInsets.only(
-                                left: 12.0, top: 6.0),
+                            padding: EdgeInsets.only(
+                                left: MediaQuery.of(context).size.width * 0.011, top: MediaQuery.of(context).size.height * 0.0025),
                             decoration:
                                 const BoxDecoration(color: Colors.white),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(n.title,
+                                AutoSizeText(n.title,
                                     style: const TextStyle(
                                         fontFamily:
                                             "AppFonts.sansProSemiBold",
-                                        fontSize: 13)),
+                                        fontSize: 13),
+                                    minFontSize: 10,
+                                    maxLines: 1),
                                 Row(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.start,
@@ -786,17 +797,20 @@ class CalendarScreenState extends State<HomeScreen> {
                                         padding: const EdgeInsets.only(
                                             left: 2.0),
                                         child: SizedBox(
-                                          height: 32,
+                                          height: MediaQuery.of(context).size.height * 0.013,
                                           child: SingleChildScrollView(
                                               scrollDirection:
                                                   Axis.vertical,
-                                              child: Text(n.message,
+                                              child: AutoSizeText(n.message,
                                                   style: const TextStyle(
                                                       fontFamily:
                                                           "SansSerifPro",
                                                       fontSize: 10,
                                                       color: AppColors
-                                                          .darkGoldText)))),
+                                                          .darkGoldText),
+                                                  minFontSize: 7,
+                                                  maxLines: 3)),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -878,12 +892,14 @@ class CalendarScreenState extends State<HomeScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.only(left: 16),
-                child: Text(
+                child: AutoSizeText(
                   _screenBool ? "Notifications" : "Calendar",
                   style: const TextStyle(
                       color: AppColors.tanText,
                       fontWeight: FontWeight.w600,
                       fontSize: 26),
+                  minFontSize: 20,
+                  maxLines: 1,
                 ),
               ),
               Padding(
@@ -923,19 +939,23 @@ class CalendarScreenState extends State<HomeScreen> {
                   children: [
                     Padding(
                         padding: const EdgeInsets.only(left: 16.0),
-                        child: Text(_name.isEmpty ? "Hi!" : "Hi $_name!",
+                        child: AutoSizeText(_name.isEmpty ? "Hi!" : "Hi $_name!",
                             style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w300,
-                                color: Colors.white))),
+                                color: Colors.white),
+                            minFontSize: 16,
+                            maxLines: 1)),
                     Padding(
                       padding: const EdgeInsets.only(right: 16.0),
-                      child: Text(dateFormatter(_focusedMonth, _focusedYear),
+                      child: AutoSizeText(dateFormatter(_focusedMonth, _focusedYear),
                           style: const TextStyle(
                             fontFamily: "AppFonts.sansProSemiBold",
                             fontSize: 20,
                             color: AppColors.tanText,
-                          )),
+                          ),
+                          minFontSize: 16,
+                          maxLines: 1),
                     ),
                   ],
                 ),

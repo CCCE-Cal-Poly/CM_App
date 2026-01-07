@@ -7,6 +7,7 @@ import 'package:ccce_application/common/providers/event_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:ccce_application/services/error_logger.dart';
 
 Widget buildInfoSessionList(context) {
   final now = DateTime.now();
@@ -17,7 +18,7 @@ Widget buildInfoSessionList(context) {
   final allCheckedIn = allEvents
       .where((event) => checkedInEventIds.contains(event.id))
       .toList();
-  print("Checked-in sessions available: ${allCheckedIn.map((e) => e.id)}");
+  ErrorLogger.logInfo('MyInfoSessions', 'Checked-in sessions available: ${allCheckedIn.map((e) => e.id)}');
   final checkedInInfoSessions =
       allCheckedIn.where((event) => event.eventType == "infoSession").toList();
   final List<CalEvent> future = checkedInInfoSessions

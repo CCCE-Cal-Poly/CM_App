@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path/path.dart' as path;
 import '../utils/image_helper.dart';
+import 'package:ccce_application/services/error_logger.dart';
 
 class ImageService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
@@ -21,7 +22,7 @@ class ImageService {
       
       return downloadUrl;
     } catch (e) {
-      print('Error uploading image: $e');
+      ErrorLogger.logError('ImageService', 'Error uploading image', error: e);
       return null;
     }
   }
@@ -37,7 +38,7 @@ class ImageService {
       // Upload the new image
       return await uploadImage(entityType, entityId, newImageFile);
     } catch (e) {
-      print('Error updating image: $e');
+      ErrorLogger.logError('ImageService', 'Error updating image', error: e);
       return null;
     }
   }
@@ -51,7 +52,7 @@ class ImageService {
       await storageRef.delete();
       return true;
     } catch (e) {
-      print('Error deleting image: $e');
+      ErrorLogger.logError('ImageService', 'Error deleting image', error: e);
       return false;
     }
   }
@@ -75,7 +76,7 @@ class ImageService {
         }
       }
     } catch (e) {
-      print('Error cleaning up images: $e');
+      ErrorLogger.logError('ImageService', 'Error cleaning up images', error: e);
     }
   }
 

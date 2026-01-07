@@ -1,7 +1,8 @@
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/theme/theme.dart';
-import 'package:flutter/services.dart'; // Import for rootBundle
+import 'package:flutter/services.dart';
+import 'package:ccce_application/services/error_logger.dart'; // Import for rootBundle
 import 'package:ccce_application/common/features/welcome_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,7 +13,7 @@ class TosScreen extends StatelessWidget {
     try {
       return await rootBundle.loadString('assets/terms_and_conditions.txt');
     } catch (e) {
-      print("Error loading terms and conditions: $e");
+      ErrorLogger.logError('TosScreen', 'Error loading terms and conditions', error: e);
       return "Failed to load Terms and Conditions. Please check the file.";
     }
   }

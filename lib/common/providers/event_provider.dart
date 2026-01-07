@@ -58,6 +58,7 @@ class EventProvider extends ChangeNotifier {
     }
 
     if (linkedCount > 0) {
+      ErrorLogger.logInfo('EventProvider', 'Linked $linkedCount company logos to info sessions');
       _needsLogoLinking = false;
       notifyListeners();
     }
@@ -65,6 +66,11 @@ class EventProvider extends ChangeNotifier {
 
   Future<void> fetchAllEvents() async {
     try {
+      // Retry logic for auth token propagation (handles fresh sign-in edge case)
+      int retries = 0;
+      const maxRetries = 3;
+      Exception? lastError;
+      
       final db = FirebaseFirestore.instance;
       Query query = db.collection('events');
 
@@ -101,6 +107,11 @@ class EventProvider extends ChangeNotifier {
                 } catch (e) {
                   ErrorLogger.logWarning('EventProvider', 'Failed to parse cached event: $e');
                 }
+              try {
+                final event = CalEvent.fromSnapshot(doc);
+                _allEvents.add(event);
+              } catch (e) {
+                ErrorLogger.logWarning('EventProvider', 'Failed to parse cached event: $e');
               }
             }
             _allEvents.addAll(expanded);
@@ -117,6 +128,9 @@ class EventProvider extends ChangeNotifier {
 
       if (_lastSyncTime != null) {
         query = query.where('updatedAt', isGreaterThan: Timestamp.fromDate(_lastSyncTime!));
+        ErrorLogger.logInfo('EventProvider', 'Incremental sync: fetching events updated after ${_lastSyncTime!.toLocal()}');
+      } else {
+        ErrorLogger.logInfo('EventProvider', 'Full sync: fetching all events');
       }
 
       final snapshot = await query.get(const GetOptions(source: Source.server));
@@ -197,7 +211,36 @@ class EventProvider extends ChangeNotifier {
       notifyListeners();
       print("✅ Events fetched and expanded: ${_allEvents.length} total");
     } catch (e) {
-      print('❌ Error fetching events: $e');
+      ErrorLogger.logError('EventProvider', 'Error fetching events', error: e);
+    }
+  }
+
+  /// Fetch a single event by ID and add it to the provider (cost-efficient)
+  Future<void> addEventById(String eventId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('events')
+          .doc(eventId)
+          .get();
+      
+      if (doc.exists) {
+        final newEvent = CalEvent.fromSnapshot(doc);
+        
+        // Check if event already exists and update, otherwise add
+        final existingIndex = _allEvents.indexWhere((e) => e.id == newEvent.id);
+        if (existingIndex >= 0) {
+          _allEvents[existingIndex] = newEvent;
+          ErrorLogger.logInfo('EventProvider', 'Updated existing event: ${newEvent.eventName}');
+        } else {
+          _allEvents.add(newEvent);
+          ErrorLogger.logInfo('EventProvider', 'Added new event to calendar: ${newEvent.eventName}');
+        }
+        
+        _needsLogoLinking = true;
+        notifyListeners();
+      }
+    } catch (e) {
+      ErrorLogger.logError('EventProvider', 'Error fetching single event', error: e);
     }
   }
 

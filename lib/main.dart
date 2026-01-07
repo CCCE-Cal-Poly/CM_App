@@ -4,6 +4,7 @@ import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:ccce_application/rendered_page.dart';
 import 'package:ccce_application/common/features/onboarding/onboarding_screen.dart';
+import 'package:ccce_application/services/error_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -31,11 +32,11 @@ Future<void> _requestNotificationPermissions() async {
   );
 
   if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-    print('User granted permission');
+    ErrorLogger.logInfo('Notifications', 'User granted permission');
   } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
-    print('User granted provisional permission');
+    ErrorLogger.logInfo('Notifications', 'User granted provisional permission');
   } else {
-    print('User declined or has not granted permission');
+    ErrorLogger.logWarning('Notifications', 'User declined or has not granted permission');
   }
 }
 
@@ -80,6 +81,7 @@ class MyApp extends StatelessWidget {
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const MaterialApp(
+            debugShowCheckedModeBanner: false,
             home: Scaffold(
                 body: Center(
                     child: CircularProgressIndicator(
@@ -91,6 +93,7 @@ class MyApp extends StatelessWidget {
         final tosAccepted = snapshot.data!;
         if (!tosAccepted) {
           return const MaterialApp(
+            debugShowCheckedModeBanner: false,
             home: Scaffold(
               appBar: GoldAppBar(),
               body: OnboardingScreen()), 
@@ -104,6 +107,7 @@ class MyApp extends StatelessWidget {
             }
             if (!snapshot.hasData) {
               return const MaterialApp(
+                debugShowCheckedModeBanner: false,
                 home: SignIn(),
               );
             }
@@ -119,6 +123,7 @@ class MyApp extends StatelessWidget {
               builder: (context, eventProvider, companyProvider, child) {
                 if (!eventProvider.isLoaded) {
                   return const MaterialApp(
+                    debugShowCheckedModeBanner: false,
                     home: Scaffold(
                       backgroundColor: AppColors.calPolyGreen,
                       body: Center(
@@ -135,6 +140,7 @@ class MyApp extends StatelessWidget {
                 }
                 
                 return const MaterialApp(
+                  debugShowCheckedModeBanner: false,
                   home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
                 );
               },

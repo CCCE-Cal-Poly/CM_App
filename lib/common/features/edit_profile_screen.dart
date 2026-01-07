@@ -8,6 +8,7 @@ import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/providers/club_provider.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/features/sign_in.dart';
+import 'package:ccce_application/services/error_logger.dart';
 import 'dart:io';
 
 class EditProfileScreen extends StatefulWidget {
@@ -97,7 +98,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           }
         }
       } catch (e) {
-        print('Error loading additional fields: $e');
+        ErrorLogger.logError('EditProfileScreen', 'Error loading additional fields', error: e);
         if (mounted) {
           setState(() {
             _isInitialized = true;
@@ -452,7 +453,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   await storageRef.delete();
                 } catch (e) {
                   // Profile picture might not exist, that's okay
-                  print('No profile picture to delete or error: $e');
+                  ErrorLogger.logInfo('EditProfileScreen', 'No profile picture to delete or error: $e');
                 }
 
                 // Delete Firebase Auth account

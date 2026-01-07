@@ -19,6 +19,11 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
   List<CalEvent> infoSessions = [];
   List<CalEvent> filteredInfoSessions = [];
 
+  Map<String, bool> buttonStates = {
+    'Chronological': false,
+    'Hiring': false,
+  };
+
   @override
   void initState() {
     super.initState();
@@ -31,9 +36,63 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
     return true;
   }
 
+  List<CalEvent> _sortInfoSessions(List<CalEvent> sessions) {
+    final sorted = List<CalEvent>.from(sessions);
+    
+    // If both buttons active, prioritize chronological
+    if (buttonStates['Chronological']! && buttonStates['Hiring']!) {
+      sorted.sort((a, b) => a.startTime.compareTo(b.startTime));
+    }
+    // If only chronological
+    else if (buttonStates['Chronological']!) {
+      sorted.sort((a, b) => a.startTime.compareTo(b.startTime));
+    }
+    // If only hiring
+    else if (buttonStates['Hiring']!) {
+      sorted.sort((a, b) {
+        final aHiring = a.isd?.openPositions?.isNotEmpty == true;
+        final bHiring = b.isd?.openPositions?.isNotEmpty == true;
+        if (aHiring && !bHiring) return -1;
+        if (!aHiring && bHiring) return 1;
+        return a.eventName.toLowerCase().compareTo(b.eventName.toLowerCase());
+      });
+    }
+    else {
+      sorted.sort((a, b) => a.eventName.toLowerCase().compareTo(b.eventName.toLowerCase()));
+    }
+    
+    return sorted;
+  }
+
   @override
   Widget build(BuildContext context) {
     var screenHeight = MediaQuery.of(context).size.height;
+
+    OutlinedButton createButtonSorter(String txt, VoidCallback sortingFunction) {
+      bool isActive = buttonStates[txt] ?? false;
+      return OutlinedButton(
+        onPressed: () {
+          setState(() {
+            sortingFunction();
+            buttonStates[txt] = !isActive;
+          });
+        },
+        style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero,
+            ),
+            textStyle: const TextStyle(fontSize: 13),
+            side: const BorderSide(color: Colors.black, width: 1),
+            minimumSize: const Size(75, 25),
+            backgroundColor: !isActive ? Colors.transparent : AppColors.welcomeLightYellow),
+        child: Text(txt,
+            style: TextStyle(
+                fontSize: 14,
+                color: !isActive ? AppColors.welcomeLightYellow : AppColors.calPolyGreen,
+                fontWeight: FontWeight.w600)),
+      );
+    }
 
     return Consumer<EventProvider>(builder: (context, eventProvider, child) {
             final allInfoSessions = eventProvider.isLoaded
@@ -41,7 +100,8 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
           : <CalEvent>[];
       
       // Filter out info sessions with no meaningful data
-      final infoSessions = allInfoSessions.where(_isValidInfoSession).toList();
+      final validInfoSessions = allInfoSessions.where(_isValidInfoSession).toList();
+      final infoSessions = _sortInfoSessions(validInfoSessions);
 
       return Scaffold(
         backgroundColor: AppColors.calPolyGreen,
@@ -119,6 +179,19 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
                       ),
                     )
                   ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 2, left: 20, right: 20),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      createButtonSorter('Chronological', () {}),
+                      const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
+                      createButtonSorter('Hiring', () {}),
+                    ],
+                  ),
                 ),
               ),
               Expanded(

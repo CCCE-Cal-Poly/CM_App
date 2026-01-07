@@ -255,8 +255,18 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
     return Scaffold(
       backgroundColor: AppColors.calPolyGreen,
       body:  _isLoading ? const Center(child: CircularProgressIndicator())
-      : _hasError ? const Center(child: Text('Error loading clubs. Please try again later.'),)
-      : _clubs.isEmpty ? const Center(child: Text('You are not an admin of any clubs.'),)
+      : _hasError ? Column(
+          children: [
+            CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
+            const Expanded(child: Center(child: Text('Error loading clubs. Please try again later.'))),
+          ],
+        )
+      : _clubs.isEmpty ? Column(
+          children: [
+            CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
+            const Expanded(child: Center(child: Text('You are not an admin of any clubs.'))),
+          ],
+        )
       : SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(20.0),

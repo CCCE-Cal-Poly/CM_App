@@ -125,14 +125,17 @@ class CompanyItem extends StatelessWidget {
                   const Icon(Icons.location_on,
                       color: AppColors.lightGold, size: 16),
                   const SizedBox(width: 2),
-                  AutoSizeText(
-                    company.location,
-                    style: const TextStyle(
-                        color: AppColors.lightGold,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600),
-                    minFontSize: 10,
-                    maxLines: 1,
+                  Flexible(
+                    child: AutoSizeText(
+                      company.location,
+                      style: const TextStyle(
+                          color: AppColors.lightGold,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600),
+                      minFontSize: 8,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -233,10 +236,10 @@ class _CompanyPopupState extends State<CompanyPopup> {
                             AutoSizeText(
                               widget.company.location,
                               style: const TextStyle(
-                                fontSize: 16.0,
+                                fontSize: 14.0,
                                 color: AppColors.darkGoldText,
                               ),
-                              minFontSize: 12,
+                              minFontSize: 10,
                               maxLines: 1,
                             ),
                             const SizedBox(height: 10),

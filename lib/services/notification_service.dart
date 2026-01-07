@@ -3,15 +3,16 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
+import 'package:ccce_application/services/error_logger.dart';
 
 class NotificationService {
   static Future<void> firebaseMessagingBackgroundHandler(
       RemoteMessage message) async {
     await Firebase.initializeApp();
-    print('Background message received: ${message.messageId}');
-    print('Title: ${message.notification?.title}');
-    print('Body: ${message.notification?.body}');
-    print('Data: ${message.data}');
+    ErrorLogger.logInfo('NotificationService', 'Background message received: ${message.messageId}');
+    ErrorLogger.logInfo('NotificationService', 'Title: ${message.notification?.title}');
+    ErrorLogger.logInfo('NotificationService', 'Body: ${message.notification?.body}');
+    ErrorLogger.logInfo('NotificationService', 'Data: ${message.data}');
     
     final notif = message.notification;
     if (notif != null) {
@@ -61,14 +62,14 @@ class NotificationService {
 
       await flutterLocalNotificationsPlugin.initialize(initSettings,
           onDidReceiveNotificationResponse: (NotificationResponse response) {
-        if (kDebugMode) print('Local notification tapped: ${response.payload}');
+        if (kDebugMode) ErrorLogger.logInfo('NotificationService', 'Local notification tapped: ${response.payload}');
       });
 
       await flutterLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(_androidChannel);
     } catch (e) {
-      print('Error initializing local notifications: $e');
+      ErrorLogger.logError('NotificationService', 'Error initializing local notifications', error: e);
     }
   }
 
@@ -83,25 +84,25 @@ class NotificationService {
       );
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        print('User granted permission');
+        ErrorLogger.logInfo('NotificationService', 'User granted permission');
         
         final String? token = await FirebaseMessaging.instance.getToken();
         if (token != null) {
-          print('FCM Token: $token');
-          print('Copy this token to test notifications in Firebase Console');
+          ErrorLogger.logInfo('NotificationService', 'FCM Token: $token');
+          ErrorLogger.logInfo('NotificationService', 'Copy this token to test notifications in Firebase Console');
           await saveTokenForUser(uid, token);
         }
 
         FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-          print('FCM Token refreshed: $newToken');
+          ErrorLogger.logInfo('NotificationService', 'FCM Token refreshed: $newToken');
           await saveTokenForUser(uid, newToken);
         });
 
         FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-          print('Foreground message received: ${message.messageId}');
-          print('Title: ${message.notification?.title}');
-          print('Body: ${message.notification?.body}');
-          print('Data: ${message.data}');
+          ErrorLogger.logInfo('NotificationService', 'Foreground message received: ${message.messageId}');
+          ErrorLogger.logInfo('NotificationService', 'Title: ${message.notification?.title}');
+          ErrorLogger.logInfo('NotificationService', 'Body: ${message.notification?.body}');
+          ErrorLogger.logInfo('NotificationService', 'Data: ${message.data}');
 
           final notif = message.notification;
           if (notif != null) {
@@ -134,17 +135,17 @@ class NotificationService {
         });
 
         FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-          print('App opened from notification:');
-          print('Title: ${message.notification?.title}');
-          print('Body: ${message.notification?.body}');
-          print('Data: ${message.data}');
+          ErrorLogger.logInfo('NotificationService', 'App opened from notification:');
+          ErrorLogger.logInfo('NotificationService', 'Title: ${message.notification?.title}');
+          ErrorLogger.logInfo('NotificationService', 'Body: ${message.notification?.body}');
+          ErrorLogger.logInfo('NotificationService', 'Data: ${message.data}');
         });
 
       } else {
-        print('User declined or has not accepted permission');
+        ErrorLogger.logWarning('NotificationService', 'User declined or has not accepted permission');
       }
     } catch (e) {
-      print('Error initializing NotificationService: $e');
+      ErrorLogger.logError('NotificationService', 'Error initializing NotificationService', error: e);
     }
   }
 
@@ -157,7 +158,7 @@ class NotificationService {
           .doc(token);
       await docRef.set({'token': token, 'createdAt': FieldValue.serverTimestamp()});
     } catch (e) {
-      print('Error saving token: $e');
+      ErrorLogger.logError('NotificationService', 'Error saving token', error: e);
     }
   }
 
@@ -170,7 +171,7 @@ class NotificationService {
           .doc(token);
       await docRef.delete();
     } catch (e) {
-      print('Error removing token: $e');
+      ErrorLogger.logError('NotificationService', 'Error removing token', error: e);
     }
   }
 }
