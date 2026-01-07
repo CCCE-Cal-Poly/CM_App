@@ -107,11 +107,6 @@ class EventProvider extends ChangeNotifier {
                 } catch (e) {
                   ErrorLogger.logWarning('EventProvider', 'Failed to parse cached event: $e');
                 }
-              try {
-                final event = CalEvent.fromSnapshot(doc);
-                _allEvents.add(event);
-              } catch (e) {
-                ErrorLogger.logWarning('EventProvider', 'Failed to parse cached event: $e');
               }
             }
             _allEvents.addAll(expanded);
@@ -360,3 +355,4 @@ class EventProvider extends ChangeNotifier {
     return instances;
   }
 }
+

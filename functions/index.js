@@ -97,6 +97,7 @@ exports.setUserRole = onCall(async (request) => {
             .doc(uid)
             .set({
               uid: uid,
+              name: userName,
               joinedAt: admin.firestore.FieldValue.serverTimestamp(),
               isAdmin: true,
             }, {merge: true}),
