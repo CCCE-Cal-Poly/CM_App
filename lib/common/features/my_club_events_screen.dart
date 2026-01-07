@@ -4,6 +4,7 @@ import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -166,6 +167,18 @@ class _MyClubEventsScreenState extends State<MyClubEventsScreen> {
           duration: Duration(seconds: 60),
         ),
       );
+
+      // Get fresh authentication token
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Not authenticated. Please log in again.'))
+        );
+        return;
+      }
+      await currentUser.getIdToken(true);
 
       // Call Cloud Function to delete the event
       final functions = FirebaseFunctions.instance;
