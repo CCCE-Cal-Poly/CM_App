@@ -17,6 +17,7 @@ import 'package:ccce_application/common/providers/app_state.dart';
 import 'package:ccce_application/common/providers/event_provider.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/providers/club_provider.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 
 Future<void> _requestNotificationPermissions() async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
@@ -45,6 +46,11 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+await FirebaseAppCheck.instance.activate(
+  providerAndroid: const AndroidDebugProvider(),
+  providerApple: const AppleDebugProvider(),
+);
 
   FirebaseMessaging.onBackgroundMessage(
       NotificationService.firebaseMessagingBackgroundHandler);
