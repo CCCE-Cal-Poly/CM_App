@@ -154,6 +154,7 @@ exports.approveClubEvent = onCall(async (request) => {
   const clubId = reqData.clubId || null;
   const eventDoc = {
     company: reqData.clubName || "",
+    clubId: clubId,
     eventName: reqData.eventName || "",
     startTime:
       reqData.startTime || admin.firestore.FieldValue.serverTimestamp(),
@@ -178,6 +179,9 @@ exports.approveClubEvent = onCall(async (request) => {
   };
 
   try {
+    // // Create a new doc with a generated id so we can include the id as a field on the document
+    // const newEventRef = db.collection("events").doc();
+    // await newEventRef.set({...eventDoc, eventId: newEventRef.id});
     const newEventRef = await db.collection("events").add(eventDoc);
 
     console.log(`✅ Created event ${newEventRef.id} for club ${clubId}`);
@@ -558,7 +562,7 @@ exports.processPendingNotifications = onSchedule("every 5 minutes", async (event
     }
     const sends = [];
     q.forEach(async (doc) => {
-      if (doc.data().eventData.recurrenceInterval) {
+      if (doc.data().eventData.recurrenceType && doc.data().eventData.recurrenceType != "Never") {
             scheduleRecurringEventNotification(doc);
       }
       sends.push(sendNotificationDocNow(doc));
@@ -1034,7 +1038,9 @@ exports.setEventUpdatedAt = onDocumentWritten("events/{eventId}", async (event) 
 });
 
 exports.deleteClubEvent = onCall(async (request) => {
+  console.log("DELETE FUNC CALLED - deleteClubEvent called with data:", request.data);
   if (!request.auth) {
+    console.log("Unauthenticated request to deleteClubEvent ERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
 
@@ -1055,6 +1061,7 @@ exports.deleteClubEvent = onCall(async (request) => {
     }
 
     const eventData = eventSnap.data();
+    console.log("Event data retrieved for deletion:", eventData);
     const clubId = eventData.clubId;
 
     if (!clubId) {
@@ -1170,6 +1177,12 @@ exports.autoDeleteOldClubEvents = onSchedule("every day 02:00", async () => {
         const eventData = eventDoc.data();
         const clubId = eventData.clubId;
 
+        if (eventDoc.ref.recurrenceType &&
+          eventDoc.ref.recurrenceType != "Never" &&
+          eventDoc.ref.recurrenceEndDate > sevenDaysAgo) {
+          // Skip recurring events that may have future occurrences
+          continue;
+        }
         // Delete the event
         await eventDoc.ref.delete();
 
