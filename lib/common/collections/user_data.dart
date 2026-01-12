@@ -1,7 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:ccce_application/services/error_logger.dart';
 
-enum UserRole { admin, clubAdmin, student, faculty }
+enum UserRole { admin, clubAdmin, student, faculty, recruiter }
 extension UserRoleExtension on UserRole {
   String enumToString() {
     switch (this) {
@@ -13,6 +13,8 @@ extension UserRoleExtension on UserRole {
         return 'Student';
       case UserRole.faculty:
         return 'Faculty';
+      case UserRole.recruiter:
+        return 'Recruiter';
     }
   }
 }
@@ -55,6 +57,7 @@ extension on String {
       case('admin') : return UserRole.admin;
       case('faculty') : return UserRole.faculty;
       case('club admin') : return UserRole.clubAdmin;
+      case('recruiter') : return UserRole.recruiter;
       default : return UserRole.student;
     }
   }

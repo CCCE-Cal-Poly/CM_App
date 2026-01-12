@@ -204,6 +204,9 @@ class ProfileScreenState extends State<ProfileScreen> {
                                       case UserRole.faculty:
                                         displayRole = 'Faculty';
                                         break;
+                                      case UserRole.recruiter:
+                                        displayRole = 'Recruiter';
+                                        break;
                                     }
                                   } else {
                                     displayRole = '';

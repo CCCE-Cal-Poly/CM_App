@@ -54,7 +54,7 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
                     hint: const Text("Select Role"),
-                    items: ['Student', 'Faculty', 'Club Admin', 'Admin']
+                    items: ['Student', 'Faculty', 'Club Admin', 'Admin', 'Recruiter']
                         .map((role) => DropdownMenuItem(value: role, child: Text(role)))
                         .toList(),
                     onChanged: (value) => setState(() => selectedRole = value),

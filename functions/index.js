@@ -6,7 +6,7 @@ const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentCreated, onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 
-const ALLOWED_ROLES = new Set(["student", "faculty", "club admin", "admin"]);
+const ALLOWED_ROLES = new Set(["student", "faculty", "club admin", "admin", "recruiter"]);
 
 exports.setUserRole = onCall(async (request) => {
   if (!request.auth) {
