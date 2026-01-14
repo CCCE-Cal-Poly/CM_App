@@ -581,7 +581,7 @@ exports.scheduleEventReminder = onDocumentCreated("events/{eventId}", async (eve
   const eventId = event.params.eventId;
   const startTime = eventData.startTime;
 
-  if (!startTime || !startTime.toMillis() || typeof startTime.toMillis() !== "function") {
+  if (!startTime || !startTime.toMillis() || typeof startTime.toMillis !== "function") {
     console.log(`Event ${eventId} has invalid startTime, skipping reminder`);
     return;
   }
@@ -615,6 +615,8 @@ exports.scheduleEventReminder = onDocumentCreated("events/{eventId}", async (eve
     const eventName = eventData.eventName || eventData.company || "Upcoming Event";
     const eventLocation = eventData.mainLocation || "No Listed Location";
     const eventDescription = eventData.description || "";
+
+    // if (eventType == "club")
 
     const notification = {
       targetType: "event",
