@@ -21,6 +21,7 @@ class HomeScreen extends StatefulWidget {
   CalendarScreenState createState() => CalendarScreenState();
 }
 
+
 HashMap<DateTime, List<CalEvent>> getEventsGroupedByDate(
     EventProvider provider) {
   final HashMap<DateTime, List<CalEvent>> events = HashMap();
@@ -182,66 +183,90 @@ class CalendarScreenState extends State<HomeScreen> {
     
     for (var ev in nextEvents) {
     Color boxColor = Colors.white;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
     eventContainers.add(
       InkWell(
         onTap: () => _handleEventTap(ev),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 3.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
           child: SizedBox(
-            height: 65,
+            height: screenHeight * 0.065,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Container(
-                  height: 65,
-                  width: 80,
-                  decoration: BoxDecoration(
-                    color: boxColor,
-                  ),
+                  height: screenHeight * 0.065,
+                  width: screenWidth * 0.1,
+                  decoration: const BoxDecoration(color: Colors.white),
                   child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          DateFormat('MMM d').format(ev.startTime),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontFamily: "AppFonts.sansProSemiBold",
-                              fontSize: 11),
-                        ),
-                        Text(
-                          "${DateFormat('h:mm a').format(ev.startTime)}-${DateFormat('h:mm a').format(ev.endTime)}",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontFamily: "SansSerifPro", fontSize: 10),
-                        ),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AutoSizeText(
+                            DateFormat('MMM d').format(ev.startTime),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                fontFamily: "AppFonts.sansProSemiBold",
+                                fontSize: 11),
+                            minFontSize: 8,
+                            maxLines: 1,
+                          ),
+                          AutoSizeText(
+                            "${DateFormat('h:mm A').format(ev.startTime)} - ${DateFormat('h:mm A').format(ev.endTime)}",
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                fontFamily: "SansSerifPro", fontSize: 10),
+                            minFontSize: 8,
+                            maxLines: 1,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 1),
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(color: boxColor),
+                    height: screenHeight * 0.065,
+                    padding: EdgeInsets.only(
+                        left: screenWidth * 0.011, top: screenHeight * 0.0025),
+                    decoration: const BoxDecoration(color: Colors.white),
                     child: Center(
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          AutoSizeText(
-                            ev.eventName,
-                            style: const TextStyle(
-                                fontFamily: "AppFonts.sansProSemiBold",
-                                fontSize: 13),
-                            minFontSize: 10,
-                            maxLines: 1,
+                          AutoSizeText(ev.eventName,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  fontFamily:
+                                      "AppFonts.sansProSemiBold",
+                                  fontSize: 13),
+                              minFontSize: 10,
+                              maxLines: 1),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.location_on,
+                                  size: 10,
+                                  color: AppColors.darkGoldText),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: AutoSizeText(ev.eventLocation,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                        fontFamily: "SansSerifPro",
+                                        fontSize: 10,
+                                        color: AppColors.darkGoldText),
+                                    minFontSize: 7,
+                                    maxLines: 2),
+                              ),
+                            ],
                           ),
-                          AutoSizeText(
-                            ev.eventLocation,
-                            style: const TextStyle(
-                                fontFamily: "SansSerifPro", fontSize: 10),
-                            minFontSize: 8,
-                            maxLines: 1,
-                          )
                         ],
                       ),
                     ),
@@ -256,7 +281,7 @@ class CalendarScreenState extends State<HomeScreen> {
   }
     return eventContainers;
   }
-
+  
   List<Widget> _getDayEvents(DateTime day) {
   List<Widget> eventContainers = [];
   final localDay = DateTime(day.year, day.month, day.day);
@@ -264,65 +289,92 @@ class CalendarScreenState extends State<HomeScreen> {
   
   // Sort events by start time
   evs.sort((a, b) => a.startTime.compareTo(b.startTime));
-  
+  final screenHeight = MediaQuery.of(context).size.height;
+  final screenWidth = MediaQuery.of(context).size.width;
   for (var ev in evs) {
     Color boxColor = Colors.white;
     eventContainers.add(
       InkWell(
         onTap: () => _handleEventTap(ev),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 3.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
           child: SizedBox(
-            height: 65,
+            height: screenHeight * 0.065,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Container(
-                  height: MediaQuery.of(context).size.height * 0.027,
-                  width: MediaQuery.of(context).size.width * 0.074,
-                  decoration: BoxDecoration(
-                    color: boxColor,
-                  ),
+                  height: screenHeight * 0.065,
+                  width: screenWidth * 0.18,
+                  decoration: const BoxDecoration(color: Colors.white),
                   child: Center(
-                    child: AutoSizeText(
-                      "${DateFormat('h:mm a').format(ev.startTime)}\n-\n${DateFormat('h:mm a').format(ev.endTime)}",
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: "SansSerifPro",
-                        fontSize: 11,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AutoSizeText(
+                            DateFormat('MMM d').format(ev.startTime),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                fontFamily: "AppFonts.sansProSemiBold",
+                                fontSize: 11),
+                            minFontSize: 8,
+                            maxLines: 1,
+                          ),
+                          AutoSizeText(
+                            "${DateFormat('h:mm a').format(ev.startTime)} - ${DateFormat('h:mm a').format(ev.endTime)}",
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                fontFamily: "SansSerifPro", fontSize: 10),
+                            minFontSize: 6,
+                            maxLines: 1,
+                          ),
+                        ],
                       ),
-                      minFontSize: 8,
-                      maxLines: 1,
                     ),
                   ),
                 ),
                 const SizedBox(width: 1),
                 Expanded(
                   child: Container(
-                    height: MediaQuery.of(context).size.height * 0.027,
-                    padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.015),
-                    decoration: BoxDecoration(
-                      color: boxColor,
-                    ),
+                    height: screenHeight * 0.065,
+                    padding: EdgeInsets.only(
+                        left: screenWidth * 0.011, top: screenHeight * 0.0025),
+                    decoration: const BoxDecoration(color: Colors.white),
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          AutoSizeText(
-                            ev.eventName,
-                            style: const TextStyle(
-                                fontFamily: "AppFonts.sansProSemiBold",
-                                fontSize: 13),
-                            minFontSize: 10,
-                            maxLines: 1,
+                          AutoSizeText(ev.eventName,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  fontFamily:
+                                      "AppFonts.sansProSemiBold",
+                                  fontSize: 13),
+                              minFontSize: 10,
+                              maxLines: 1),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.location_on,
+                                  size: 10,
+                                  color: AppColors.darkGoldText),
+                              const SizedBox(width: 2),
+                              Flexible(
+                                child: AutoSizeText(ev.eventLocation,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                        fontFamily: "SansSerifPro",
+                                        fontSize: 10,
+                                        color: AppColors.darkGoldText),
+                                    minFontSize: 7,
+                                    maxLines: 2),
+                              ),
+                            ],
                           ),
-                          AutoSizeText(
-                            ev.eventLocation,
-                            style: const TextStyle(
-                                fontFamily: "SansSerifPro", fontSize: 10),
-                            minFontSize: 8,
-                            maxLines: 1,
-                          )
                         ],
                       ),
                     ),
@@ -447,6 +499,7 @@ class CalendarScreenState extends State<HomeScreen> {
 
   List<Widget> buildEventList(context) {
     final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
     var eventContainers = _getDayEvents(_focusedDay);
 
     if (eventContainers.isEmpty) {
@@ -713,6 +766,8 @@ class CalendarScreenState extends State<HomeScreen> {
         past.sort((a, b) => b.dateTime.compareTo(a.dateTime));
 
         List<Widget> sectionWidgets(String title, List<NotificationItem> list) {
+          final screenHeight = MediaQuery.of(context).size.height;
+          final screenWidth = MediaQuery.of(context).size.width;
           if (list.isEmpty) return [Padding(padding: EdgeInsets.all(12), child: AutoSizeText('No $title notifications', style: TextStyle(color: Colors.white), minFontSize: 12, maxLines: 1) )];
           final grouped = groupNotifications(list);
           final sortedKeys = grouped.keys.toList()..sort((a, b) => DateTime.parse(a).compareTo(DateTime.parse(b)));
@@ -731,91 +786,88 @@ class CalendarScreenState extends State<HomeScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
                   child: SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.027,
+                    height: screenHeight * 0.065,
                     child: Row(
                       children: [
                         Container(
-                          height: MediaQuery.of(context).size.height * 0.027,
-                          width: MediaQuery.of(context).size.width * 0.074,
+                          height: screenHeight * 0.065,
+                          width: screenWidth * 0.1,
                           decoration:
                               const BoxDecoration(color: Colors.white),
                           child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                AutoSizeText(
-                                    DateFormat('MMM d')
-                                        .format(n.dateTime),
-                                    style: const TextStyle(
-                                        fontFamily:
-                                            "AppFonts.sansProSemiBold",
-                                        fontSize: 11,
-                                        color: AppColors.darkGoldText),
-                                    minFontSize: 8,
-                                    maxLines: 1),
-                                AutoSizeText(
-                                    DateFormat('h:mm a')
-                                        .format(n.dateTime),
-                                    style: const TextStyle(
-                                        fontFamily: "SansSerifPro",
-                                        fontSize: 10,
-                                        color: AppColors.darkGoldText),
-                                    minFontSize: 7,
-                                    maxLines: 1),
-                              ],
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  AutoSizeText(
+                                      DateFormat('MMM d')
+                                          .format(n.dateTime),
+                                      style: const TextStyle(
+                                          fontFamily:
+                                              "AppFonts.sansProSemiBold",
+                                          fontSize: 11,
+                                          color: AppColors.darkGoldText),
+                                      minFontSize: 8,
+                                      maxLines: 1),
+                                  AutoSizeText(
+                                      DateFormat('h:mm a')
+                                          .format(n.dateTime),
+                                      style: const TextStyle(
+                                          fontFamily: "SansSerifPro",
+                                          fontSize: 10,
+                                          color: AppColors.darkGoldText),
+                                      minFontSize: 7,
+                                      maxLines: 1),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(width: 1),
                         Expanded(
                           child: Container(
+                            height: screenHeight * 0.27,
                             padding: EdgeInsets.only(
-                                left: MediaQuery.of(context).size.width * 0.011, top: MediaQuery.of(context).size.height * 0.0025),
+                                left: screenWidth * 0.011, top: screenHeight * 0.0025),
                             decoration:
                                 const BoxDecoration(color: Colors.white),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                AutoSizeText(n.title,
-                                    style: const TextStyle(
-                                        fontFamily:
-                                            "AppFonts.sansProSemiBold",
-                                        fontSize: 13),
-                                    minFontSize: 10,
-                                    maxLines: 1),
-                                Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    const Padding(
-                                        padding: EdgeInsets.only(top: 2.0),
-                                        child: Icon(Icons.notifications,
-                                            size: 10,
-                                            color: AppColors.darkGoldText)),
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(
-                                            left: 2.0),
-                                        child: SizedBox(
-                                          height: MediaQuery.of(context).size.height * 0.013,
-                                          child: SingleChildScrollView(
-                                              scrollDirection:
-                                                  Axis.vertical,
-                                              child: AutoSizeText(n.message,
-                                                  style: const TextStyle(
-                                                      fontFamily:
-                                                          "SansSerifPro",
-                                                      fontSize: 10,
-                                                      color: AppColors
-                                                          .darkGoldText),
-                                                  minFontSize: 7,
-                                                  maxLines: 3)),
-                                        ),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  AutoSizeText(n.title,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                          fontFamily:
+                                              "AppFonts.sansProSemiBold",
+                                          fontSize: 13),
+                                      minFontSize: 10,
+                                      maxLines: 1),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.notifications,
+                                          size: 10,
+                                          color: AppColors.darkGoldText),
+                                      const SizedBox(width: 2),
+                                      Flexible(
+                                        child: AutoSizeText(n.message,
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                                fontFamily: "SansSerifPro",
+                                                fontSize: 10,
+                                                color: AppColors.darkGoldText),
+                                            minFontSize: 7,
+                                            maxLines: 2),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -877,6 +929,7 @@ class CalendarScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
     Widget calWidget = buildCalendar(context);
     Widget eventDisplayWidget = buildEventDisplay(context);
     Widget announcementDisplayWidget = buildAnnouncementDisplay(context);
