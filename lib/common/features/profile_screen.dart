@@ -349,7 +349,31 @@ class ProfileScreenState extends State<ProfileScreen> {
                             const Size(double.infinity, 48), // Forces full width
                       ),
                       onPressed: () async {
-                        await FirebaseAuth.instance.signOut();
+                        // Show confirmation dialog
+                        final shouldLogout = await showDialog<bool>(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text('Log Out'),
+                              content: const Text('Are you sure you want to log out?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(true),
+                                  child: const Text('Log Out'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+
+                        // Only log out if user confirmed
+                        if (shouldLogout == true) {
+                          await FirebaseAuth.instance.signOut();
+                        }
                       },
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,

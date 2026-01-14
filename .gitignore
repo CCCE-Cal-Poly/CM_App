@@ -124,7 +124,6 @@ node_modules/
 
 # Ignore sensitive Firebase API keys
 firebaseServiceKey.json
-lib/firebase_keys.dart
 devtools_options.yaml
 
 #Ignore Claude

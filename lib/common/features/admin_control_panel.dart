@@ -469,6 +469,106 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
     );
   }
 
+  void _showBroadcastNotificationDialog() {
+    final outerContext = context;
+    final titleController = TextEditingController();
+    final messageController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          title: const Text("Send Broadcast Notification"),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'This will send a notification to ALL users in the app.',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Title',
+                    border: OutlineInputBorder(),
+                    hintText: 'e.g., Important Announcement',
+                  ),
+                  maxLength: 100,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: messageController,
+                  decoration: const InputDecoration(
+                    labelText: 'Message',
+                    border: OutlineInputBorder(),
+                    hintText: 'Enter your message here...',
+                  ),
+                  maxLines: 4,
+                  maxLength: 500,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                titleController.dispose();
+                messageController.dispose();
+                Navigator.pop(dialogContext);
+              },
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+              ),
+              onPressed: () async {
+                final title = titleController.text.trim();
+                final message = messageController.text.trim();
+
+                if (title.isEmpty || message.isEmpty) {
+                  ScaffoldMessenger.of(outerContext).showSnackBar(
+                    const SnackBar(content: Text('Title and message are required'))
+                  );
+                  return;
+                }
+
+                try {
+                  await FirebaseFunctions.instance
+                      .httpsCallable('sendBroadcastNotification')
+                      .call(<String, dynamic>{
+                        'title': title,
+                        'message': message,
+                      });
+
+                  titleController.dispose();
+                  messageController.dispose();
+                  
+                  if (!mounted) return;
+                  Navigator.of(dialogContext).pop();
+                  
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(outerContext).showSnackBar(
+                    const SnackBar(content: Text('Broadcast notification sent successfully!'))
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(outerContext).showSnackBar(
+                    SnackBar(content: Text('Failed to send notification: $e'))
+                  );
+                }
+              },
+              child: const Text('Send to All Users'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showFacultyRequestsDialog() {
     final outerContext = context;
 
@@ -678,6 +778,19 @@ Widget build(BuildContext context) {
               ),
             ),
             child: const Text("Pending Faculty Role Requests"),
+          ),
+          const SizedBox(height: 20),
+
+          ElevatedButton(
+            onPressed: _showBroadcastNotificationDialog,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+              ),
+            ),
+            child: const Text("Send Broadcast Notification"),
           ),
         ],
       ),
