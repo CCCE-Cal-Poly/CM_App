@@ -308,9 +308,28 @@ exports.sendNotificationOnCreate = onDocumentCreated("notifications/{notificatio
       }
       const membersSnap = await admin.firestore().collection("clubs").doc(targetId).collection("members").get();
       targetUids = membersSnap.docs.map((d) => d.id || (d.data() && d.data().uid)).filter(Boolean);
-    } else if (targetType === "event") {
+    } else if (targetType === "clubEvent") {
       if (!targetId) {
-        console.error("No targetId/eventId for event-targeted notification");
+        console.error("No targetId/eventId for clubEvent-targeted notification");
+        return;
+      }
+      // For club events, get the clubId from the event and notify all club members
+      const eventSnap = await admin.firestore().collection("events").doc(targetId).get();
+      if (!eventSnap.exists) {
+        console.error("Event not found for clubEvent notification:", targetId);
+        return;
+      }
+      const eventData = eventSnap.data();
+      const clubId = eventData.clubId;
+      if (!clubId) {
+        console.error("No clubId found for clubEvent:", targetId);
+        return;
+      }
+      const membersSnap = await admin.firestore().collection("clubs").doc(clubId).collection("members").get();
+      targetUids = membersSnap.docs.map((d) => d.id || (d.data() && d.data().uid)).filter(Boolean);
+    } else if (targetType === "infoSession") {
+      if (!targetId) {
+        console.error("No targetId/eventId for infoSession-targeted notification");
         return;
       }
       const attendingSnap = await admin.firestore().collection("events").doc(targetId).collection("attending").get();
@@ -597,9 +616,12 @@ exports.scheduleEventReminder = onDocumentCreated("events/{eventId}", async (eve
 
     const sendAtMillis = startMillis - (60 * 60 * 1000);
 
+    const eventType = eventData.eventType || "infoSession";
+    const targetType = (eventType === "club") ? "clubEvent" : "infoSession";
+
     const existingReminders = await admin.firestore()
       .collection("notifications")
-      .where("targetType", "==", "event")
+      .where("targetType", "==", targetType)
       .where("targetId", "==", eventId)
       .where("createdBy", "==", "system")
       .where("status", "==", "pending")
@@ -616,10 +638,8 @@ exports.scheduleEventReminder = onDocumentCreated("events/{eventId}", async (eve
     const eventLocation = eventData.mainLocation || "No Listed Location";
     const eventDescription = eventData.description || "";
 
-    // if (eventType == "club")
-
     const notification = {
-      targetType: "event",
+      targetType: targetType,
       targetId: eventId,
       title: `${eventName} starts in 1 hour`,
       message: `${eventName} at ${eventLocation}. ${eventDescription}`.trim(),
@@ -661,7 +681,18 @@ async function sendNotificationDocNow(docSnapshot) {
     } else if (targetType === "club") {
       const membersSnap = await admin.firestore().collection("clubs").doc(targetId).collection("members").get();
       targetUids = membersSnap.docs.map((d) => d.id || (d.data() && d.data().uid)).filter(Boolean);
-    } else if (targetType === "event") {
+    } else if (targetType === "clubEvent") {
+      // For club events, get the clubId from the event and notify all club members
+      const eventSnap = await admin.firestore().collection("events").doc(targetId).get();
+      if (eventSnap.exists) {
+        const eventData = eventSnap.data();
+        const clubId = eventData.clubId;
+        if (clubId) {
+          const membersSnap = await admin.firestore().collection("clubs").doc(clubId).collection("members").get();
+          targetUids = membersSnap.docs.map((d) => d.id || (d.data() && d.data().uid)).filter(Boolean);
+        }
+      }
+    } else if (targetType === "infoSession") {
       const attendingSnap = await admin.firestore().collection("events").doc(targetId).collection("attending").get();
       targetUids = attendingSnap.docs.map((d) => d.id || (d.data() && d.data().uid)).filter(Boolean);
     } else if (targetType === "broadcast") {
@@ -924,10 +955,12 @@ async function scheduleRecurringEventNotification(notificationDoc) {
     const sendAt = new Date(nextStart.getTime() - (60 * 60 * 1000));
     if (sendAt.getTime() <= Date.now()) return;
 
-
     // Avoid duplicates
+    const eventType = ev.eventType || "infoSession";
+    const targetType = (eventType === "club") ? "clubEvent" : "infoSession";
+
     const existing = await admin.firestore().collection("notifications")
-      .where("targetType", "==", "event")
+      .where("targetType", "==", targetType)
       .where("targetId", "==", eventId)
       .where("createdBy", "==", "system")
       .where("status", "==", "pending")
@@ -935,17 +968,14 @@ async function scheduleRecurringEventNotification(notificationDoc) {
       .limit(1)
       .get();
 
-
     if (!existing.empty) return;
-
 
     const eventName = ev.eventName || ev.company || "Upcoming Event";
     const eventLocation = ev.mainLocation || "No Listed Location";
     const eventDescription = ev.description || "";
 
-
     const notification = {
-      targetType: "event",
+      targetType: targetType,
       targetId: eventId,
       title: `${eventName} starts in 1 hour`,
       message: `${eventName} at ${eventLocation}. ${eventDescription}`.trim(),
@@ -1107,20 +1137,27 @@ exports.deleteClubEvent = onCall(async (request) => {
       console.log(`Deleted ${notificationsSnapshot.size} notifications for event ${eventId}`);
     }
 
-    // Also check targetId field for notifications (different field name)
-    const targetNotificationsSnapshot = await db
+    // Check both clubEvent and infoSession targetTypes
+    const targetNotificationsSnapshot1 = await db
       .collection("notifications")
       .where("targetId", "==", eventId)
-      .where("targetType", "==", "event")
+      .where("targetType", "==", "clubEvent")
       .get();
 
-    if (!targetNotificationsSnapshot.empty) {
+    const targetNotificationsSnapshot2 = await db
+      .collection("notifications")
+      .where("targetId", "==", eventId)
+      .where("targetType", "==", "infoSession")
+      .get();
+
+    const allTargetDocs = [...targetNotificationsSnapshot1.docs, ...targetNotificationsSnapshot2.docs];
+    if (allTargetDocs.length > 0) {
       const batch = db.batch();
-      targetNotificationsSnapshot.docs.forEach((doc) => {
+      allTargetDocs.forEach((doc) => {
         batch.delete(doc.ref);
       });
       await batch.commit();
-      console.log(`Deleted ${targetNotificationsSnapshot.size} target notifications for event ${eventId}`);
+      console.log(`Deleted ${allTargetDocs.length} target notifications for event ${eventId}`);
     }
 
     // Remove event reference from club's events array
@@ -1202,16 +1239,23 @@ exports.autoDeleteOldClubEvents = onSchedule("every day 02:00", async () => {
           await batch.commit();
         }
 
-        // Delete associated notifications by targetId field
-        const targetNotificationsSnapshot = await db
+        // Delete associated notifications by targetId field for both targetTypes
+        const targetNotificationsSnapshot1 = await db
           .collection("notifications")
           .where("targetId", "==", eventId)
-          .where("targetType", "==", "event")
+          .where("targetType", "==", "clubEvent")
           .get();
 
-        if (!targetNotificationsSnapshot.empty) {
+        const targetNotificationsSnapshot2 = await db
+          .collection("notifications")
+          .where("targetId", "==", eventId)
+          .where("targetType", "==", "infoSession")
+          .get();
+
+        const allTargetDocs = [...targetNotificationsSnapshot1.docs, ...targetNotificationsSnapshot2.docs];
+        if (allTargetDocs.length > 0) {
           const batch = db.batch();
-          targetNotificationsSnapshot.docs.forEach((doc) => {
+          allTargetDocs.forEach((doc) => {
             batch.delete(doc.ref);
           });
           await batch.commit();
