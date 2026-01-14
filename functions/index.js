@@ -484,7 +484,7 @@ async function sendMulticastBatched(tokenPairs, payloadBase) {
     const batchTokens = tokens.slice(i, i + BATCH_SIZE);
     const payload = Object.assign({}, payloadBase, {tokens: batchTokens});
     try {
-      const resp = await admin.messaging().sendMulticast(payload);
+      const resp = await admin.messaging().sendEachForMulticast(payload);
       sent += resp.successCount;
       failed += resp.failureCount;
       if (resp.failureCount > 0) {
@@ -501,7 +501,7 @@ async function sendMulticastBatched(tokenPairs, payloadBase) {
         });
       }
     } catch (err) {
-      console.error("sendMulticast error for batch", err);
+      console.error("sendEachForMulticast error for batch", err);
       failed += batchTokens.length;
     }
   }

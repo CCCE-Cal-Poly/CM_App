@@ -469,13 +469,14 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
     );
   }
 
-  void _showBroadcastNotificationDialog() {
-    final outerContext = context;
+  Future<void> _showBroadcastNotificationDialog() async {
     final titleController = TextEditingController();
     final messageController = TextEditingController();
-
-    showDialog(
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
+    await showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (dialogContext) {
         return AlertDialog(
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
@@ -514,11 +515,7 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                titleController.dispose();
-                messageController.dispose();
-                Navigator.pop(dialogContext);
-              },
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text("Cancel"),
             ),
             ElevatedButton(
@@ -530,11 +527,22 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                 final message = messageController.text.trim();
 
                 if (title.isEmpty || message.isEmpty) {
-                  ScaffoldMessenger.of(outerContext).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     const SnackBar(content: Text('Title and message are required'))
                   );
                   return;
                 }
+
+                // Close dialog immediately
+                Navigator.pop(dialogContext);
+                
+                // Show loading
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Sending broadcast notification...'),
+                    duration: Duration(seconds: 30),
+                  )
+                );
 
                 try {
                   await FirebaseFunctions.instance
@@ -543,21 +551,23 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                         'title': title,
                         'message': message,
                       });
-
-                  titleController.dispose();
-                  messageController.dispose();
                   
                   if (!mounted) return;
-                  Navigator.of(dialogContext).pop();
-                  
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(outerContext).showSnackBar(
-                    const SnackBar(content: Text('Broadcast notification sent successfully!'))
+                  scaffoldMessenger.clearSnackBars();
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Broadcast notification sent successfully!'),
+                      backgroundColor: Colors.green,
+                    )
                   );
                 } catch (e) {
                   if (!mounted) return;
-                  ScaffoldMessenger.of(outerContext).showSnackBar(
-                    SnackBar(content: Text('Failed to send notification: $e'))
+                  scaffoldMessenger.clearSnackBars();
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to send notification: $e'),
+                      backgroundColor: Colors.red,
+                    )
                   );
                 }
               },
@@ -567,6 +577,11 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
         );
       },
     );
+    
+    // Wait for dialog animation to complete before disposing
+    await Future.delayed(const Duration(milliseconds: 300));
+    titleController.dispose();
+    messageController.dispose();
   }
 
   void _showFacultyRequestsDialog() {
