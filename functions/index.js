@@ -1031,6 +1031,192 @@ exports.sendBroadcastNotification = onCall(async (request) => {
   return {success: true, notificationId: docRef.id};
 });
 
+exports.rebuildEventNotifications = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+
+  const callerUid = request.auth.uid;
+  const callerRecord = await admin.auth().getUser(callerUid);
+  const callerRole = (callerRecord.customClaims && callerRecord.customClaims.role);
+
+  if (callerRole !== "admin") {
+    throw new HttpsError("permission-denied", "Only admins can rebuild notifications");
+  }
+
+  const db = admin.firestore();
+  let deletedCount = 0;
+  let createdCount = 0;
+  let skippedCount = 0;
+
+  try {
+    // Step 1: Delete all system-created event notifications
+    const notificationsSnapshot = await db
+      .collection("notifications")
+      .where("createdBy", "==", "system")
+      .get();
+
+    if (!notificationsSnapshot.empty) {
+      const batch = db.batch();
+      notificationsSnapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      deletedCount = notificationsSnapshot.size;
+      console.log(`Deleted ${deletedCount} system notifications`);
+    }
+
+    // Step 2: Rebuild notifications for all future events
+    const now = Date.now();
+    const eventsSnapshot = await db.collection("events").get();
+
+    for (const eventDoc of eventsSnapshot.docs) {
+      const eventData = eventDoc.data() || {};
+      const eventId = eventDoc.id;
+      const startTime = eventData.startTime;
+
+      if (!startTime || !startTime.toMillis || typeof startTime.toMillis !== "function") {
+        console.log(`Event ${eventId} has invalid startTime, skipping`);
+        skippedCount++;
+        continue;
+      }
+
+      const startMillis = startTime.toMillis();
+
+      // Skip events that have already passed or start too soon
+      if (startMillis <= now + (60 * 60 * 1000)) {
+        console.log(`Event ${eventId} starts too soon or in past, skipping`);
+        skippedCount++;
+        continue;
+      }
+
+      const sendAtMillis = startMillis - (60 * 60 * 1000);
+      const eventType = eventData.eventType || "infoSession";
+      const targetType = (eventType === "club") ? "clubEvent" : "infoSession";
+
+      const eventName = eventData.eventName || eventData.company || "Upcoming Event";
+      const eventLocation = eventData.mainLocation || "No Listed Location";
+      const eventDescription = eventData.description || "";
+
+      const notification = {
+        targetType: targetType,
+        targetId: eventId,
+        title: `${eventName} starts in 1 hour`,
+        message: `${eventName} at ${eventLocation}. ${eventDescription}`.trim(),
+        sendAt: admin.firestore.Timestamp.fromMillis(sendAtMillis),
+        createdBy: "system",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: "pending",
+        eventData: {
+          eventId: eventId,
+          eventName: eventName,
+          company: eventData.company || null,
+          startTime: startTime,
+          location: eventLocation,
+          recurrenceInterval: eventData.recurrenceInterval || null,
+          recurrenceEndDate: eventData.recurrenceEndDate || null,
+        },
+      };
+
+      await db.collection("notifications").add(notification);
+      createdCount++;
+      console.log(`Created notification for event ${eventId} (${eventName})`);
+    }
+
+    return {
+      success: true,
+      deleted: deletedCount,
+      created: createdCount,
+      skipped: skippedCount,
+      message: `Rebuilt notifications: deleted ${deletedCount}, created ${createdCount}, skipped ${skippedCount}`,
+    };
+  } catch (error) {
+    console.error("Error rebuilding notifications:", error);
+    throw new HttpsError("internal", error.message || "Internal server error");
+  }
+});
+
+exports.analyzeEvents = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+
+  const callerUid = request.auth.uid;
+  const callerRecord = await admin.auth().getUser(callerUid);
+  const callerRole = (callerRecord.customClaims && callerRecord.customClaims.role);
+
+  if (callerRole !== "admin") {
+    throw new HttpsError("permission-denied", "Only admins can analyze events");
+  }
+
+  const db = admin.firestore();
+  const now = Date.now();
+  const oneHourFromNow = now + (60 * 60 * 1000);
+
+  try {
+    const eventsSnapshot = await db.collection("events").get();
+    const analysis = {
+      totalEvents: eventsSnapshot.size,
+      invalidStartTime: 0,
+      pastEvents: 0,
+      withinOneHour: 0,
+      futureEvents: 0,
+      eventsList: [],
+    };
+
+    eventsSnapshot.docs.forEach((doc) => {
+      const eventData = doc.data() || {};
+      const eventId = doc.id;
+      const startTime = eventData.startTime;
+      const eventName = eventData.eventName || eventData.company || "Unnamed";
+
+      if (!startTime || !startTime.toMillis || typeof startTime.toMillis !== "function") {
+        analysis.invalidStartTime++;
+        analysis.eventsList.push({
+          id: eventId,
+          name: eventName,
+          status: "Invalid startTime",
+          startTime: String(startTime),
+        });
+      } else {
+        const startMillis = startTime.toMillis();
+        const startDate = new Date(startMillis).toISOString();
+
+        if (startMillis < now) {
+          analysis.pastEvents++;
+          analysis.eventsList.push({
+            id: eventId,
+            name: eventName,
+            status: "Past event",
+            startTime: startDate,
+          });
+        } else if (startMillis <= oneHourFromNow) {
+          analysis.withinOneHour++;
+          analysis.eventsList.push({
+            id: eventId,
+            name: eventName,
+            status: "Within 1 hour",
+            startTime: startDate,
+          });
+        } else {
+          analysis.futureEvents++;
+          analysis.eventsList.push({
+            id: eventId,
+            name: eventName,
+            status: "Future (will get notification)",
+            startTime: startDate,
+          });
+        }
+      }
+    });
+
+    return analysis;
+  } catch (error) {
+    console.error("Error analyzing events:", error);
+    throw new HttpsError("internal", error.message || "Internal server error");
+  }
+});
+
 exports.setEventUpdatedAt = onDocumentWritten("events/{eventId}", async (event) => {
   const beforeSnap = event.data.before;
   const afterSnap = event.data.after;

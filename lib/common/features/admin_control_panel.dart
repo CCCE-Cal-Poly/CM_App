@@ -733,6 +733,152 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
     );
   }
 
+  Future<void> _rebuildEventNotifications() async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text('Rebuilding notifications...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('rebuildEventNotifications');
+      final result = await callable.call();
+      
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+      
+      final data = result.data as Map<String, dynamic>;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          title: const Text('Rebuild Complete'),
+          content: Text(
+            'Deleted: ${data['deleted']} notifications\n'
+            'Created: ${data['created']} notifications\n'
+            'Skipped: ${data['skipped']} events\n\n'
+            '${data['message']}',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error rebuilding notifications: $e')),
+      );
+    }
+  }
+
+  Future<void> _analyzeEvents() async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text('Analyzing events...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('analyzeEvents');
+      final result = await callable.call();
+      
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+      
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final eventsList = (data['eventsList'] as List<dynamic>?) ?? [];
+      
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          title: const Text('Events Analysis'),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 500,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Total Events: ${data['totalEvents']}\n'
+                    '✅ Future Events (will get notification): ${data['futureEvents']}\n'
+                    '⏰ Within 1 Hour (too soon): ${data['withinOneHour']}\n'
+                    '📅 Past Events: ${data['pastEvents']}\n'
+                    '❌ Invalid StartTime: ${data['invalidStartTime']}\n',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const Divider(thickness: 2),
+                  const SizedBox(height: 10),
+                  const Text('Event Details:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  ...eventsList.map((event) {
+                    final e = Map<String, dynamic>.from(event as Map);
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              e['name'] ?? 'Unnamed',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text('Status: ${e['status']}'),
+                            Text('Start: ${e['startTime']}', style: const TextStyle(fontSize: 12)),
+                            Text('ID: ${e['id']}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error analyzing events: $e')),
+      );
+    }
+  }
+
   @override
 Widget build(BuildContext context) {
   var screenHeight = MediaQuery.of(context).size.height;
