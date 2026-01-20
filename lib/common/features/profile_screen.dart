@@ -7,11 +7,13 @@ import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/collections/user_data.dart';
 import 'package:ccce_application/common/features/edit_profile_screen.dart';
 import 'package:ccce_application/common/features/legal_document_screen.dart';
+import 'package:ccce_application/services/notification_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -372,6 +374,15 @@ class ProfileScreenState extends State<ProfileScreen> {
 
                         // Only log out if user confirmed
                         if (shouldLogout == true) {
+                          final user = FirebaseAuth.instance.currentUser;
+                          if (user != null) {
+                            try {
+                              final token = await FirebaseMessaging.instance.getToken();
+                              if (token != null) {
+                                await NotificationService.removeTokenForUser(user.uid, token);
+                              }
+                            } catch (_) {}
+                          }
                           await FirebaseAuth.instance.signOut();
                         }
                       },

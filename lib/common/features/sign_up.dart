@@ -226,6 +226,13 @@ class _SignUpState extends State<SignUp> {
       String password = _passwordController.text.trim();
       String confirmPassword = _confirmPasswordController.text.trim();
 
+      if (password.length < 8) {
+        setState(() {
+          errorMsg = "Password must be at least 8 characters.";
+        });
+        return;
+      }
+
       if (password != confirmPassword) {
         setState(() {
           errorMsg = "Passwords do not match";

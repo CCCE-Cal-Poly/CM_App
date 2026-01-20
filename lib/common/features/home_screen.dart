@@ -602,7 +602,7 @@ class CalendarScreenState extends State<HomeScreen> {
           queries.add(
             FirebaseFirestore.instance
                 .collection('notifications')
-                .where('targetType', isEqualTo: 'event')
+                .where('targetType', isEqualTo: 'infoSession')
                 .where('targetId', whereIn: batch)
                 .where('status', whereIn: ['sent', 'pending'])
                 .get(),
@@ -619,7 +619,7 @@ class CalendarScreenState extends State<HomeScreen> {
           queries.add(
             FirebaseFirestore.instance
                 .collection('notifications')
-                .where('targetType', isEqualTo: 'club')
+                .where('targetType', isEqualTo: 'clubEvent')
                 .where('targetId', whereIn: batch)
                 .where('status', whereIn: ['sent', 'pending'])
                 .get(),

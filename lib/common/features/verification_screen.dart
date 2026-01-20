@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:ccce_application/services/notification_service.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
   const EmailVerificationScreen({super.key});
@@ -140,6 +142,15 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               TextButton(
                 onPressed: () async {
                   // Sign out and go back to sign up
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user != null) {
+                    try {
+                      final token = await FirebaseMessaging.instance.getToken();
+                      if (token != null) {
+                        await NotificationService.removeTokenForUser(user.uid, token);
+                      }
+                    } catch (_) {}
+                  }
                   await FirebaseAuth.instance.signOut();
                   if (mounted) {
                     Navigator.pushReplacement(

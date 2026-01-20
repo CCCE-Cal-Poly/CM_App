@@ -406,20 +406,16 @@ class _SignInState extends State<SignIn> {
     });
 
     try {
-      // Trigger Google Sign-In flow
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      
-      if (googleUser == null) {
-        // User canceled the sign-in
-        return;
-      }
+      // Trigger Google Sign-In flow (new API)
+      final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+      await googleSignIn.initialize();
+      final GoogleSignInAccount googleUser = await googleSignIn.authenticate();
 
-      // Obtain auth details from the request
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      // Obtain auth details from the account
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
       // Create a new credential
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
