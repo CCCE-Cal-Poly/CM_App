@@ -121,7 +121,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                             fontSize: 24,
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.02),
+                        SizedBox(height: screenHeight * 0.01),
                       ])),
               Expanded(
                 child: SingleChildScrollView(
@@ -131,9 +131,11 @@ class ProfileScreenState extends State<ProfileScreen> {
                       indent: screenWidth * 0.03,
                       endIndent: screenWidth * 0.03,
                     ),
-                    SizedBox(height: screenHeight * 0.02),
-                    SizedBox(
-                      height: screenHeight * 0.07,
+                    SizedBox(height: screenHeight * 0.01),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: screenHeight * 0.07,
+                      ),
                       child: Row(
                         children: [
                           Consumer<UserProvider>(
@@ -171,9 +173,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(width: 8.0),
                           Expanded(
-                            child: SizedBox(
-                              height: screenHeight * 0.07,
-                              child: Consumer<UserProvider>(
+                            child: Consumer<UserProvider>(
                                 builder: (context, userProvider, child) {
                                   UserData? userData = userProvider.user;
                                   User? currentUser =
@@ -230,19 +230,18 @@ class ProfileScreenState extends State<ProfileScreen> {
                                   return Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Flexible(
-                                        child: AutoSizeText(
-                                          displayName,
-                                          maxLines: 2,
-                                          minFontSize: 7,
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontFamily:
-                                                  AppFonts.sansProSemiBold,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 16),
-                                        ),
+                                      AutoSizeText(
+                                        displayName,
+                                        maxLines: 1,
+                                        minFontSize: 7,
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontFamily:
+                                                AppFonts.sansProSemiBold,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 15),
                                       ),
                                       if (displayRole.isNotEmpty)
                                         AutoSizeText(displayRole,
@@ -269,9 +268,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                                             if (!snapshot.hasData || snapshot.data!.isEmpty) {
                                               return const SizedBox.shrink();
                                             }
-                                            return Padding(
-                                              padding: const EdgeInsets.only(top: 4.0),
-                                              child: AutoSizeText(
+                                            return AutoSizeText(
                                                 'Clubs: ${snapshot.data!.join(', ')}',
                                                 maxLines: 2,
                                                 minFontSize: 7,
@@ -279,8 +276,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                                                   color: AppColors.tanText,
                                                   fontSize: 11,
                                                 ),
-                                              ),
-                                            );
+                                              );
                                           },
                                         ),
                                     ],
@@ -288,7 +284,6 @@ class ProfileScreenState extends State<ProfileScreen> {
                                 },
                               ),
                             ),
-                          )
                         ],
                       ),
                     ),

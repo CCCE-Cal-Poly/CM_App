@@ -1,6 +1,6 @@
 import 'package:ccce_application/common/collections/user_data.dart';
 import 'package:ccce_application/common/features/admin_control_panel.dart';
-import 'package:ccce_application/common/features/job_board.dart';
+// import 'package:ccce_application/common/features/job_board.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/features/club_event_request_screen.dart';
 import 'package:ccce_application/common/features/my_club_events_screen.dart';
@@ -41,7 +41,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
       () => ClubDirectory(scaffoldKey: _scaffoldKey),
       () => FacultyDirectory(scaffoldKey: _scaffoldKey),
       () => InfoSessionsScreen(scaffoldKey: _scaffoldKey),
-      () => JobBoard(scaffoldKey: _scaffoldKey),
+      // () => JobBoard(scaffoldKey: _scaffoldKey),
       () => ProfileScreen(scaffoldKey: _scaffoldKey),
       () => AdminPanelScreen(scaffoldKey: _scaffoldKey),
       () => ClubEventRequestScreen(scaffoldKey: _scaffoldKey),
@@ -57,14 +57,18 @@ class _MyRenderedPageState extends State<RenderedPage> {
   }
 
   ListTile createListItem(String title, int index) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final fontSize = (screenHeight * 0.028).clamp(18.0, 24.0) as double;
     return ListTile(
         tileColor: lighterTanColor,
+        dense: true,
+        visualDensity: const VisualDensity(vertical: -2),
         title: Text(title,
             textAlign: TextAlign.right,
-            style: const TextStyle(
+            style: TextStyle(
                 fontFamily: "SansSerifProSemiBold",
                 color: standardGreen,
-                fontSize: 24.0)),
+                fontSize: fontSize)),
         onTap: () {
           _onItemTapped(index);
           Navigator.pop(context);
@@ -123,6 +127,9 @@ class _MyRenderedPageState extends State<RenderedPage> {
                       Padding(
                         padding: const EdgeInsets.all(0),
                         child: IconButton(
+                          iconSize: (MediaQuery.of(context).size.height * 0.032)
+                              .clamp(20.0, 28.0)
+                              .toDouble(),
                           icon: const Icon(
                             Icons.menu,
                             color: standardGreen,
@@ -137,11 +144,11 @@ class _MyRenderedPageState extends State<RenderedPage> {
                   createListItem("Club Directory", 2),
                   createListItem("Faculty Directory", 3),
                   createListItem("Info Sessions", 4),
-                  createListItem("Job Board", 5),
-                  createListItem("Profile", 6),
-                  if (isAdmin) createListItem("Admin Control Panel", 7),
-                  if (isClubAdmin || isAdmin) createListItem("Request Club Event", 8),
-                  if (isClubAdmin || isAdmin) createListItem("My Club Events", 9),
+                  // createListItem("Job Board", 5),
+                  createListItem("Profile", 5),
+                  if (isAdmin) createListItem("Admin Control Panel", 6),
+                  if (isClubAdmin || isAdmin) createListItem("Request Club Event", 7),
+                  if (isClubAdmin || isAdmin) createListItem("My Club Events", 8),
                 ],
               ),
             ),
