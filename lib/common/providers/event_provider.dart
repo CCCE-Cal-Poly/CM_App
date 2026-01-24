@@ -278,7 +278,7 @@ class EventProvider extends ChangeNotifier {
 
     // Weekly recurrence
     else if (recurrenceType == 'Weekly') {
-      final daysRaw = data['recurrenceDays'];
+      final daysRaw = data['recurrenceInterval'];
       List<int>? days;
       if (daysRaw is List) {
         days = daysRaw.map((d) => int.tryParse(d.toString()) ?? -1).where((d) => d >= 0 && d <= 6).toList();
@@ -293,16 +293,16 @@ class EventProvider extends ChangeNotifier {
 
     // Monthly recurrence
     else if (recurrenceType == 'Monthly') {
-      final intervalMonths = (int.tryParse((data['recurrenceInterval'] ?? '1').toString()) ?? 1).clamp(1, 120);
-      final dayOfMonth = (int.tryParse((data['recurrenceDayOfMonth'] ?? seriesStart.day).toString()) ?? seriesStart.day);
+      // final intervalMonths = (int.tryParse((data['recurrenceInterval'] ?? '1').toString()) ?? 1).clamp(1, 120);
+      final dayOfMonth = (int.tryParse((data['recurrenceInterval'] ?? seriesStart.day).toString()) ?? seriesStart.day);
       DateTime dt = DateTime(seriesStart.year, seriesStart.month, dayOfMonth, seriesStart.hour, seriesStart.minute, seriesStart.second);
       while (dt.isBefore(seriesStart)) {
-        final nextMonth = dt.month + intervalMonths;
+        final nextMonth = dt.month + 1;
         dt = DateTime(dt.year + ((nextMonth - 1) ~/ 12), ((nextMonth - 1) % 12) + 1, dayOfMonth, seriesStart.hour, seriesStart.minute, seriesStart.second);
       }
       while (!dt.isAfter(windowEnd) && !dt.isAfter(repeatUntil)) {
         if (!dt.isBefore(windowStart) && dt.day == dayOfMonth) dates.add(dt);
-        final nextMonth = dt.month + intervalMonths;
+        final nextMonth = dt.month + 1;
         dt = DateTime(dt.year + ((nextMonth - 1) ~/ 12), ((nextMonth - 1) % 12) + 1, dayOfMonth, seriesStart.hour, seriesStart.minute, seriesStart.second);
       }
     }
