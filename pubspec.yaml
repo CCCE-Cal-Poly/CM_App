@@ -41,6 +41,8 @@ dependencies:
   firebase_ui_auth: ^3.0.1 # Updated
   firebase_messaging: ^16.0.3
   firebase_storage: ^13.0.3
+  firebase_crashlytics: ^5.0.7
+  firebase_analytics: ^12.1.1
   # isar: ^3.1.0+1
   # isar_flutter_libs: ^3.1.0+1
   # Adding cloud_firestore
@@ -55,7 +57,7 @@ dependencies:
   #Url launcher for email:
   url_launcher: ^6.3.1
   #Google Sign In
-  google_sign_in: ^6.2.1
+  google_sign_in: ^7.2.0
   #Image handling and caching
   http: ^1.2.2  # Updated for compatibility
   cached_network_image: ^3.4.1  # Updated for better performance

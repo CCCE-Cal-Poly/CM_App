@@ -7,11 +7,13 @@ import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/collections/user_data.dart';
 import 'package:ccce_application/common/features/edit_profile_screen.dart';
 import 'package:ccce_application/common/features/legal_document_screen.dart';
+import 'package:ccce_application/services/notification_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -119,7 +121,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                             fontSize: 24,
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.02),
+                        SizedBox(height: screenHeight * 0.01),
                       ])),
               Expanded(
                 child: SingleChildScrollView(
@@ -129,9 +131,11 @@ class ProfileScreenState extends State<ProfileScreen> {
                       indent: screenWidth * 0.03,
                       endIndent: screenWidth * 0.03,
                     ),
-                    SizedBox(height: screenHeight * 0.02),
-                    SizedBox(
-                      height: screenHeight * 0.07,
+                    SizedBox(height: screenHeight * 0.01),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: screenHeight * 0.07,
+                      ),
                       child: Row(
                         children: [
                           Consumer<UserProvider>(
@@ -169,9 +173,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(width: 8.0),
                           Expanded(
-                            child: SizedBox(
-                              height: screenHeight * 0.07,
-                              child: Consumer<UserProvider>(
+                            child: Consumer<UserProvider>(
                                 builder: (context, userProvider, child) {
                                   UserData? userData = userProvider.user;
                                   User? currentUser =
@@ -228,19 +230,18 @@ class ProfileScreenState extends State<ProfileScreen> {
                                   return Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Flexible(
-                                        child: AutoSizeText(
-                                          displayName,
-                                          maxLines: 2,
-                                          minFontSize: 7,
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontFamily:
-                                                  AppFonts.sansProSemiBold,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 16),
-                                        ),
+                                      AutoSizeText(
+                                        displayName,
+                                        maxLines: 1,
+                                        minFontSize: 7,
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontFamily:
+                                                AppFonts.sansProSemiBold,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 15),
                                       ),
                                       if (displayRole.isNotEmpty)
                                         AutoSizeText(displayRole,
@@ -267,9 +268,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                                             if (!snapshot.hasData || snapshot.data!.isEmpty) {
                                               return const SizedBox.shrink();
                                             }
-                                            return Padding(
-                                              padding: const EdgeInsets.only(top: 4.0),
-                                              child: AutoSizeText(
+                                            return AutoSizeText(
                                                 'Clubs: ${snapshot.data!.join(', ')}',
                                                 maxLines: 2,
                                                 minFontSize: 7,
@@ -277,8 +276,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                                                   color: AppColors.tanText,
                                                   fontSize: 11,
                                                 ),
-                                              ),
-                                            );
+                                              );
                                           },
                                         ),
                                     ],
@@ -286,7 +284,6 @@ class ProfileScreenState extends State<ProfileScreen> {
                                 },
                               ),
                             ),
-                          )
                         ],
                       ),
                     ),
@@ -372,6 +369,15 @@ class ProfileScreenState extends State<ProfileScreen> {
 
                         // Only log out if user confirmed
                         if (shouldLogout == true) {
+                          final user = FirebaseAuth.instance.currentUser;
+                          if (user != null) {
+                            try {
+                              final token = await FirebaseMessaging.instance.getToken();
+                              if (token != null) {
+                                await NotificationService.removeTokenForUser(user.uid, token);
+                              }
+                            } catch (_) {}
+                          }
                           await FirebaseAuth.instance.signOut();
                         }
                       },

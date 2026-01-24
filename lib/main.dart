@@ -6,6 +6,8 @@ import 'package:ccce_application/rendered_page.dart';
 import 'package:ccce_application/common/features/onboarding/onboarding_screen.dart';
 import 'package:ccce_application/services/error_logger.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:ui';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,6 +20,10 @@ import 'package:ccce_application/common/providers/event_provider.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/providers/club_provider.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_analytics/observer.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 Future<void> _requestNotificationPermissions() async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
@@ -43,14 +49,35 @@ Future<void> _requestNotificationPermissions() async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  } on FirebaseException catch (e) {
+    if (e.code != 'duplicate-app') {
+      rethrow;
+    }
+  }
+
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
+
+  await FirebaseAppCheck.instance.activate(
+    providerAndroid: kDebugMode
+        ? const AndroidDebugProvider()
+        : const AndroidPlayIntegrityProvider(),
+    providerApple: kDebugMode
+        ? const AppleDebugProvider()
+        : const AppleAppAttestProvider(),
   );
 
-await FirebaseAppCheck.instance.activate(
-  providerAndroid: const AndroidDebugProvider(),
-  providerApple: const AppleDebugProvider(),
-);
+  FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
+  await FirebaseAnalytics.instance.logAppOpen();
 
   FirebaseMessaging.onBackgroundMessage(
       NotificationService.firebaseMessagingBackgroundHandler);
@@ -75,6 +102,10 @@ await FirebaseAppCheck.instance.activate(
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  static final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
+  static final FirebaseAnalyticsObserver _observer =
+      FirebaseAnalyticsObserver(analytics: _analytics);
+
   Future<bool> _isTOSAccepted() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('TOS') ?? false;
@@ -86,8 +117,9 @@ class MyApp extends StatelessWidget {
       future: _isTOSAccepted(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const MaterialApp(
+          return MaterialApp(
             debugShowCheckedModeBanner: false,
+            navigatorObservers: [_observer],
             home: Scaffold(
                 body: Center(
                     child: CircularProgressIndicator(
@@ -98,8 +130,9 @@ class MyApp extends StatelessWidget {
         }
         final tosAccepted = snapshot.data!;
         if (!tosAccepted) {
-          return const MaterialApp(
+          return MaterialApp(
             debugShowCheckedModeBanner: false,
+            navigatorObservers: [_observer],
             home: Scaffold(
               appBar: GoldAppBar(),
               body: OnboardingScreen()), 
@@ -112,8 +145,9 @@ class MyApp extends StatelessWidget {
               return const CircularProgressIndicator();
             }
             if (!snapshot.hasData) {
-              return const MaterialApp(
+              return MaterialApp(
                 debugShowCheckedModeBanner: false,
+                navigatorObservers: [_observer],
                 home: SignIn(),
               );
             }
@@ -145,8 +179,9 @@ class MyApp extends StatelessWidget {
                   });
                 }
                 
-                return const MaterialApp(
+                return MaterialApp(
                   debugShowCheckedModeBanner: false,
+                  navigatorObservers: [_observer],
                   home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
                 );
               },

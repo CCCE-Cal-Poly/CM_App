@@ -3,12 +3,24 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:ccce_application/services/error_logger.dart';
 
 class NotificationService {
+  static String? _currentUid;
+  static bool _lifecycleObserverAttached = false;
+
   static Future<void> firebaseMessagingBackgroundHandler(
       RemoteMessage message) async {
-    await Firebase.initializeApp();
+    try {
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp();
+      }
+    } on FirebaseException catch (e) {
+      if (e.code != 'duplicate-app') {
+        rethrow;
+      }
+    }
     ErrorLogger.logInfo('NotificationService', 'Background message received: ${message.messageId}');
     ErrorLogger.logInfo('NotificationService', 'Title: ${message.notification?.title}');
     ErrorLogger.logInfo('NotificationService', 'Body: ${message.notification?.body}');
@@ -75,6 +87,8 @@ class NotificationService {
 
   static Future<void> initForUid(String uid) async {
     try {
+      _currentUid = uid;
+      _ensureLifecycleObserver();
       await _initLocalNotifications();
 
       final NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
@@ -149,6 +163,22 @@ class NotificationService {
     }
   }
 
+  static Future<void> refreshTokenForUser(String uid) async {
+    try {
+      final String? token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        await saveTokenForUser(uid, token);
+      }
+    } catch (e) {
+      ErrorLogger.logError('NotificationService', 'Error refreshing token', error: e);
+    }
+  }
+
+  static void _ensureLifecycleObserver() {
+    if (_lifecycleObserverAttached) return;
+    WidgetsBinding.instance.addObserver(_NotificationLifecycleObserver());
+    _lifecycleObserverAttached = true;
+  }
   static Future<void> saveTokenForUser(String uid, String token) async {
     try {
       final docRef = FirebaseFirestore.instance
@@ -172,6 +202,18 @@ class NotificationService {
       await docRef.delete();
     } catch (e) {
       ErrorLogger.logError('NotificationService', 'Error removing token', error: e);
+    }
+  }
+}
+
+class _NotificationLifecycleObserver extends WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final uid = NotificationService._currentUid;
+      if (uid != null) {
+        NotificationService.refreshTokenForUser(uid);
+      }
     }
   }
 }

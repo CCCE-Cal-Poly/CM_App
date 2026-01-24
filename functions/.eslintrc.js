@@ -18,7 +18,7 @@ module.exports = {
     "jsdoc/require-jsdoc": "off",
     "require-jsdoc": "off",
     "jsdoc/check-indentation": "off",
-    "max-len": ["error", {code: 120}],
+    "max-len": ["error", {code: 140}],
     "indent": "off",
   },
   overrides: [

@@ -6,20 +6,32 @@ class CalPolyMenuBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Padding(
-        padding: const EdgeInsets.only(left: 8.0),
-        child: Image.asset('assets/icons/cal_poly_white.png'),
-      ),
-      IconButton(
-        icon: const Icon(
-          Icons.menu,
-          color: Colors.white,
+    final screenHeight = MediaQuery.of(context).size.height;
+    final barHeight = (screenHeight * 0.06).clamp(36.0, 52.0) as double;
+
+    return SizedBox(
+      height: barHeight,
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        Padding(
+          padding: EdgeInsets.only(left: barHeight * 0.08),
+          child: Image.asset(
+            'assets/icons/cal_poly_white.png',
+            height: barHeight * 0.72,
+            fit: BoxFit.contain,
+          ),
         ),
-        onPressed: () {
-          scaffoldKey.currentState?.openEndDrawer();
-        },
-      ),
-    ]);
+        IconButton(
+          padding: EdgeInsets.only(right: barHeight * 0.06),
+          iconSize: barHeight * 0.52,
+          icon: const Icon(
+            Icons.menu,
+            color: Colors.white,
+          ),
+          onPressed: () {
+            scaffoldKey.currentState?.openEndDrawer();
+          },
+        ),
+      ]),
+    );
   }
 }

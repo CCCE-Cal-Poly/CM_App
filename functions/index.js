@@ -386,6 +386,48 @@ exports.sendNotificationOnCreate = onDocumentCreated("notifications/{notificatio
   }
 });
 
+exports.notifyOnClubJoin = onDocumentCreated("clubs/{clubId}/members/{uid}", async (event) => {
+  const {clubId, uid} = event.params || {};
+  if (!clubId || !uid) return;
+  try {
+    const clubSnap = await admin.firestore().collection("clubs").doc(clubId).get();
+    const clubData = clubSnap.exists ? (clubSnap.data() || {}) : {};
+    const clubName = clubData.Name || clubData.name || clubData.Acronym || "club";
+
+    await admin.firestore().collection("notifications").add({
+      targetType: "user",
+      targetId: uid,
+      title: "Joined club",
+      message: `You joined ${clubName}.`,
+      createdBy: "system",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (err) {
+    console.error("notifyOnClubJoin error", err);
+  }
+});
+
+exports.notifyOnEventCheckIn = onDocumentCreated("events/{eventId}/attending/{uid}", async (event) => {
+  const {eventId, uid} = event.params || {};
+  if (!eventId || !uid) return;
+  try {
+    const eventSnap = await admin.firestore().collection("events").doc(eventId).get();
+    const eventData = eventSnap.exists ? (eventSnap.data() || {}) : {};
+    const eventName = eventData.eventName || eventData.company || "event";
+
+    await admin.firestore().collection("notifications").add({
+      targetType: "user",
+      targetId: uid,
+      title: "Checked in",
+      message: `You're checked in to ${eventName}.`,
+      createdBy: "system",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (err) {
+    console.error("notifyOnEventCheckIn error", err);
+  }
+});
+
 exports.sendTestNotification = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be authenticated to call this function");
@@ -484,7 +526,7 @@ async function sendMulticastBatched(tokenPairs, payloadBase) {
     const batchTokens = tokens.slice(i, i + BATCH_SIZE);
     const payload = Object.assign({}, payloadBase, {tokens: batchTokens});
     try {
-      const resp = await admin.messaging().sendMulticast(payload);
+      const resp = await admin.messaging().sendEachForMulticast(payload);
       sent += resp.successCount;
       failed += resp.failureCount;
       if (resp.failureCount > 0) {
@@ -501,7 +543,7 @@ async function sendMulticastBatched(tokenPairs, payloadBase) {
         });
       }
     } catch (err) {
-      console.error("sendMulticast error for batch", err);
+      console.error("sendEachForMulticast error for batch", err);
       failed += batchTokens.length;
     }
   }
@@ -530,6 +572,40 @@ async function pruneInvalidTokensMap(map) {
   });
   await Promise.all(promises);
 }
+
+exports.cleanupStaleFcmTokens = onSchedule("every 24 hours", async () => {
+  console.log("Scheduled run: cleaning stale FCM tokens");
+  const db = admin.firestore();
+  const ninetyDaysAgo = admin.firestore.Timestamp.fromMillis(
+      Date.now() - (90 * 24 * 60 * 60 * 1000),
+  );
+
+  let deleted = 0;
+  let batches = 0;
+
+  try {
+    for (let i = 0; i < 10; i++) {
+      const snap = await db.collectionGroup("fcmTokens")
+        .where("createdAt", "<", ninetyDaysAgo)
+        .limit(500)
+        .get();
+
+      if (snap.empty) break;
+
+      const batch = db.batch();
+      snap.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+        deleted++;
+      });
+      await batch.commit();
+      batches++;
+    }
+
+    console.log(`Stale FCM token cleanup complete: deleted=${deleted} batches=${batches}`);
+  } catch (err) {
+    console.error("Error cleaning stale FCM tokens:", err);
+  }
+});
 
 exports.cleanupOldNotifications = onSchedule("every 24 hours", async () => {
   console.log("Scheduled run: cleaning up old notifications");
@@ -737,112 +813,6 @@ async function sendNotificationDocNow(docSnapshot) {
   }
 }
 
-// exports.onNotificationStatusChange = onDocumentWritten("notifications/{notificationId}", async (event) => {
-//   const after = event.data.after;
-//   const before = event.data.before;
-//   if (!after || !after.exists) return;
-
-
-//   const afterData = after.data() || {};
-//   const beforeData = (before && before.exists) ? before.data() : {};
-
-
-//   // Only act on transitions to 'sent' and only for system-created event reminders
-//   if (afterData.status !== "sent") return;
-//   if (beforeData && beforeData.status === "sent") return; // already processed
-//   if (afterData.createdBy !== "system") return;
-//   if (afterData.targetType !== "event") return;
-
-
-//   const eventId = afterData.targetId || afterData.eventId;
-//   if (!eventId) return;
-
-
-//   // Determine the start time this notification was for
-//   const currentStartTs = afterData.eventData && afterData.eventData.startTime;
-//   let currentStart = null;
-//   if (currentStartTs) {
-//     currentStart = currentStartTs.toDate ? currentStartTs.toDate() : new Date(currentStartTs);
-//   }
-//   if (!currentStart) return;
-
-
-//   try {
-//     const eventSnap = await admin.firestore().collection("events").doc(eventId).get();
-//     if (!eventSnap.exists) return;
-//     const ev = eventSnap.data() || {};
-
-
-//     // Compute next occurrence
-//     const nextStart = computeNextOccurrence(ev, currentStart);
-//     if (!nextStart) return;
-
-
-//     const recurrenceEndTs = ev.recurrenceEndDate;
-//     if (recurrenceEndTs && recurrenceEndTs.toMillis() && nextStart.getTime() > recurrenceEndTs.toMillis()) {
-//       console.log("Next occurrence beyond recurrence end date, skipping");
-//       return;
-//     }
-
-
-//     const sendAt = new Date(nextStart.getTime() - (60 * 60 * 1000)); // 1 hour before
-//     if (sendAt.getTime() <= Date.now()) {
-//       console.log("Next notification sendAt already passed, skipping");
-//       return;
-//     }
-
-
-//     // Avoid duplicates
-//     const existing = await admin.firestore().collection("notifications")
-//       .where("targetType", "==", "event")
-//       .where("targetId", "==", eventId)
-//       .where("createdBy", "==", "system")
-//       .where("status", "==", "pending")
-//       .where("sendAt", "==", admin.firestore.Timestamp.fromDate(sendAt))
-//       .limit(1)
-//       .get();
-
-
-//     if (!existing.empty) {
-//       console.log("Pending notification for next occurrence already exists, skipping");
-//       return;
-//     }
-
-
-//     const eventName = ev.eventName || ev.company || "Upcoming Event";
-//     const eventLocation = ev.mainLocation || "No Listed Location";
-//     const eventDescription = ev.description || "";
-
-
-//     const notification = {
-//       targetType: "event",
-//       targetId: eventId,
-//       title: `${eventName} starts in 1 hour`,
-//       message: `${eventName} at ${eventLocation}. ${eventDescription}`.trim(),
-//       sendAt: admin.firestore.Timestamp.fromDate(sendAt),
-//       createdBy: "system",
-//       createdAt: admin.firestore.FieldValue.serverTimestamp(),
-//       status: "pending",
-//       eventData: {
-//         eventId: eventId,
-//         eventName: eventName,
-//         company: ev.company || null,
-//         startTime: admin.firestore.Timestamp.fromDate(nextStart),
-//         location: eventLocation,
-//         recurrenceInterval: ev.recurrenceInterval || null,
-//         recurrenceEndDate: ev.recurrenceEndDate || null,
-//       },
-//     };
-
-
-//     await admin.firestore().collection("notifications").add(notification);
-//     console.log(`Scheduled next recurring reminder for event ${eventId} at ${sendAt.toISOString()}`);
-//   } catch (err) {
-//     console.error("Error scheduling next recurring notification:", err);
-//   }
-// });
-
-
 function computeNextOccurrence(ev, currentStart) {
   const recurrenceType = (ev.recurrenceType || "").toString();
   if (!recurrenceType || recurrenceType === "Never") return null;
@@ -1029,6 +999,270 @@ exports.sendBroadcastNotification = onCall(async (request) => {
   });
 
   return {success: true, notificationId: docRef.id};
+});
+
+exports.backfillNotificationIndexes = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+
+  const callerUid = request.auth.uid;
+  const callerRecord = await admin.auth().getUser(callerUid);
+  const callerRole = (callerRecord.customClaims && callerRecord.customClaims.role);
+
+  if (callerRole !== "admin") {
+    throw new HttpsError("permission-denied", "Only admins can run backfill");
+  }
+
+  const db = admin.firestore();
+  const usersSnap = await db.collection("users").get();
+
+  let joinedClubsBackfilled = 0;
+  let checkedInBackfilled = 0;
+  let batchesCommitted = 0;
+  let batch = db.batch();
+  let ops = 0;
+
+  const commitIfNeeded = async (force = false) => {
+    if (ops === 0) return;
+    if (ops >= 400 || force) {
+      await batch.commit();
+      batchesCommitted++;
+      batch = db.batch();
+      ops = 0;
+    }
+  };
+
+  for (const userDoc of usersSnap.docs) {
+    const uid = userDoc.id;
+    const userData = userDoc.data() || {};
+    const userName = userData.name || `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || userData.email || "Unknown";
+
+    const joinedClubsSnap = await db.collection("users").doc(uid).collection("joinedClubs").get();
+    for (const clubDoc of joinedClubsSnap.docs) {
+      const clubId = clubDoc.id;
+      const joinedData = clubDoc.data() || {};
+      const memberRef = db.collection("clubs").doc(clubId).collection("members").doc(uid);
+      batch.set(memberRef, {
+        uid,
+        name: userName,
+        joinedAt: joinedData.joinedAt || admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+      joinedClubsBackfilled++;
+      ops++;
+      await commitIfNeeded();
+    }
+
+    const checkedInSnap = await db.collection("users").doc(uid).collection("checkedInEvents").get();
+    for (const eventDoc of checkedInSnap.docs) {
+      const eventId = eventDoc.id;
+      const checkedData = eventDoc.data() || {};
+      const attendRef = db.collection("events").doc(eventId).collection("attending").doc(uid);
+      batch.set(attendRef, {
+        uid,
+        checkedInAt: checkedData.checkedInAt || admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+      checkedInBackfilled++;
+      ops++;
+      await commitIfNeeded();
+    }
+  }
+
+  await commitIfNeeded(true);
+
+  return {
+    success: true,
+    usersProcessed: usersSnap.size,
+    joinedClubsBackfilled,
+    checkedInBackfilled,
+    batchesCommitted,
+  };
+});
+
+exports.rebuildEventNotifications = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+
+  const callerUid = request.auth.uid;
+  const callerRecord = await admin.auth().getUser(callerUid);
+  const callerRole = (callerRecord.customClaims && callerRecord.customClaims.role);
+
+  if (callerRole !== "admin") {
+    throw new HttpsError("permission-denied", "Only admins can rebuild notifications");
+  }
+
+  const db = admin.firestore();
+  let deletedCount = 0;
+  let createdCount = 0;
+  let skippedCount = 0;
+
+  try {
+    // Step 1: Delete all system-created event notifications
+    const notificationsSnapshot = await db
+      .collection("notifications")
+      .where("createdBy", "==", "system")
+      .get();
+
+    if (!notificationsSnapshot.empty) {
+      const batch = db.batch();
+      notificationsSnapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      deletedCount = notificationsSnapshot.size;
+      console.log(`Deleted ${deletedCount} system notifications`);
+    }
+
+    // Step 2: Rebuild notifications for all future events
+    const now = Date.now();
+    const eventsSnapshot = await db.collection("events").get();
+
+    for (const eventDoc of eventsSnapshot.docs) {
+      const eventData = eventDoc.data() || {};
+      const eventId = eventDoc.id;
+      const startTime = eventData.startTime;
+
+      if (!startTime || !startTime.toMillis || typeof startTime.toMillis !== "function") {
+        console.log(`Event ${eventId} has invalid startTime, skipping`);
+        skippedCount++;
+        continue;
+      }
+
+      const startMillis = startTime.toMillis();
+
+      // Skip events that have already passed or start too soon
+      if (startMillis <= now + (60 * 60 * 1000)) {
+        console.log(`Event ${eventId} starts too soon or in past, skipping`);
+        skippedCount++;
+        continue;
+      }
+
+      const sendAtMillis = startMillis - (60 * 60 * 1000);
+      const eventType = eventData.eventType || "infoSession";
+      const targetType = (eventType === "club") ? "clubEvent" : "infoSession";
+
+      const eventName = eventData.eventName || eventData.company || "Upcoming Event";
+      const eventLocation = eventData.mainLocation || "No Listed Location";
+      const eventDescription = eventData.description || "";
+
+      const notification = {
+        targetType: targetType,
+        targetId: eventId,
+        title: `${eventName} starts in 1 hour`,
+        message: `${eventName} at ${eventLocation}. ${eventDescription}`.trim(),
+        sendAt: admin.firestore.Timestamp.fromMillis(sendAtMillis),
+        createdBy: "system",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: "pending",
+        eventData: {
+          eventId: eventId,
+          eventName: eventName,
+          company: eventData.company || null,
+          startTime: startTime,
+          location: eventLocation,
+          recurrenceInterval: eventData.recurrenceInterval || null,
+          recurrenceEndDate: eventData.recurrenceEndDate || null,
+        },
+      };
+
+      await db.collection("notifications").add(notification);
+      createdCount++;
+      console.log(`Created notification for event ${eventId} (${eventName})`);
+    }
+
+    return {
+      success: true,
+      deleted: deletedCount,
+      created: createdCount,
+      skipped: skippedCount,
+      message: `Rebuilt notifications: deleted ${deletedCount}, created ${createdCount}, skipped ${skippedCount}`,
+    };
+  } catch (error) {
+    console.error("Error rebuilding notifications:", error);
+    throw new HttpsError("internal", error.message || "Internal server error");
+  }
+});
+
+exports.analyzeEvents = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+
+  const callerUid = request.auth.uid;
+  const callerRecord = await admin.auth().getUser(callerUid);
+  const callerRole = (callerRecord.customClaims && callerRecord.customClaims.role);
+
+  if (callerRole !== "admin") {
+    throw new HttpsError("permission-denied", "Only admins can analyze events");
+  }
+
+  const db = admin.firestore();
+  const now = Date.now();
+  const oneHourFromNow = now + (60 * 60 * 1000);
+
+  try {
+    const eventsSnapshot = await db.collection("events").get();
+    const analysis = {
+      totalEvents: eventsSnapshot.size,
+      invalidStartTime: 0,
+      pastEvents: 0,
+      withinOneHour: 0,
+      futureEvents: 0,
+      eventsList: [],
+    };
+
+    eventsSnapshot.docs.forEach((doc) => {
+      const eventData = doc.data() || {};
+      const eventId = doc.id;
+      const startTime = eventData.startTime;
+      const eventName = eventData.eventName || eventData.company || "Unnamed";
+
+      if (!startTime || !startTime.toMillis || typeof startTime.toMillis !== "function") {
+        analysis.invalidStartTime++;
+        analysis.eventsList.push({
+          id: eventId,
+          name: eventName,
+          status: "Invalid startTime",
+          startTime: String(startTime),
+        });
+      } else {
+        const startMillis = startTime.toMillis();
+        const startDate = new Date(startMillis).toISOString();
+
+        if (startMillis < now) {
+          analysis.pastEvents++;
+          analysis.eventsList.push({
+            id: eventId,
+            name: eventName,
+            status: "Past event",
+            startTime: startDate,
+          });
+        } else if (startMillis <= oneHourFromNow) {
+          analysis.withinOneHour++;
+          analysis.eventsList.push({
+            id: eventId,
+            name: eventName,
+            status: "Within 1 hour",
+            startTime: startDate,
+          });
+        } else {
+          analysis.futureEvents++;
+          analysis.eventsList.push({
+            id: eventId,
+            name: eventName,
+            status: "Future (will get notification)",
+            startTime: startDate,
+          });
+        }
+      }
+    });
+
+    return analysis;
+  } catch (error) {
+    console.error("Error analyzing events:", error);
+    throw new HttpsError("internal", error.message || "Internal server error");
+  }
 });
 
 exports.setEventUpdatedAt = onDocumentWritten("events/{eventId}", async (event) => {

@@ -22,6 +22,7 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
   Map<String, bool> buttonStates = {
     'Chronological': false,
     'Hiring': false,
+    'Future': false,
   };
 
   @override
@@ -37,7 +38,13 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
   }
 
   List<CalEvent> _sortInfoSessions(List<CalEvent> sessions) {
-    final sorted = List<CalEvent>.from(sessions);
+    var sorted = List<CalEvent>.from(sessions);
+    
+    // Filter for future events if that button is active
+    if (buttonStates['Future']!) {
+      final now = DateTime.now();
+      sorted = sorted.where((event) => event.startTime.isAfter(now)).toList();
+    }
     
     // If both buttons active, prioritize chronological
     if (buttonStates['Chronological']! && buttonStates['Hiring']!) {
@@ -182,7 +189,7 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(top: 2, left: 20, right: 20),
+                padding: const EdgeInsets.only(top: 2, left: 12, right: 12),
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -190,6 +197,8 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
                       createButtonSorter('Chronological', () {}),
                       const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
                       createButtonSorter('Hiring', () {}),
+                      const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
+                      createButtonSorter('Future', () {}),
                     ],
                   ),
                 ),
