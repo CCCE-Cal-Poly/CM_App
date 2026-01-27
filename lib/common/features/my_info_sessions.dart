@@ -162,16 +162,8 @@ Widget buildInfoSessionList(context) {
   List<Widget> buildSection(String sectionTitle, List<CalEvent> items) {
     if (items.isEmpty)
       return [sectionHeader("No " + sectionTitle + " Info Sessions.")];
-    final grouped = groupInfoSessions(items);
-    final sortedKeys = grouped.keys.toList()
-      ..sort((a, b) => DateTime.parse(a).compareTo(DateTime.parse(b)));
     return [sectionHeader(sectionTitle, italic: true)] +
-        [
-          for (final dateKey in sortedKeys) ...[
-            dateHeader(DateTime.parse(dateKey)),
-            ...grouped[dateKey]!.map(infoSessionRow).toList(),
-          ]
-        ];
+        items.map(infoSessionRow).toList();
   }
 
   return (future.isNotEmpty || past.isNotEmpty)
