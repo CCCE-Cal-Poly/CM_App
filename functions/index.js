@@ -734,8 +734,8 @@ exports.processPendingNotifications = onSchedule("every 5 minutes", async (event
     }
     const sends = [];
     q.forEach(async (doc) => {
-      if (doc.data().eventData.recurrenceType && doc.data().eventData.recurrenceType != "Never") {
-            scheduleRecurringEventNotification(doc);
+      if (doc.data().eventData.recurrenceType && doc.data().eventData.recurrenceType !== "Never") {
+            sends.push(scheduleRecurringEventNotification(doc));
       }
       sends.push(sendNotificationDocNow(doc));
     });
