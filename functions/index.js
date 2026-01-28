@@ -734,8 +734,8 @@ exports.processPendingNotifications = onSchedule("every 5 minutes", async (event
     }
     const sends = [];
     q.forEach(async (doc) => {
-      if (doc.data().eventData.recurrenceType && doc.data().eventData.recurrenceType != "Never") {
-            scheduleRecurringEventNotification(doc);
+      if (doc.data().eventData.recurrenceType && doc.data().eventData.recurrenceType !== "Never") {
+            sends.push(scheduleRecurringEventNotification(doc));
       }
       sends.push(sendNotificationDocNow(doc));
     });
@@ -898,7 +898,9 @@ function computeNextOccurrence(ev, currentStart) {
   // Interval (days)
   if (recurrenceType === "Interval (days)") {
     const intervalDays = parseInt(ev.recurrenceInterval) || 1;
-    return new Date(currentStart.getTime() + intervalDays * 24 * 60 * 60 * 1000);
+    const nextDate = new Date(currentStart);
+    nextDate.setDate(nextDate.getDate() + intervalDays);
+    return nextDate;
   }
 
 
@@ -931,7 +933,7 @@ function computeNextOccurrence(ev, currentStart) {
   // Monthly: advance by recurrenceInterval months and try to keep the same day-of-month
   if (recurrenceType === "Monthly") {
     const intervalMonths = parseInt(ev.recurrenceInterval) || 1;
-    const dayOfMonth = parseInt(ev.recurrenceDayOfMonth) || currentStart.getDate();
+    const dayOfMonth = parseInt(ev.recurrenceInterval) || currentStart.getDate();
 
 
     let dt = new Date(currentStart.getTime());
@@ -977,6 +979,7 @@ async function scheduleRecurringEventNotification(notificationDoc) {
   let currentStart = null;
   if (currentStartTs) {
     currentStart = currentStartTs.toDate ? currentStartTs.toDate() : new Date(currentStartTs);
+    // currentStart = currentStartTs.toMillis();
   }
   if (!currentStart) return;
 
@@ -1040,7 +1043,6 @@ async function scheduleRecurringEventNotification(notificationDoc) {
         recurrenceEndDate: ev.recurrenceEndDate || null,
       },
     };
-
 
     await admin.firestore().collection("notifications").add(notification);
     console.log(`Pre-scheduled next recurring reminder for event ${eventId} at ${sendAt.toISOString()}`);
