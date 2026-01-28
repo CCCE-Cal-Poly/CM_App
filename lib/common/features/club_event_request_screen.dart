@@ -19,7 +19,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
   final _clubNameController = TextEditingController();
   final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
-  
+
   List<Map<String, dynamic>> _clubs = [];
   String? _selectedClubId;
   String? _selectedRecurrence;
@@ -123,7 +123,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
           if (isStartTime) {
             _startTime = selectedDateTime;
             if (_selectedRecurrence == "Monthly") {
-               _recurrenceInterval = _startTime?.day.toString();
+              _recurrenceInterval = _startTime?.day.toString();
             }
           } else {
             _endTime = selectedDateTime;
@@ -132,7 +132,6 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
       }
     }
   }
-
 
   Future<void> _selectRecurrenceEndDate(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
@@ -168,9 +167,13 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
       return;
     }
 
-    if (_recurrenceEndDate != null && _recurrenceEndDate!.isAfter(DateTime.now().add(const Duration(days: 90)))) {
+    if (_recurrenceEndDate != null &&
+        _recurrenceEndDate!
+            .isAfter(DateTime.now().add(const Duration(days: 90)))) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Recurrence end date cannot be more than 90 days from now')),
+        const SnackBar(
+            content: Text(
+                'Recurrence end date cannot be more than 90 days from now')),
       );
       return;
     }
@@ -189,10 +192,11 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
           .collection('users')
           .doc(currentUser.uid)
           .get();
-      
+
       final userData = userDoc.data();
-      final userName = userData != null 
-          ? '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'.trim()
+      final userName = userData != null
+          ? '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'
+              .trim()
           : currentUser.displayName ?? currentUser.email ?? 'Unknown';
 
       final selectedClub = _clubs.firstWhere(
@@ -202,7 +206,8 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
       final clubName = selectedClub['Acronym'] ?? '';
 
       print("Club recurrence data: ");
-      print("${_selectedRecurrence}, ${_recurrenceInterval}, ${_recurrenceEndDate}");
+      print(
+          "${_selectedRecurrence}, ${_recurrenceInterval}, ${_recurrenceEndDate}");
       await FirebaseFirestore.instance.collection('clubEventRequests').add({
         'clubId': _selectedClubId,
         'clubName': clubName,
@@ -219,13 +224,15 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
         // recurrence details
         'recurrenceType': _selectedRecurrence ?? 'Never',
         'recurrenceInterval': _recurrenceInterval,
-        'recurrenceEndDate': _recurrenceEndDate != null ? Timestamp.fromDate(_recurrenceEndDate!) : null,
+        'recurrenceEndDate': _recurrenceEndDate != null
+            ? Timestamp.fromDate(_recurrenceEndDate!)
+            : null,
 
         'submittedAt': FieldValue.serverTimestamp(),
       });
 
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Event request submitted successfully!'),
@@ -261,472 +268,514 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.calPolyGreen,
-      body:  _isLoading ? const Center(child: CircularProgressIndicator())
-      : _hasError ? Column(
-          children: [
-            CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
-            const Expanded(child: Center(child: Text('Error loading clubs. Please try again later.'))),
-          ],
-        )
-      : _clubs.isEmpty ? Column(
-          children: [
-            CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
-            const Expanded(child: Center(child: Text('You are not an admin of any clubs.'))),
-          ],
-        )
-      : SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
-              const SizedBox(height: 30),
-              const Text(
-                'Request Club Event',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Submit your event for admin approval',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 30),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.zero,
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (_clubs.length == 1)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 16, horizontal: 12),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(8),
-                            color: Colors.grey.shade100,
-                          ),
-                          child: Text(
-                            '${_clubs.first['Acronym']} – ${_clubs.first['Name']}',
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        )
-                      else
-                        DropdownButtonFormField<String>(
-                          value: _selectedClubId,
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            hintText: 'Select a club',
-                          ),
-                          items: _clubs.map((club) {
-                            return DropdownMenuItem<String>(
-                              value: club['id'],
-                              child: Text(
-                                '${club['Acronym']} – ${club['Name']}',
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() => _selectedClubId = value);
-                          },
-                          validator: (value) =>
-                              value == null ? 'Please select a club' : null,
-                        ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _eventNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Event Name *',
-                          hintText: 'e.g., General Meeting',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.zero,
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter the event name';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _locationController,
-                        decoration: const InputDecoration(
-                          labelText: 'Location *',
-                          hintText: 'e.g., Building XYZ, Room 101',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.zero,
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter the event location';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _descriptionController,
-                        decoration: const InputDecoration(
-                          labelText: 'Description *',
-                          hintText: 'Describe your event...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.zero,
-                          ),
-                        ),
-                        maxLines: 4,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Start Time *',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      InkWell(
-                        onTap: () => _selectDateTime(context, true),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.zero,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                _startTime == null
-                                    ? 'Select start date and time'
-                                    : DateFormat('MMM dd, yyyy - hh:mm a')
-                                        .format(_startTime!),
-                                style: TextStyle(
-                                  color: _startTime == null
-                                      ? Colors.grey
-                                      : Colors.black,
-                                ),
-                              ),
-                              const Icon(Icons.calendar_today),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'End Time *',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      InkWell(
-                        onTap: () => _selectDateTime(context, false),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                _endTime == null
-                                    ? 'Select end date and time'
-                                    : DateFormat('MMM dd, yyyy - hh:mm a')
-                                        .format(_endTime!),
-                                style: TextStyle(
-                                  color: _endTime == null
-                                      ? Colors.grey
-                                      : Colors.black,
-                                ),
-                              ),
-                              const Icon(Icons.calendar_today),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Repeat Frequency *',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                          value: _selectedRecurrence,
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            hintText: 'Choose how often this event occurs',
-                          ),
-                          items: ["Never", "Interval (days)"]
-                              .map((type) => DropdownMenuItem<String>(
-                                    value: type,
-                                    child: Text(type),
-                                  ))
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedRecurrence = value;
-                              // clear recurrence details when type changes
-                              _recurrenceInterval = null;
-
-                              if (value == "Monthly") {
-                                _recurrenceInterval = _startTime?.day.toString();
-                              }
-                             
-                            });
-                          },
-                          validator: (value) =>
-                              value == null ? 'Please specify how often the event will reccur' : null,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Conditional UI: show recurrence-specific controls
-                      // if (_selectedRecurrence == 'Weekly') ...[
-                      //   const SizedBox(height: 8),
-                      //   DropdownButtonFormField<String>(
-                      //     value: _recurrenceInterval,
-                      //     isExpanded: true,
-                      //     decoration: const InputDecoration(
-                      //       border: OutlineInputBorder(),
-                      //       labelText: 'Repeat weekly on',
-                      //     ),
-                      //     items: [
-                      //       'Monday',
-                      //       'Tuesday',
-                      //       'Wednesday',
-                      //       'Thursday',
-                      //       'Friday',
-                      //       'Saturday',
-                      //       'Sunday',
-                      //     ].map((d) => DropdownMenuItem<String>(value: d, child: Text(d))).toList(),
-                      //     onChanged: (value) => setState(() => _recurrenceInterval = value),
-                      //     validator: (value) => value == null ? 'Please choose a weekday' : null,
-                      //   ),
-                      //   const SizedBox(height: 12),
-                      //   InkWell(
-                      //   onTap: () => _selectRecurrenceEndDate(context),
-                      //   child: Container(
-                      //     padding: const EdgeInsets.all(16),
-                      //     decoration: BoxDecoration(
-                      //       border: Border.all(color: Colors.grey),
-                      //       borderRadius: BorderRadius.circular(4),
-                      //     ),
-                      //     child: Row(
-                      //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      //       children: [
-                      //         Text(
-                      //           _recurrenceEndDate == null
-                      //               ? 'Select date to repeat until'
-                      //               : DateFormat('MMM dd, yyyy - hh:mm a')
-                      //                   .format(_recurrenceEndDate!),
-                      //           style: TextStyle(
-                      //             color: _recurrenceEndDate == null
-                      //                 ? Colors.grey
-                      //                 : Colors.black,
-                      //           ),
-                      //         ),
-                      //         const Icon(Icons.calendar_today),
-                      //       ],
-                      //     ),
-                      //   ),
-                      // ),
-                      // ] else 
-                      // if (_selectedRecurrence == 'Monthly') ...[
-                        // const SizedBox(height: 8),
-                        // TextFormField(
-                        //   keyboardType: TextInputType.number,
-                        //   decoration: const InputDecoration(
-                        //     labelText: 'Day of month (1–31)',
-                        //     border: OutlineInputBorder(),
-                        //   ),
-                        //   onChanged: (v) {
-                        //     // final parsed = int.tryParse(v);
-                        //     setState(() => _recurrenceInterval = v);
-                        //   },
-                        //   validator: (value) {
-                        //     final n = int.tryParse(value ?? '');
-                        //     if (n == null || n < 1 || n > 31) return 'Enter a valid day (1–31)';
-                        //     return null;
-                        //   },
-                        // ),
-                        // _recurrenceInterval = _startTime?.day.toString(),
-                        // const SizedBox(height: 12),
-                      //   InkWell(
-                      //   onTap: () => _selectRecurrenceEndDate(context),
-                      //   child: Container(
-                      //     padding: const EdgeInsets.all(16),
-                      //     decoration: BoxDecoration(
-                      //       border: Border.all(color: Colors.grey),
-                      //       borderRadius: BorderRadius.circular(4),
-                      //     ),
-                      //     child: Row(
-                      //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      //       children: [
-                      //         Text(
-                      //           _recurrenceEndDate == null
-                      //               ? 'Select date to repeat until'
-                      //               : DateFormat('MMM dd, yyyy - hh:mm a')
-                      //                   .format(_recurrenceEndDate!),
-                      //           style: TextStyle(
-                      //             color: _recurrenceEndDate == null
-                      //                 ? Colors.grey
-                      //                 : Colors.black,
-                      //           ),
-                      //         ),
-                      //         const Icon(Icons.calendar_today),
-                      //       ],
-                      //     ),
-                      //   ),
-                      // ),
-                      // ] else 
-                      if (_selectedRecurrence == 'Interval (days)') ...[
-                        const SizedBox(height: 8),
-                          TextFormField(
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Time interval between events in days',
-                            border: OutlineInputBorder(),
-                          ),
-                          onChanged: (v) {
-                            // final parsed = int.tryParse(v);
-                            setState(() => _recurrenceInterval = v);
-                          },
-                          validator: (value) {
-                            final n = int.tryParse(value ?? '');
-                            if (n == null || n < 1) return 'Enter a valid number of days';
-                            return null;
-                          },
-                        ),
-                        // InkWell(
-                        //   onTap: () => _selectRecurrenceEndDate(context),
-                        //   child: Container(
-                        //     padding: const EdgeInsets.all(16),
-                        //     decoration: BoxDecoration(
-                        //       border: Border.all(color: Colors.grey),
-                        //       borderRadius: BorderRadius.circular(4),
-                        //     ),
-                        //     child: Row(
-                        //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        //       children: [
-                        //         Text(
-                        //           _recurrenceEndDate == null
-                        //               ? 'Select date to repeat until'
-                        //               : DateFormat('MMM dd, yyyy - hh:mm a')
-                        //                   .format(_recurrenceEndDate!),
-                        //           style: TextStyle(
-                        //             color: _recurrenceEndDate == null
-                        //                 ? Colors.grey
-                        //                 : Colors.black,
-                        //           ),
-                        //         ),
-                        //         const Icon(Icons.calendar_today),
-                        //       ],
-                        //     ),
-                        //   ),
-                        // )
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _hasError
+              ? Column(
+                  children: [
+                    CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
+                    const Expanded(
+                        child: Center(
+                            child: Text(
+                                'Error loading clubs. Please try again later.'))),
+                  ],
+                )
+              : _clubs.isEmpty
+                  ? Column(
+                      children: [
+                        CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
+                        const Expanded(
+                            child: Center(
+                                child: Text(
+                                    'You are not an admin of any clubs.'))),
                       ],
-                      if (_selectedRecurrence != "Never" && _selectedRecurrence != null) ...[
-                        const SizedBox(height: 8),
-                        InkWell(
-                          onTap: () => _selectRecurrenceEndDate(context),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              borderRadius: BorderRadius.circular(4),
+                    )
+                  : SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
+                            const SizedBox(height: 30),
+                            const Text(
+                              'Request Club Event',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _recurrenceEndDate == null
-                                      ? 'Select date to repeat until'
-                                      : DateFormat('MMM dd, yyyy - hh:mm a')
-                                          .format(_recurrenceEndDate!),
-                                  style: TextStyle(
-                                    color: _recurrenceEndDate == null
-                                        ? Colors.grey
-                                        : Colors.black,
-                                  ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'Submit your event for admin approval',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 30),
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.zero,
+                              ),
+                              child: Form(
+                                key: _formKey,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (_clubs.length == 1)
+                                      Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 16, horizontal: 12),
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.grey),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          color: Colors.grey.shade100,
+                                        ),
+                                        child: Text(
+                                          '${_clubs.first['Acronym']} – ${_clubs.first['Name']}',
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
+                                      )
+                                    else
+                                      DropdownButtonFormField<String>(
+                                        value: _selectedClubId,
+                                        isExpanded: true,
+                                        decoration: const InputDecoration(
+                                          border: OutlineInputBorder(),
+                                          hintText: 'Select a club',
+                                        ),
+                                        items: _clubs.map((club) {
+                                          return DropdownMenuItem<String>(
+                                            value: club['id'],
+                                            child: Text(
+                                              '${club['Acronym']} – ${club['Name']}',
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
+                                          );
+                                        }).toList(),
+                                        onChanged: (value) {
+                                          setState(
+                                              () => _selectedClubId = value);
+                                        },
+                                        validator: (value) => value == null
+                                            ? 'Please select a club'
+                                            : null,
+                                      ),
+                                    const SizedBox(height: 16),
+                                    TextFormField(
+                                      controller: _eventNameController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Event Name *',
+                                        hintText: 'e.g., General Meeting',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                      ),
+                                      validator: (value) {
+                                        if (value == null ||
+                                            value.trim().isEmpty) {
+                                          return 'Please enter the event name';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                    TextFormField(
+                                      controller: _locationController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Location *',
+                                        hintText:
+                                            'e.g., Building XYZ, Room 101',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                      ),
+                                      validator: (value) {
+                                        if (value == null ||
+                                            value.trim().isEmpty) {
+                                          return 'Please enter the event location';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                    TextFormField(
+                                      controller: _descriptionController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Description *',
+                                        hintText: 'Describe your event...',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                      ),
+                                      maxLines: 4,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    const Text(
+                                      'Start Time *',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    InkWell(
+                                      onTap: () =>
+                                          _selectDateTime(context, true),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.grey),
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              _startTime == null
+                                                  ? 'Select start date and time'
+                                                  : DateFormat(
+                                                          'MMM dd, yyyy - hh:mm a')
+                                                      .format(_startTime!),
+                                              style: TextStyle(
+                                                color: _startTime == null
+                                                    ? Colors.grey
+                                                    : Colors.black,
+                                              ),
+                                            ),
+                                            const Icon(Icons.calendar_today),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    const Text(
+                                      'End Time *',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    InkWell(
+                                      onTap: () =>
+                                          _selectDateTime(context, false),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.grey),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              _endTime == null
+                                                  ? 'Select end date and time'
+                                                  : DateFormat(
+                                                          'MMM dd, yyyy - hh:mm a')
+                                                      .format(_endTime!),
+                                              style: TextStyle(
+                                                color: _endTime == null
+                                                    ? Colors.grey
+                                                    : Colors.black,
+                                              ),
+                                            ),
+                                            const Icon(Icons.calendar_today),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    const Text(
+                                      'Repeat Frequency *',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    DropdownButtonFormField<String>(
+                                      value: _selectedRecurrence,
+                                      isExpanded: true,
+                                      decoration: const InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        hintText:
+                                            'Choose how often this event occurs',
+                                      ),
+                                      items: ["Never", "Interval (days)"]
+                                          .map((type) =>
+                                              DropdownMenuItem<String>(
+                                                value: type,
+                                                child: Text(type),
+                                              ))
+                                          .toList(),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _selectedRecurrence = value;
+                                          // clear recurrence details when type changes
+                                          _recurrenceInterval = null;
+
+                                          if (value == "Monthly") {
+                                            _recurrenceInterval =
+                                                _startTime?.day.toString();
+                                          }
+                                        });
+                                      },
+                                      validator: (value) => value == null
+                                          ? 'Please specify how often the event will reccur'
+                                          : null,
+                                    ),
+                                    const SizedBox(height: 16),
+
+                                    // Conditional UI: show recurrence-specific controls
+                                    // if (_selectedRecurrence == 'Weekly') ...[
+                                    //   const SizedBox(height: 8),
+                                    //   DropdownButtonFormField<String>(
+                                    //     value: _recurrenceInterval,
+                                    //     isExpanded: true,
+                                    //     decoration: const InputDecoration(
+                                    //       border: OutlineInputBorder(),
+                                    //       labelText: 'Repeat weekly on',
+                                    //     ),
+                                    //     items: [
+                                    //       'Monday',
+                                    //       'Tuesday',
+                                    //       'Wednesday',
+                                    //       'Thursday',
+                                    //       'Friday',
+                                    //       'Saturday',
+                                    //       'Sunday',
+                                    //     ].map((d) => DropdownMenuItem<String>(value: d, child: Text(d))).toList(),
+                                    //     onChanged: (value) => setState(() => _recurrenceInterval = value),
+                                    //     validator: (value) => value == null ? 'Please choose a weekday' : null,
+                                    //   ),
+                                    //   const SizedBox(height: 12),
+                                    //   InkWell(
+                                    //   onTap: () => _selectRecurrenceEndDate(context),
+                                    //   child: Container(
+                                    //     padding: const EdgeInsets.all(16),
+                                    //     decoration: BoxDecoration(
+                                    //       border: Border.all(color: Colors.grey),
+                                    //       borderRadius: BorderRadius.circular(4),
+                                    //     ),
+                                    //     child: Row(
+                                    //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    //       children: [
+                                    //         Text(
+                                    //           _recurrenceEndDate == null
+                                    //               ? 'Select date to repeat until'
+                                    //               : DateFormat('MMM dd, yyyy - hh:mm a')
+                                    //                   .format(_recurrenceEndDate!),
+                                    //           style: TextStyle(
+                                    //             color: _recurrenceEndDate == null
+                                    //                 ? Colors.grey
+                                    //                 : Colors.black,
+                                    //           ),
+                                    //         ),
+                                    //         const Icon(Icons.calendar_today),
+                                    //       ],
+                                    //     ),
+                                    //   ),
+                                    // ),
+                                    // ] else
+                                    // if (_selectedRecurrence == 'Monthly') ...[
+                                    // const SizedBox(height: 8),
+                                    // TextFormField(
+                                    //   keyboardType: TextInputType.number,
+                                    //   decoration: const InputDecoration(
+                                    //     labelText: 'Day of month (1–31)',
+                                    //     border: OutlineInputBorder(),
+                                    //   ),
+                                    //   onChanged: (v) {
+                                    //     // final parsed = int.tryParse(v);
+                                    //     setState(() => _recurrenceInterval = v);
+                                    //   },
+                                    //   validator: (value) {
+                                    //     final n = int.tryParse(value ?? '');
+                                    //     if (n == null || n < 1 || n > 31) return 'Enter a valid day (1–31)';
+                                    //     return null;
+                                    //   },
+                                    // ),
+                                    // _recurrenceInterval = _startTime?.day.toString(),
+                                    // const SizedBox(height: 12),
+                                    //   InkWell(
+                                    //   onTap: () => _selectRecurrenceEndDate(context),
+                                    //   child: Container(
+                                    //     padding: const EdgeInsets.all(16),
+                                    //     decoration: BoxDecoration(
+                                    //       border: Border.all(color: Colors.grey),
+                                    //       borderRadius: BorderRadius.circular(4),
+                                    //     ),
+                                    //     child: Row(
+                                    //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    //       children: [
+                                    //         Text(
+                                    //           _recurrenceEndDate == null
+                                    //               ? 'Select date to repeat until'
+                                    //               : DateFormat('MMM dd, yyyy - hh:mm a')
+                                    //                   .format(_recurrenceEndDate!),
+                                    //           style: TextStyle(
+                                    //             color: _recurrenceEndDate == null
+                                    //                 ? Colors.grey
+                                    //                 : Colors.black,
+                                    //           ),
+                                    //         ),
+                                    //         const Icon(Icons.calendar_today),
+                                    //       ],
+                                    //     ),
+                                    //   ),
+                                    // ),
+                                    // ] else
+                                    if (_selectedRecurrence ==
+                                        'Interval (days)') ...[
+                                      const SizedBox(height: 8),
+                                      TextFormField(
+                                        keyboardType: TextInputType.number,
+                                        decoration: const InputDecoration(
+                                          labelText:
+                                              'Time interval between events in days',
+                                          border: OutlineInputBorder(),
+                                        ),
+                                        onChanged: (v) {
+                                          // final parsed = int.tryParse(v);
+                                          setState(
+                                              () => _recurrenceInterval = v);
+                                        },
+                                        validator: (value) {
+                                          final n = int.tryParse(value ?? '');
+                                          if (n == null || n < 1)
+                                            return 'Enter a valid number of days';
+                                          return null;
+                                        },
+                                      ),
+                                      // InkWell(
+                                      //   onTap: () => _selectRecurrenceEndDate(context),
+                                      //   child: Container(
+                                      //     padding: const EdgeInsets.all(16),
+                                      //     decoration: BoxDecoration(
+                                      //       border: Border.all(color: Colors.grey),
+                                      //       borderRadius: BorderRadius.circular(4),
+                                      //     ),
+                                      //     child: Row(
+                                      //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      //       children: [
+                                      //         Text(
+                                      //           _recurrenceEndDate == null
+                                      //               ? 'Select date to repeat until'
+                                      //               : DateFormat('MMM dd, yyyy - hh:mm a')
+                                      //                   .format(_recurrenceEndDate!),
+                                      //           style: TextStyle(
+                                      //             color: _recurrenceEndDate == null
+                                      //                 ? Colors.grey
+                                      //                 : Colors.black,
+                                      //           ),
+                                      //         ),
+                                      //         const Icon(Icons.calendar_today),
+                                      //       ],
+                                      //     ),
+                                      //   ),
+                                      // )
+                                    ],
+                                    if (_selectedRecurrence != "Never" &&
+                                        _selectedRecurrence != null) ...[
+                                      const SizedBox(height: 8),
+                                      InkWell(
+                                        onTap: () =>
+                                            _selectRecurrenceEndDate(context),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            border:
+                                                Border.all(color: Colors.grey),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                _recurrenceEndDate == null
+                                                    ? 'Select date to repeat until'
+                                                    : DateFormat(
+                                                            'MMM dd, yyyy - hh:mm a')
+                                                        .format(
+                                                            _recurrenceEndDate!),
+                                                style: TextStyle(
+                                                  color:
+                                                      _recurrenceEndDate == null
+                                                          ? Colors.grey
+                                                          : Colors.black,
+                                                ),
+                                              ),
+                                              const Icon(Icons.calendar_today),
+                                            ],
+                                          ),
+                                        ),
+                                      )
+                                    ],
+                                    const SizedBox(height: 32),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 50,
+                                      child: ElevatedButton(
+                                        onPressed: _isSubmitting
+                                            ? null
+                                            : _submitRequest,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.darkGold,
+                                          disabledBackgroundColor: Colors.grey,
+                                          shape: const RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.zero,
+                                          ),
+                                        ),
+                                        child: _isSubmitting
+                                            ? const SizedBox(
+                                                height: 20,
+                                                width: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  color: Colors.white,
+                                                  strokeWidth: 2,
+                                                ),
+                                              )
+                                            : const Text(
+                                                'Submit Request',
+                                                style: TextStyle(
+                                                  fontSize: 18,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const Icon(Icons.calendar_today),
-                              ],
+                              ),
                             ),
-                          ),
-                        )
-                      ],
-                      const SizedBox(height: 32),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: _isSubmitting ? null : _submitRequest,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.darkGold,
-                            disabledBackgroundColor: Colors.grey,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.zero,
-                            ),
-                          ),
-                          child: _isSubmitting
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text(
-                                  'Submit Request',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+                    ),
     );
   }
 }
