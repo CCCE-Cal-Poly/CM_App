@@ -1599,4 +1599,3 @@ exports.autoDeleteOldClubEvents = onSchedule("every day 02:00", async () => {
     console.error("Error in auto-delete old club events:", err);
   }
 });
-
