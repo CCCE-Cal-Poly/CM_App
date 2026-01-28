@@ -5,8 +5,85 @@ admin.initializeApp();
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentCreated, onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
+const {user} = require("firebase-functions/v1/auth");
 
 const ALLOWED_ROLES = new Set(["student", "faculty", "club admin", "admin", "recruiter"]);
+
+// Clean up all user data when their account is deleted
+exports.onUserDeleted = user().onDelete(async (userRecord) => {
+  const uid = userRecord.uid;
+  if (!uid) {
+    console.log("No UID provided for user deletion");
+    return;
+  }
+
+  console.log(`Cleaning up data for deleted user: ${uid}`);
+  const db = admin.firestore();
+
+  try {
+    // 1. Delete user document and subcollections
+    const userDocRef = db.collection("users").doc(uid);
+    const subcollections = ["checkedInEvents", "fcmTokens", "favoriteCompanies", "joinedClubs"];
+
+    for (const subcol of subcollections) {
+      const snapshot = await userDocRef.collection(subcol).get();
+      const batch = db.batch();
+      snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+      if (!snapshot.empty) {
+        await batch.commit();
+        console.log(`Deleted ${snapshot.size} docs from users/${uid}/${subcol}`);
+      }
+    }
+
+    await userDocRef.delete();
+    console.log(`Deleted user document: ${uid}`);
+
+    // 2. Remove user from all club memberships
+    const clubMemberships = await db.collectionGroup("members").where("uid", "==", uid).get();
+    if (!clubMemberships.empty) {
+      const batch = db.batch();
+      clubMemberships.docs.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+      console.log(`Removed user from ${clubMemberships.size} club memberships`);
+    }
+
+    // 3. Remove user from all event attendance records
+    const eventAttendance = await db.collectionGroup("attending").where("uid", "==", uid).get();
+    if (!eventAttendance.empty) {
+      const batch = db.batch();
+      eventAttendance.docs.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+      console.log(`Removed user from ${eventAttendance.size} event attendance records`);
+    }
+
+    // 4. Delete notifications targeted at this user
+    const userNotifications = await db.collection("notifications")
+      .where("targetType", "==", "user")
+      .where("targetId", "==", uid)
+      .get();
+    if (!userNotifications.empty) {
+      const batch = db.batch();
+      userNotifications.docs.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+      console.log(`Deleted ${userNotifications.size} notifications for user`);
+    }
+
+    // 5. Delete profile picture from Storage
+    try {
+      const bucket = admin.storage().bucket();
+      await bucket.file(`profile_pictures/${uid}.jpg`).delete();
+      console.log(`Deleted profile picture for user ${uid}`);
+    } catch (storageErr) {
+      // Profile picture might not exist
+      console.log(`No profile picture to delete for user ${uid}`);
+    }
+
+    console.log(`Successfully cleaned up all data for user: ${uid}`);
+  } catch (err) {
+    console.error(`Error cleaning up user ${uid}:`, err);
+    // Don't throw - allow the deletion to proceed even if cleanup fails
+  }
+});
 
 exports.setUserRole = onCall(async (request) => {
   if (!request.auth) {

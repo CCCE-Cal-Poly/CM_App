@@ -39,35 +39,28 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
 
   List<CalEvent> _sortInfoSessions(List<CalEvent> sessions) {
     var sorted = List<CalEvent>.from(sessions);
-    
+
     // Filter for future events if that button is active
     if (buttonStates['Future']!) {
       final now = DateTime.now();
       sorted = sorted.where((event) => event.startTime.isAfter(now)).toList();
     }
-    
-    // If both buttons active, prioritize chronological
-    if (buttonStates['Chronological']! && buttonStates['Hiring']!) {
+
+    // Filter for hiring companies only
+    if (buttonStates['Hiring']!) {
+      sorted = sorted.where((event) => 
+        (event.isd?.openPositions?.trim().isNotEmpty ?? false)
+      ).toList();
+    }
+
+    // Sort chronologically or alphabetically
+    if (buttonStates['Chronological']!) {
       sorted.sort((a, b) => a.startTime.compareTo(b.startTime));
+    } else {
+      sorted.sort((a, b) =>
+          a.eventName.toLowerCase().compareTo(b.eventName.toLowerCase()));
     }
-    // If only chronological
-    else if (buttonStates['Chronological']!) {
-      sorted.sort((a, b) => a.startTime.compareTo(b.startTime));
-    }
-    // If only hiring
-    else if (buttonStates['Hiring']!) {
-      sorted.sort((a, b) {
-        final aHiring = a.isd?.openPositions?.isNotEmpty == true;
-        final bHiring = b.isd?.openPositions?.isNotEmpty == true;
-        if (aHiring && !bHiring) return -1;
-        if (!aHiring && bHiring) return 1;
-        return a.eventName.toLowerCase().compareTo(b.eventName.toLowerCase());
-      });
-    }
-    else {
-      sorted.sort((a, b) => a.eventName.toLowerCase().compareTo(b.eventName.toLowerCase()));
-    }
-    
+
     return sorted;
   }
 
@@ -75,7 +68,8 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
   Widget build(BuildContext context) {
     var screenHeight = MediaQuery.of(context).size.height;
 
-    OutlinedButton createButtonSorter(String txt, VoidCallback sortingFunction) {
+    OutlinedButton createButtonSorter(
+        String txt, VoidCallback sortingFunction) {
       bool isActive = buttonStates[txt] ?? false;
       return OutlinedButton(
         onPressed: () {
@@ -92,22 +86,26 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
             textStyle: const TextStyle(fontSize: 13),
             side: const BorderSide(color: Colors.black, width: 1),
             minimumSize: const Size(75, 25),
-            backgroundColor: !isActive ? Colors.transparent : AppColors.welcomeLightYellow),
+            backgroundColor:
+                !isActive ? Colors.transparent : AppColors.welcomeLightYellow),
         child: Text(txt,
             style: TextStyle(
                 fontSize: 14,
-                color: !isActive ? AppColors.welcomeLightYellow : AppColors.calPolyGreen,
+                color: !isActive
+                    ? AppColors.welcomeLightYellow
+                    : AppColors.calPolyGreen,
                 fontWeight: FontWeight.w600)),
       );
     }
 
     return Consumer<EventProvider>(builder: (context, eventProvider, child) {
-            final allInfoSessions = eventProvider.isLoaded
+      final allInfoSessions = eventProvider.isLoaded
           ? eventProvider.getEventsByType('infoSession')
           : <CalEvent>[];
-      
+
       // Filter out info sessions with no meaningful data
-      final validInfoSessions = allInfoSessions.where(_isValidInfoSession).toList();
+      final validInfoSessions =
+          allInfoSessions.where(_isValidInfoSession).toList();
       final infoSessions = _sortInfoSessions(validInfoSessions);
 
       return Scaffold(
@@ -195,9 +193,11 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
                   child: Row(
                     children: [
                       createButtonSorter('Chronological', () {}),
-                      const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
+                      const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6)),
                       createButtonSorter('Hiring', () {}),
-                      const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
+                      const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6)),
                       createButtonSorter('Future', () {}),
                     ],
                   ),
@@ -220,14 +220,12 @@ class _InfoSessionsState extends State<InfoSessionsScreen> {
                           builder: (BuildContext context) {
                             return InfoSessionPopUp(
                               infoSession: infoSessionData,
-                              onClose: () =>
-                                  Navigator.pop(context), 
+                              onClose: () => Navigator.pop(context),
                             );
                           },
                         );
                       },
-                      child: InfoSessionItem(
-                          displayList[index]),
+                      child: InfoSessionItem(displayList[index]),
                     );
                   },
                 ),
