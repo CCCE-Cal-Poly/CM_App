@@ -294,16 +294,32 @@ class EventProvider extends ChangeNotifier {
     // Monthly recurrence
     else if (recurrenceType == 'Monthly') {
       // final intervalMonths = (int.tryParse((data['recurrenceInterval'] ?? '1').toString()) ?? 1).clamp(1, 120);
+      var intervalMonths = 1;
       final dayOfMonth = (int.tryParse((data['recurrenceInterval'] ?? seriesStart.day).toString()) ?? seriesStart.day);
       DateTime dt = DateTime(seriesStart.year, seriesStart.month, dayOfMonth, seriesStart.hour, seriesStart.minute, seriesStart.second);
+      print('Monthly recurrence on day $dayOfMonth starting at $dt');
       while (dt.isBefore(seriesStart)) {
         final nextMonth = dt.month + 1;
         dt = DateTime(dt.year + ((nextMonth - 1) ~/ 12), ((nextMonth - 1) % 12) + 1, dayOfMonth, seriesStart.hour, seriesStart.minute, seriesStart.second);
       }
+      print('First instance on or after series start: $dt');
+      print('Generating instances until ${windowEnd} or ${repeatUntil}');
       while (!dt.isAfter(windowEnd) && !dt.isAfter(repeatUntil)) {
+        print('Considering date: $dt');
         if (!dt.isBefore(windowStart) && dt.day == dayOfMonth) dates.add(dt);
-        final nextMonth = dt.month + 1;
-        dt = DateTime(dt.year + ((nextMonth - 1) ~/ 12), ((nextMonth - 1) % 12) + 1, dayOfMonth, seriesStart.hour, seriesStart.minute, seriesStart.second);
+        final nextMonth = dt.month + intervalMonths;
+        print('Next month calculation: $nextMonth');
+
+        final year = dt.year + ((nextMonth - 1) ~/ 12);
+        final month = ((nextMonth - 1) % 12) + 1;
+        final int daysInMonth = DateUtils.getDaysInMonth(year, month);
+        if (dayOfMonth > daysInMonth) {
+            intervalMonths++;
+            print('Adjusting intervalMonths to $intervalMonths due to month length');
+            continue;
+        }
+        print('Next month: $month');
+        dt = DateTime(year, month, dayOfMonth, seriesStart.hour, seriesStart.minute, seriesStart.second);
       }
     }
 

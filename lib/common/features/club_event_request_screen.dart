@@ -122,6 +122,9 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
         setState(() {
           if (isStartTime) {
             _startTime = selectedDateTime;
+            if (_selectedRecurrence == "Monthly") {
+               _recurrenceInterval = _startTime?.day.toString();
+            }
           } else {
             _endTime = selectedDateTime;
           }
@@ -198,6 +201,8 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
       );
       final clubName = selectedClub['Acronym'] ?? '';
 
+      print("Club recurrence data: ");
+      print("${_selectedRecurrence}, ${_recurrenceInterval}, ${_recurrenceEndDate}");
       await FirebaseFirestore.instance.collection('clubEventRequests').add({
         'clubId': _selectedClubId,
         'clubName': clubName,
@@ -485,7 +490,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                             border: OutlineInputBorder(),
                             hintText: 'Choose how often this event occurs',
                           ),
-                          items: ["Never", "Monthly", "Interval (days)"]
+                          items: ["Never", "Interval (days)"]
                               .map((type) => DropdownMenuItem<String>(
                                     value: type,
                                     child: Text(type),
@@ -496,7 +501,11 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                               _selectedRecurrence = value;
                               // clear recurrence details when type changes
                               _recurrenceInterval = null;
-                              // _recurrenceTime = null;
+
+                              if (value == "Monthly") {
+                                _recurrenceInterval = _startTime?.day.toString();
+                              }
+                             
                             });
                           },
                           validator: (value) =>
@@ -555,53 +564,55 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                       //   ),
                       // ),
                       // ] else 
-                      if (_selectedRecurrence == 'Monthly') ...[
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Day of month (1–31)',
-                            border: OutlineInputBorder(),
-                          ),
-                          onChanged: (v) {
-                            // final parsed = int.tryParse(v);
-                            setState(() => _recurrenceInterval = v);
-                          },
-                          validator: (value) {
-                            final n = int.tryParse(value ?? '');
-                            if (n == null || n < 1 || n > 31) return 'Enter a valid day (1–31)';
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        InkWell(
-                        onTap: () => _selectRecurrenceEndDate(context),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                _recurrenceEndDate == null
-                                    ? 'Select date to repeat until'
-                                    : DateFormat('MMM dd, yyyy - hh:mm a')
-                                        .format(_recurrenceEndDate!),
-                                style: TextStyle(
-                                  color: _recurrenceEndDate == null
-                                      ? Colors.grey
-                                      : Colors.black,
-                                ),
-                              ),
-                              const Icon(Icons.calendar_today),
-                            ],
-                          ),
-                        ),
-                      ),
-                      ] else if (_selectedRecurrence == 'Interval (days)') ...[
+                      // if (_selectedRecurrence == 'Monthly') ...[
+                        // const SizedBox(height: 8),
+                        // TextFormField(
+                        //   keyboardType: TextInputType.number,
+                        //   decoration: const InputDecoration(
+                        //     labelText: 'Day of month (1–31)',
+                        //     border: OutlineInputBorder(),
+                        //   ),
+                        //   onChanged: (v) {
+                        //     // final parsed = int.tryParse(v);
+                        //     setState(() => _recurrenceInterval = v);
+                        //   },
+                        //   validator: (value) {
+                        //     final n = int.tryParse(value ?? '');
+                        //     if (n == null || n < 1 || n > 31) return 'Enter a valid day (1–31)';
+                        //     return null;
+                        //   },
+                        // ),
+                        // _recurrenceInterval = _startTime?.day.toString(),
+                        // const SizedBox(height: 12),
+                      //   InkWell(
+                      //   onTap: () => _selectRecurrenceEndDate(context),
+                      //   child: Container(
+                      //     padding: const EdgeInsets.all(16),
+                      //     decoration: BoxDecoration(
+                      //       border: Border.all(color: Colors.grey),
+                      //       borderRadius: BorderRadius.circular(4),
+                      //     ),
+                      //     child: Row(
+                      //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      //       children: [
+                      //         Text(
+                      //           _recurrenceEndDate == null
+                      //               ? 'Select date to repeat until'
+                      //               : DateFormat('MMM dd, yyyy - hh:mm a')
+                      //                   .format(_recurrenceEndDate!),
+                      //           style: TextStyle(
+                      //             color: _recurrenceEndDate == null
+                      //                 ? Colors.grey
+                      //                 : Colors.black,
+                      //           ),
+                      //         ),
+                      //         const Icon(Icons.calendar_today),
+                      //       ],
+                      //     ),
+                      //   ),
+                      // ),
+                      // ] else 
+                      if (_selectedRecurrence == 'Interval (days)') ...[
                         const SizedBox(height: 8),
                           TextFormField(
                           keyboardType: TextInputType.number,
@@ -619,6 +630,36 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                             return null;
                           },
                         ),
+                        // InkWell(
+                        //   onTap: () => _selectRecurrenceEndDate(context),
+                        //   child: Container(
+                        //     padding: const EdgeInsets.all(16),
+                        //     decoration: BoxDecoration(
+                        //       border: Border.all(color: Colors.grey),
+                        //       borderRadius: BorderRadius.circular(4),
+                        //     ),
+                        //     child: Row(
+                        //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        //       children: [
+                        //         Text(
+                        //           _recurrenceEndDate == null
+                        //               ? 'Select date to repeat until'
+                        //               : DateFormat('MMM dd, yyyy - hh:mm a')
+                        //                   .format(_recurrenceEndDate!),
+                        //           style: TextStyle(
+                        //             color: _recurrenceEndDate == null
+                        //                 ? Colors.grey
+                        //                 : Colors.black,
+                        //           ),
+                        //         ),
+                        //         const Icon(Icons.calendar_today),
+                        //       ],
+                        //     ),
+                        //   ),
+                        // )
+                      ],
+                      if (_selectedRecurrence != "Never" && _selectedRecurrence != null) ...[
+                        const SizedBox(height: 8),
                         InkWell(
                           onTap: () => _selectRecurrenceEndDate(context),
                           child: Container(
