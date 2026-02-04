@@ -718,7 +718,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
                                                 _recurrenceEndDate == null
                                                     ? 'Select date to repeat until'
                                                     : DateFormat(
-                                                            'MMM dd, yyyy - hh:mm a')
+                                                      'MMM dd, yyyy')
                                                         .format(
                                                             _recurrenceEndDate!),
                                                 style: TextStyle(

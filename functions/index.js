@@ -197,112 +197,150 @@ exports.setUserRole = onCall(async (request) => {
 
 exports.approveClubEvent = onCall(async (request) => {
   if (!request.auth) {
-    throw new HttpsError(
-      "unauthenticated",
-      "Request not authenticated",
-    );
+    throw new HttpsError("unauthenticated", "Request not authenticated");
   }
-
   const callerClaims = request.auth.token || {};
   if (callerClaims.role !== "admin") {
-    throw new HttpsError(
-      "permission-denied",
-      "Only admins can approve events",
-    );
+    throw new HttpsError("permission-denied", "Only admins can approve events");
   }
-
   const requestId = request.data.requestId;
   if (!requestId) {
-    throw new HttpsError(
-      "invalid-argument",
-      "requestId is required",
-    );
+    throw new HttpsError("invalid-argument", "requestId is required");
   }
-
   const db = admin.firestore();
   const reqRef = db.collection("clubEventRequests").doc(requestId);
   const reqSnap = await reqRef.get();
-
   if (!reqSnap.exists) {
     throw new HttpsError("not-found", "Request not found");
   }
-
   const reqData = reqSnap.data() || {};
   const clubId = reqData.clubId || null;
-  const eventDoc = {
-    company: reqData.clubName || "",
-    clubId: clubId,
-    eventName: reqData.eventName || "",
-    startTime:
-      reqData.startTime || admin.firestore.FieldValue.serverTimestamp(),
-    endTime:
-      reqData.endTime ||
-      reqData.startTime ||
-      admin.firestore.FieldValue.serverTimestamp(),
-    mainLocation: reqData.eventLocation || "",
-    eventType: ("club").toString().trim().toLowerCase(),
-    logo: reqData.logoUrl || reqData.logo || "",
-    Status: "approved",
-    description: reqData.description || "",
-    recurrenceType: reqData.recurrenceType || "Never",
-    recurrenceInterval: reqData.recurrenceInterval || null,
-    recurrenceEndDate: reqData.recurrenceEndDate || null,
-    submittedBy: {
-      uid: reqData.requestedByUid || null,
-      name: reqData.requestedByName || null,
-      email: reqData.requestedByEmail || null,
-    },
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  };
-
+  const recurrenceType = reqData.recurrenceType || "Never";
+  const recurrenceInterval = reqData.recurrenceInterval || null;
+  const recurrenceEndDate = reqData.recurrenceEndDate || null;
+  const startTime = reqData.startTime;
+  const endTime = reqData.endTime || reqData.startTime;
   try {
-    // // Create a new doc with a generated id so we can include the id as a field on the document
-    // const newEventRef = db.collection("events").doc();
-    // await newEventRef.set({...eventDoc, eventId: newEventRef.id});
-    const newEventRef = await db.collection("events").add(eventDoc);
+    const currentStart = startTime.toDate ? startTime.toDate() : new Date(startTime);
+    const currentEnd = endTime.toDate ? endTime.toDate() : new Date(endTime);
+    const endDate = normalizeRecurrenceEndDate(recurrenceEndDate);
+    const isRecurring = recurrenceType !== "Never";
 
-    console.log(`✅ Created event ${newEventRef.id} for club ${clubId}`);
+    const eventRef = db.collection("events").doc();
+    const batch = db.batch();
 
-    // Add event reference to club's events array if clubId exists
-    if (clubId) {
-      const clubRef = db.collection("clubs").doc(clubId);
-      const clubSnap = await clubRef.get();
+    batch.set(eventRef, {
+      company: reqData.clubName || "",
+      clubId: clubId,
+      eventName: reqData.eventName || "",
+      startTime: admin.firestore.Timestamp.fromDate(currentStart),
+      endTime: admin.firestore.Timestamp.fromDate(currentEnd),
+      mainLocation: reqData.eventLocation || "",
+      eventType: "club",
+      logo: reqData.logoUrl || reqData.logo || "",
+      Status: "approved",
+      description: reqData.description || "",
+      recurrenceType: recurrenceType,
+      recurrenceInterval: recurrenceInterval,
+      recurrenceEndDate: endDate,
+      recurring: isRecurring,
+      recurrenceSeriesId: eventRef.id,
+      recurrenceSequence: 0,
+      submittedBy: {
+        uid: reqData.requestedByUid || null,
+        name: reqData.requestedByName || null,
+        email: reqData.requestedByEmail || null,
+      },
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
 
-      if (clubSnap.exists) {
-        console.log(`✅ Club ${clubId} exists, adding event to array`);
+    const createdEventRefs = [eventRef];
 
-        // Get the club's logo to use for the event
-        const clubData = clubSnap.data() || {};
-        const clubLogo = clubData.logo || "";
+    if (isRecurring) {
+      const nextOccurrence = calculateNextOccurrence(
+        currentStart,
+        currentEnd,
+        recurrenceType,
+        recurrenceInterval,
+      );
 
-        // Update event with club logo if not already set
-        if (!eventDoc.logo && clubLogo) {
-          await newEventRef.update({logo: clubLogo});
-        }
-
-        // Add document reference to club's events array (lowercase 'events')
-        await clubRef.update({
-          events: admin.firestore.FieldValue.arrayUnion(newEventRef),
+      if (nextOccurrence && (!endDate || nextOccurrence.start <= endDate)) {
+        const nextEventRef = db.collection("events").doc();
+        batch.set(nextEventRef, {
+          company: reqData.clubName || "",
+          clubId: clubId,
+          eventName: reqData.eventName || "",
+          startTime: admin.firestore.Timestamp.fromDate(nextOccurrence.start),
+          endTime: admin.firestore.Timestamp.fromDate(nextOccurrence.end),
+          mainLocation: reqData.eventLocation || "",
+          eventType: "club",
+          logo: reqData.logoUrl || reqData.logo || "",
+          Status: "approved",
+          description: reqData.description || "",
+          recurrenceType: recurrenceType,
+          recurrenceInterval: recurrenceInterval,
+          recurrenceEndDate: endDate,
+          recurring: true,
+          recurrenceSeriesId: eventRef.id,
+          recurrenceSequence: 1,
+          submittedBy: {
+            uid: reqData.requestedByUid || null,
+            name: reqData.requestedByName || null,
+            email: reqData.requestedByEmail || null,
+          },
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
-
-        console.log(`✅ Added event ${newEventRef.id} to club ${clubId} events array`);
-      } else {
-        console.warn(`⚠️ Club ${clubId} does not exist, cannot add event to array`);
+        createdEventRefs.push(nextEventRef);
       }
-    } else {
-      console.warn(`⚠️ No clubId provided, cannot add event to club array`);
     }
 
+    if (clubId) {
+      const clubRef = db.collection("clubs").doc(clubId);
+      batch.update(clubRef, {
+        events: admin.firestore.FieldValue.arrayUnion(...createdEventRefs),
+      });
+    }
+
+    await batch.commit();
     await reqRef.delete();
-    return {success: true, eventId: newEventRef.id};
+    return {success: true, eventIds: createdEventRefs.map((ref) => ref.id)};
   } catch (err) {
     console.error("approveClubEvent error", err);
-    throw new HttpsError(
-      "internal",
-      "Failed to approve request",
-    );
+    throw new HttpsError("internal", "Failed to approve request");
   }
 });
+
+function normalizeRecurrenceEndDate(endDate) {
+  if (!endDate) return null;
+  const dt = endDate.toDate ? endDate.toDate() : new Date(endDate);
+  if (Number.isNaN(dt.getTime())) return null;
+  return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 23, 59, 59, 999);
+}
+
+function calculateNextOccurrence(start, end, recurrenceType, interval) {
+  if (!start || !end || recurrenceType === "Never") return null;
+  const nextStart = new Date(start);
+  const durationMs = end.getTime() - start.getTime();
+  const parsedInterval = parseInt(interval || 1);
+  const safeInterval = Number.isNaN(parsedInterval) || parsedInterval < 1 ? 1 : parsedInterval;
+
+  if (recurrenceType === "Interval (days)") {
+    nextStart.setDate(nextStart.getDate() + safeInterval);
+  } else if (recurrenceType === "Weekly") {
+    nextStart.setDate(nextStart.getDate() + 7 * safeInterval);
+  } else if (recurrenceType === "Monthly") {
+    const originalDay = start.getDate();
+    nextStart.setMonth(nextStart.getMonth() + safeInterval);
+    if (nextStart.getDate() !== originalDay) {
+      nextStart.setDate(0);
+    }
+  } else {
+    return null;
+  }
+
+  const nextEnd = new Date(nextStart.getTime() + durationMs);
+  return {start: nextStart, end: nextEnd};
+}
 
 exports.denyClubEvent = onCall(async (request) => {
   if (!request.auth) {
@@ -469,7 +507,7 @@ exports.notifyOnClubJoin = onDocumentCreated("clubs/{clubId}/members/{uid}", asy
   try {
     const clubSnap = await admin.firestore().collection("clubs").doc(clubId).get();
     const clubData = clubSnap.exists ? (clubSnap.data() || {}) : {};
-    const clubName = clubData.Name || clubData.name || clubData.Acronym || "club";
+    const clubName = clubData.Acronym;
 
     await admin.firestore().collection("notifications").add({
       targetType: "user",
@@ -1529,10 +1567,12 @@ exports.autoDeleteOldClubEvents = onSchedule("every day 02:00", async () => {
         const eventData = eventDoc.data();
         const clubId = eventData.clubId;
 
-        if (eventDoc.ref.recurrenceType &&
-          eventDoc.ref.recurrenceType != "Never" &&
-          eventDoc.ref.recurrenceEndDate > sevenDaysAgo) {
-          // Skip recurring events that may have future occurrences
+        // Skip recurring events that may have future occurrences
+        if (eventData.recurrenceType &&
+          eventData.recurrenceType !== "Never" &&
+          eventData.recurrenceEndDate &&
+          eventData.recurrenceEndDate.toMillis &&
+          eventData.recurrenceEndDate.toMillis() > sevenDaysAgo.toMillis()) {
           continue;
         }
         // Delete the event

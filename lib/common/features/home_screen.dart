@@ -21,7 +21,6 @@ class HomeScreen extends StatefulWidget {
   CalendarScreenState createState() => CalendarScreenState();
 }
 
-
 HashMap<DateTime, List<CalEvent>> getEventsGroupedByDate(
     EventProvider provider) {
   final HashMap<DateTime, List<CalEvent>> events = HashMap();
@@ -69,7 +68,7 @@ class CalendarScreenState extends State<HomeScreen> {
   DateTime? _selectedDay;
   late HashMap<DateTime, List<CalEvent>> eventMap = HashMap();
   bool _screenBool = false;
-  
+
   // Track notifications for refresh
   Future<List<QuerySnapshot>>? _notificationsFuture;
   String? _lastUid;
@@ -95,16 +94,16 @@ class CalendarScreenState extends State<HomeScreen> {
     if (event.eventType.toLowerCase() == "club") {
       try {
         final clubName = event.eventName.split(' - ').first;
-        
+
         final clubQuery = await FirebaseFirestore.instance
             .collection('clubs')
             .where('Acronym', isEqualTo: clubName)
             .limit(1)
             .get();
-        
+
         if (clubQuery.docs.isNotEmpty) {
           final club = Club.fromDocument(clubQuery.docs.first);
-          
+
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => ClubPopUp(
@@ -135,7 +134,6 @@ class CalendarScreenState extends State<HomeScreen> {
       );
     }
   }
-
 
   void updateFocusedDates(day) {
     _focusedDay = day;
@@ -171,7 +169,8 @@ class CalendarScreenState extends State<HomeScreen> {
     return InkWell(
       onTap: () => _handleEventTap(ev),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: screenWidth * .055, vertical: screenHeight * 0.0025),
+        padding: EdgeInsets.symmetric(
+            horizontal: screenWidth * .055, vertical: screenHeight * 0.0025),
         child: SizedBox(
           height: tileHeight,
           width: tileWidth,
@@ -183,7 +182,8 @@ class CalendarScreenState extends State<HomeScreen> {
                 decoration: const BoxDecoration(color: Colors.white),
                 child: Center(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.011),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: screenWidth * 0.011),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -285,21 +285,21 @@ class CalendarScreenState extends State<HomeScreen> {
     }
     return eventContainers;
   }
-  
+
   List<Widget> _getDayEvents(DateTime day) {
-  List<Widget> eventContainers = [];
-  final localDay = DateTime(day.year, day.month, day.day);
-  List<CalEvent> evs = eventMap[localDay] ?? [];
-  
-  // Sort events by start time
-  evs.sort((a, b) => a.startTime.compareTo(b.startTime));
-  final screenHeight = MediaQuery.of(context).size.height;
-  final screenWidth = MediaQuery.of(context).size.width;
-  for (var ev in evs) {
-    eventContainers.add(_buildEventTile(ev));
+    List<Widget> eventContainers = [];
+    final localDay = DateTime(day.year, day.month, day.day);
+    List<CalEvent> evs = eventMap[localDay] ?? [];
+
+    // Sort events by start time
+    evs.sort((a, b) => a.startTime.compareTo(b.startTime));
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    for (var ev in evs) {
+      eventContainers.add(_buildEventTile(ev));
+    }
+    return eventContainers;
   }
-  return eventContainers;
-}
 
   Widget buildCalendar(context) {
     return TableCalendar<CalEvent>(
@@ -489,10 +489,12 @@ class CalendarScreenState extends State<HomeScreen> {
     final appState = Provider.of<AppState>(context, listen: false);
     final checkedInEventIds = appState.checkedInEventIds?.toList() ?? [];
     final joinedClubIds =
-        appState.joinedClubs?.map((c) => c.id).whereType<String>().toList() ?? [];
+        appState.joinedClubs?.map((c) => c.id).whereType<String>().toList() ??
+            [];
 
     setState(() {
-      _notificationsFuture = _fetchNotifications(uid, checkedInEventIds, joinedClubIds);
+      _notificationsFuture =
+          _fetchNotifications(uid, checkedInEventIds, joinedClubIds);
       _lastUid = uid;
       _lastEventIds = checkedInEventIds;
       _lastClubIds = joinedClubIds;
@@ -508,14 +510,13 @@ class CalendarScreenState extends State<HomeScreen> {
     List<String> joinedClubIds,
   ) async {
     final List<Future<QuerySnapshot>> queries = [];
-    
+
     // 1. Broadcast notifications (for all users)
     queries.add(
       FirebaseFirestore.instance
           .collection('notifications')
           .where('targetType', isEqualTo: 'broadcast')
-          .where('status', whereIn: ['sent', 'pending'])
-          .get(),
+          .where('status', whereIn: ['sent', 'pending']).get(),
     );
 
     // 2. User-specific notifications
@@ -524,8 +525,7 @@ class CalendarScreenState extends State<HomeScreen> {
           .collection('notifications')
           .where('targetType', isEqualTo: 'user')
           .where('targetId', isEqualTo: uid)
-          .where('status', whereIn: ['sent', 'pending'])
-          .get(),
+          .where('status', whereIn: ['sent', 'pending']).get(),
     );
 
     // 3. Event notifications for checked-in events (batched to avoid limit)
@@ -538,8 +538,7 @@ class CalendarScreenState extends State<HomeScreen> {
                 .collection('notifications')
                 .where('targetType', isEqualTo: 'infoSession')
                 .where('targetId', whereIn: batch)
-                .where('status', whereIn: ['sent', 'pending'])
-                .get(),
+                .where('status', whereIn: ['sent', 'pending']).get(),
           );
         }
       }
@@ -555,8 +554,7 @@ class CalendarScreenState extends State<HomeScreen> {
                 .collection('notifications')
                 .where('targetType', isEqualTo: 'clubEvent')
                 .where('targetId', whereIn: batch)
-                .where('status', whereIn: ['sent', 'pending'])
-                .get(),
+                .where('status', whereIn: ['sent', 'pending']).get(),
           );
         }
       }
@@ -590,14 +588,17 @@ class CalendarScreenState extends State<HomeScreen> {
     final checkedInEventIds = appState.checkedInEventIds?.toList() ?? [];
 
     // Get joined club IDs
-    final joinedClubIds = appState.joinedClubs?.map((c) => c.id).whereType<String>().toList() ?? [];
+    final joinedClubIds =
+        appState.joinedClubs?.map((c) => c.id).whereType<String>().toList() ??
+            [];
 
     // Initialize or refresh future if parameters changed
-    if (_notificationsFuture == null || 
-        _lastUid != uid || 
-        _lastEventIds?.join(',') != checkedInEventIds.join(',') || 
+    if (_notificationsFuture == null ||
+        _lastUid != uid ||
+        _lastEventIds?.join(',') != checkedInEventIds.join(',') ||
         _lastClubIds?.join(',') != joinedClubIds.join(',')) {
-      _notificationsFuture = _fetchNotifications(uid, checkedInEventIds, joinedClubIds);
+      _notificationsFuture =
+          _fetchNotifications(uid, checkedInEventIds, joinedClubIds);
       _lastUid = uid;
       _lastEventIds = checkedInEventIds;
       _lastClubIds = joinedClubIds;
@@ -609,7 +610,7 @@ class CalendarScreenState extends State<HomeScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        
+
         if (snapshot.hasError) {
           return Center(
             child: Padding(
@@ -621,7 +622,7 @@ class CalendarScreenState extends State<HomeScreen> {
             ),
           );
         }
-        
+
         // Combine all documents from multiple queries
         final allDocs = <QueryDocumentSnapshot>[];
         if (snapshot.hasData) {
@@ -629,7 +630,7 @@ class CalendarScreenState extends State<HomeScreen> {
             allDocs.addAll(querySnapshot.docs);
           }
         }
-        
+
         // Remove duplicates (same notification ID)
         final seenIds = <String>{};
         final uniqueDocs = allDocs.where((doc) {
@@ -637,42 +638,45 @@ class CalendarScreenState extends State<HomeScreen> {
           seenIds.add(doc.id);
           return true;
         }).toList();
-        
+
         // Filter for pending notifications scheduled within the next week
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
         final oneWeekFromNow = today.add(const Duration(days: 7));
-        
+
         final eligibleDocs = uniqueDocs.where((d) {
           final data = d.data() as Map<String, dynamic>;
           final status = data['status'];
-          
+
           // For pending notifications, only show if sendAt is within the next week
           if (status == 'pending') {
             final sendAt = data['sendAt'];
             if (sendAt is Timestamp) {
               final sendDate = sendAt.toDate();
               // Only show pending notifications with sendAt within the next 7 days
-              return !sendDate.isBefore(today) && sendDate.isBefore(oneWeekFromNow);
+              return !sendDate.isBefore(today) &&
+                  sendDate.isBefore(oneWeekFromNow);
             }
             return false;
           }
-          
-          return true; // Show all 'sent' notifications
+
+          return true;
         }).toList();
-        
+
         final List<NotificationItem> items = eligibleDocs.map((d) {
           final data = d.data() as Map<String, dynamic>;
           final title = data['title'] ?? 'Notification';
           final message = data['message'] ?? '';
-          
+
           // Priority: eventData.startTime (actual event time) > sendAt > createdAt
           DateTime dateTime;
           final eventData = data['eventData'] as Map<String, dynamic>?;
           final eventStartTime = eventData?['startTime'];
           final sendAt = data['sendAt'];
-          
-          if (eventStartTime is Timestamp) {
+
+          if (data['sentAt'] is Timestamp) {
+            dateTime = data['sentAt'].toDate();
+          } else if (eventStartTime is Timestamp) {
             // For event reminders, use the actual event start time
             dateTime = eventStartTime.toDate();
           } else if (sendAt is Timestamp) {
@@ -687,16 +691,17 @@ class CalendarScreenState extends State<HomeScreen> {
               dateTime = DateTime.now();
             }
           }
-          
-          return NotificationItem(title: title, message: message, dateTime: dateTime);
+
+          return NotificationItem(
+              title: title, message: message, dateTime: dateTime);
         }).toList();
 
-        List<NotificationItem> upcoming = items
-            .where((n) => !n.dateTime.isBefore(DateTime(now.year, now.month, now.day)))
-            .toList();
+        List<NotificationItem> upcoming =
+            items.where((n) => n.dateTime.isAfter(now)).toList();
         final oneMonthAgo = DateTime(now.year, now.month - 1, now.day);
         List<NotificationItem> past = items
-            .where((n) => n.dateTime.isBefore(DateTime(now.year, now.month, now.day)) && n.dateTime.isAfter(oneMonthAgo))
+            .where((n) =>
+                n.dateTime.isBefore(now) && n.dateTime.isAfter(oneMonthAgo))
             .toList();
         upcoming.sort((a, b) => a.dateTime.compareTo(b.dateTime));
         past.sort((a, b) => b.dateTime.compareTo(a.dateTime));
@@ -714,7 +719,8 @@ class CalendarScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.all(12),
                 child: AutoSizeText(
                   'No $title notifications',
-                  style: TextStyle(color: Colors.white, fontSize: titleFontSize),
+                  style:
+                      TextStyle(color: Colors.white, fontSize: titleFontSize),
                   minFontSize: 12,
                   maxLines: 1,
                 ),
@@ -722,116 +728,131 @@ class CalendarScreenState extends State<HomeScreen> {
             ];
           }
           final grouped = groupNotifications(list);
-          final sortedKeys = grouped.keys.toList()..sort((a, b) => DateTime.parse(a).compareTo(DateTime.parse(b)));
+          final sortedKeys = grouped.keys.toList()
+            ..sort((a, b) => DateTime.parse(a).compareTo(DateTime.parse(b)));
           final widgets = <Widget>[];
           widgets.add(Padding(
               padding: const EdgeInsets.only(left: 16, top: 12, bottom: 8),
               child: AutoSizeText(title,
-                  style: TextStyle(color: Colors.white, fontSize: titleFontSize),
+                  style:
+                      TextStyle(color: Colors.white, fontSize: titleFontSize),
                   minFontSize: 14,
                   maxLines: 1)));
           for (final key in sortedKeys) {
             widgets.add(Padding(
-                padding: EdgeInsets.only(left: 16, top: dateVerticalPadding, bottom: dateVerticalPadding),
+                padding: EdgeInsets.only(
+                    left: 16,
+                    top: dateVerticalPadding,
+                    bottom: dateVerticalPadding),
                 child: AutoSizeText(
                     DateFormat('EEEE, MMMM d').format(DateTime.parse(key)),
-                    style: TextStyle(color: AppColors.tanText, fontSize: dateFontSize),
+                    style: TextStyle(
+                        color: AppColors.tanText, fontSize: dateFontSize),
                     minFontSize: 12,
                     maxLines: 1)));
 
-            final mapped = grouped[key]!.map((n) => Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: screenWidth * 0.055, vertical: screenHeight * 0.0025),
-                  child: SizedBox(
-                    height: screenHeight * 0.065,
-                    child: Row(
-                      children: [
-                        Container(
-                          height: screenHeight * 0.065,
-                          width: screenWidth * 0.1,
-                          decoration:
-                              const BoxDecoration(color: Colors.white),
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  AutoSizeText(
-                                      DateFormat('MMM d')
-                                          .format(n.dateTime),
-                                      style: const TextStyle(
-                                          fontFamily:
-                                              "AppFonts.sansProSemiBold",
-                                          fontSize: 11,
-                                          color: AppColors.darkGoldText),
-                                      minFontSize: 8,
-                                      maxLines: 1),
-                                  AutoSizeText(
-                                      DateFormat('h:mm a')
-                                          .format(n.dateTime),
-                                      style: const TextStyle(
-                                          fontFamily: "SansSerifPro",
-                                          fontSize: 10,
-                                          color: AppColors.darkGoldText),
-                                      minFontSize: 7,
-                                      maxLines: 1),
-                                ],
+            final mapped = grouped[key]!
+                .map((n) => Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.055,
+                          vertical: screenHeight * 0.0025),
+                      child: SizedBox(
+                        height: screenHeight * 0.065,
+                        child: Row(
+                          children: [
+                            Container(
+                              height: screenHeight * 0.065,
+                              width: screenWidth * 0.1,
+                              decoration:
+                                  const BoxDecoration(color: Colors.white),
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4.0),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      AutoSizeText(
+                                          DateFormat('MMM d')
+                                              .format(n.dateTime),
+                                          style: const TextStyle(
+                                              fontFamily:
+                                                  "AppFonts.sansProSemiBold",
+                                              fontSize: 11,
+                                              color: AppColors.darkGoldText),
+                                          minFontSize: 8,
+                                          maxLines: 1),
+                                      AutoSizeText(
+                                          DateFormat('h:mm a')
+                                              .format(n.dateTime),
+                                          style: const TextStyle(
+                                              fontFamily: "SansSerifPro",
+                                              fontSize: 10,
+                                              color: AppColors.darkGoldText),
+                                          minFontSize: 7,
+                                          maxLines: 1),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 1),
-                        Expanded(
-                          child: Container(
-                            height: screenHeight * 0.27,
-                            padding: EdgeInsets.only(
-                                left: screenWidth * 0.011, top: screenHeight * 0.0025),
-                            decoration:
-                                const BoxDecoration(color: Colors.white),
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  AutoSizeText(n.title,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                          fontFamily:
-                                              "AppFonts.sansProSemiBold",
-                                          fontSize: 13),
-                                      minFontSize: 10,
-                                      maxLines: 1),
-                                  Row(
+                            const SizedBox(width: 1),
+                            Expanded(
+                              child: Container(
+                                height: screenHeight * 0.27,
+                                padding: EdgeInsets.only(
+                                    left: screenWidth * 0.011,
+                                    top: screenHeight * 0.0025),
+                                decoration:
+                                    const BoxDecoration(color: Colors.white),
+                                child: Center(
+                                  child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
                                     children: [
-                                      const Icon(Icons.notifications,
-                                          size: 10,
-                                          color: AppColors.darkGoldText),
-                                      const SizedBox(width: 2),
-                                      Flexible(
-                                        child: AutoSizeText(n.message,
-                                            textAlign: TextAlign.center,
-                                            style: const TextStyle(
-                                                fontFamily: "SansSerifPro",
-                                                fontSize: 10,
-                                                color: AppColors.darkGoldText),
-                                            minFontSize: 7,
-                                            maxLines: 2),
+                                      AutoSizeText(n.title,
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                              fontFamily:
+                                                  "AppFonts.sansProSemiBold",
+                                              fontSize: 13),
+                                          minFontSize: 10,
+                                          maxLines: 1),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.notifications,
+                                              size: 10,
+                                              color: AppColors.darkGoldText),
+                                          const SizedBox(width: 2),
+                                          Flexible(
+                                            child: AutoSizeText(n.message,
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(
+                                                    fontFamily: "SansSerifPro",
+                                                    fontSize: 10,
+                                                    color:
+                                                        AppColors.darkGoldText),
+                                                minFontSize: 7,
+                                                maxLines: 2),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                )).toList();
+                      ),
+                    ))
+                .toList();
 
             widgets.addAll(mapped);
           }
@@ -843,10 +864,18 @@ class CalendarScreenState extends State<HomeScreen> {
           child: ListView(
             padding: const EdgeInsets.only(bottom: 24),
             children: [
-              Divider(color: Colors.white, thickness: 1, indent: dividerIndent, endIndent: dividerIndent),
+              Divider(
+                  color: Colors.white,
+                  thickness: 1,
+                  indent: dividerIndent,
+                  endIndent: dividerIndent),
               ...sectionWidgets('Upcoming', upcoming),
               const SizedBox(height: 12),
-              Divider(indent: dividerIndent, endIndent: dividerIndent, color: Colors.white, thickness: 1),
+              Divider(
+                  indent: dividerIndent,
+                  endIndent: dividerIndent,
+                  color: Colors.white,
+                  thickness: 1),
               ...sectionWidgets('Past', past),
             ],
           ),
@@ -886,7 +915,8 @@ class CalendarScreenState extends State<HomeScreen> {
 
     final bodyListView = ListView(
       physics: _screenBool ? const AlwaysScrollableScrollPhysics() : null,
-      padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20, bottom: 24),
+      padding:
+          const EdgeInsets.only(left: 20.0, right: 20.0, top: 20, bottom: 24),
       children: [
         CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
         SizedBox(height: screenHeight * 0.02),
@@ -951,19 +981,21 @@ class CalendarScreenState extends State<HomeScreen> {
                           maxLines: 1)),
                   Padding(
                     padding: const EdgeInsets.only(right: 16.0),
-                    child: AutoSizeText(dateFormatter(_focusedMonth, _focusedYear),
-                        style: const TextStyle(
-                          fontFamily: "AppFonts.sansProSemiBold",
-                          fontSize: 20,
-                          color: AppColors.tanText,
-                        ),
-                        minFontSize: 16,
-                        maxLines: 1),
+                    child:
+                        AutoSizeText(dateFormatter(_focusedMonth, _focusedYear),
+                            style: const TextStyle(
+                              fontFamily: "AppFonts.sansProSemiBold",
+                              fontSize: 20,
+                              color: AppColors.tanText,
+                            ),
+                            minFontSize: 16,
+                            maxLines: 1),
                   ),
                 ],
               ),
         SizedBox(
-            height: _screenBool ? (screenHeight * 0.02) : (screenHeight * 0.04)),
+            height:
+                _screenBool ? (screenHeight * 0.02) : (screenHeight * 0.04)),
         _screenBool ? announcementDisplayWidget : calWidget,
         _screenBool ? Container() : eventDisplayWidget
       ],

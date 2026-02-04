@@ -150,7 +150,7 @@ class AppState extends ChangeNotifier {
       for (final doc in clubsSnapshot.docs) {
         final data = doc.data();
         loadedClubs.add(Club(
-          id: doc.id,
+          id: (data['clubId']?.toString() ?? doc.id.toString()),
           name: data['name'] ?? '',
           aboutMsg: data['aboutMsg'] ?? '',
           email: data['email'] ?? '',
@@ -159,7 +159,6 @@ class AppState extends ChangeNotifier {
           logo: data['logo'],
         ));
       }
-
       joinedClubs = loadedClubs;
       _clubsLoaded = true;
       ErrorLogger.logInfo('AppState', 'Loaded ${loadedClubs.length} joined clubs from Firestore');
@@ -329,7 +328,8 @@ class AppState extends ChangeNotifier {
   }
 
   bool isJoined(Club club) {
-    return joinedClubs?.contains(club) ?? false;
+    if (joinedClubs == null) return false;
+    return joinedClubs!.any((c) => c.id.toString() == club.id.toString());
   }
 
   Future<void> removeJoinedClub(Club club) async {
