@@ -75,7 +75,7 @@ class CalendarScreenState extends State<HomeScreen> {
   String? _lastUid;
   List<String>? _lastEventIds;
   List<String>? _lastClubIds;
-
+  
   @override
   void initState() {
     super.initState();

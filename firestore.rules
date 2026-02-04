@@ -36,14 +36,41 @@ service cloud.firestore {
       // Allow users to manage their own membership in club members collection
       match /members/{userId} {
         allow read: if request.auth != null;
-        allow write: if request.auth != null && request.auth.uid == userId;
+        allow write, delete: if request.auth != null && request.auth.uid == userId;
       }
     }
+    
+    match /{path=**}/members/{memberDocId} {
+      allow read, delete: if request.auth != null && 
+        (resource.data.uid == request.auth.uid || memberDocId == request.auth.uid);
+    }
+    
+    match /{path=**}/attending/{attendanceDocId} {
+      allow read, delete: if request.auth != null && 
+        (resource.data.uid == request.auth.uid || attendanceDocId == request.auth.uid);
+    }
+    
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null;
+      allow delete: if request.auth != null && resource.data.targetId == request.auth.uid;
+    }
+	
+		
+//     // Path for recursive removal
+//     match /{path=**}/members/{userId} {
+//       allow read, write: if request.auth != null && request.auth.uid == userId;
+//     }
 
+//     match /{path=**}/attending/{userId} {
+//       allow read, write: if request.auth != null && request.auth.uid == userId;
+//     }
+    
     // Allow authenticated users to read from the 'companies' collection
     match /companies/{companyId} {
       allow read: if request.auth != null;
     }
+    
+    
 		
     // Allow authenticated users to read from the 'events' collection
     match /events/{eventId} {

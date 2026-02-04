@@ -22,6 +22,8 @@ class RenderedPage extends StatefulWidget {
   _MyRenderedPageState createState() => _MyRenderedPageState();
 }
 
+
+
 class _MyRenderedPageState extends State<RenderedPage> {
   static const standardGreen = Color(0xFF164734);
   static const tanColor = Color.fromARGB(255, 69, 68, 36);
@@ -48,6 +50,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
       () => MyClubEventsScreen(scaffoldKey: _scaffoldKey),
     ];
     _pages = List<Widget?>.filled(_pageBuilders.length, null);
+
   }
 
   void _onItemTapped(int index) {
@@ -55,6 +58,8 @@ class _MyRenderedPageState extends State<RenderedPage> {
       _selectedIndex = index;
     });
   }
+
+  
 
   ListTile createListItem(String title, int index) {
     final screenHeight = MediaQuery.of(context).size.height;
