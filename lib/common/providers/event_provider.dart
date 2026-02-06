@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/calevent.dart';
+import 'package:ccce_application/common/constants/app_constants.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ccce_application/services/error_logger.dart';
+import 'dart:async';
 
 class EventProvider extends ChangeNotifier {
   final List<CalEvent> _allEvents = [];
   bool _isLoaded = false;
   DateTime? _lastSyncTime;
   bool _needsLogoLinking = false;
+  StreamSubscription<QuerySnapshot>? _eventListener;
 
   List<CalEvent> get allEvents => _allEvents;
   bool get isLoaded => _isLoaded;
@@ -25,19 +28,21 @@ class EventProvider extends ChangeNotifier {
   List<CalEvent> getEventsByType(String type) =>
       _allEvents.where((event) => event.eventType == type).toList();
 
-
   void linkCompanyLogos(List<dynamic> companies) {
     final Map<String, String?> logosByName = {};
     final Map<String, String?> logosById = {};
 
     for (var company in companies) {
-      if (company.id != null && company.id.isNotEmpty) logosById[company.id] = company.logo;
-      if (company.name != null && company.name.isNotEmpty) logosByName[company.name.toLowerCase().trim()] = company.logo;
+      if (company.id != null && company.id.isNotEmpty)
+        logosById[company.id] = company.logo;
+      if (company.name != null && company.name.isNotEmpty)
+        logosByName[company.name.toLowerCase().trim()] = company.logo;
     }
 
     int linkedCount = 0;
     for (var event in _allEvents) {
-      if (event.eventType == 'infoSession' && (event.logo == null || event.logo!.isEmpty)) {
+      if (event.eventType == 'infoSession' &&
+          (event.logo == null || event.logo!.isEmpty)) {
         String? logo;
         if (event.companyId != null && event.companyId!.isNotEmpty) {
           logo = logosById[event.companyId];
@@ -58,7 +63,8 @@ class EventProvider extends ChangeNotifier {
     }
 
     if (linkedCount > 0) {
-      ErrorLogger.logInfo('EventProvider', 'Linked $linkedCount company logos to info sessions');
+      ErrorLogger.logInfo('EventProvider',
+          'Linked $linkedCount company logos to info sessions');
       _needsLogoLinking = false;
       notifyListeners();
     }
@@ -70,20 +76,21 @@ class EventProvider extends ChangeNotifier {
       int retries = 0;
       const maxRetries = 3;
       Exception? lastError;
-      
+
       final db = FirebaseFirestore.instance;
       Query query = db.collection('events');
 
-      /********** Attempt to load from cache first for instant availability **********/
+      // Attempt to load from cache first for instant availability **********/
 
       if (!_isLoaded) {
         try {
           final cacheSnapshot = await FirebaseFirestore.instance
               .collection('events')
               .get(const GetOptions(source: Source.cache));
-          
+
           if (cacheSnapshot.docs.isNotEmpty) {
-            ErrorLogger.logInfo('EventProvider', 'Loaded ${cacheSnapshot.docs.length} events from cache (instant)');
+            ErrorLogger.logInfo('EventProvider',
+                'Loaded ${cacheSnapshot.docs.length} events from cache (instant)');
             _allEvents.clear();
 
             for (final doc in cacheSnapshot.docs) {
@@ -92,23 +99,25 @@ class EventProvider extends ChangeNotifier {
                 final event = CalEvent.fromSnapshot(doc);
                 _allEvents.add(event);
               } catch (e) {
-                ErrorLogger.logWarning('EventProvider', 'Failed to parse cached event: $e');
+                ErrorLogger.logWarning(
+                    'EventProvider', 'Failed to parse cached event: $e');
               }
             }
-            
+
             _isLoaded = true;
             notifyListeners();
           }
         } catch (cacheError) {
-          ErrorLogger.logInfo('EventProvider', 'Cache miss, fetching from server...');
+          ErrorLogger.logInfo(
+              'EventProvider', 'Cache miss, fetching from server...');
         }
       }
 
-      /***************************************************************************************************/
-
       if (_lastSyncTime != null) {
-        query = query.where('updatedAt', isGreaterThan: Timestamp.fromDate(_lastSyncTime!));
-        ErrorLogger.logInfo('EventProvider', 'Incremental sync: fetching events updated after ${_lastSyncTime!.toLocal()}');
+        query = query.where('updatedAt',
+            isGreaterThan: Timestamp.fromDate(_lastSyncTime!));
+        ErrorLogger.logInfo('EventProvider',
+            'Incremental sync: fetching events updated after ${_lastSyncTime!.toLocal()}');
       } else {
         ErrorLogger.logInfo('EventProvider', 'Full sync: fetching all events');
       }
@@ -120,7 +129,9 @@ class EventProvider extends ChangeNotifier {
       // Filter out deleted events only
       final eventDocs = snapshot.docs.where((doc) {
         final data = doc.data() as Map<String, dynamic>;
-        final status = (data['Status'] ?? data['status'] ?? 'approved').toString().toLowerCase();
+        final status = (data['Status'] ?? data['status'] ?? 'approved')
+            .toString()
+            .toLowerCase();
         return status != 'deleted';
       }).toList();
 
@@ -128,7 +139,9 @@ class EventProvider extends ChangeNotifier {
         try {
           updatedEvents.add(CalEvent.fromSnapshot(doc));
         } catch (e) {
-          print('⚠️ Failed to parse non-recurring event ${doc.id}: $e');
+          ErrorLogger.logError(
+              'EventProvider', 'Failed to parse non-recurring event ${doc.id}',
+              error: e);
         }
       }
 
@@ -154,7 +167,8 @@ class EventProvider extends ChangeNotifier {
       _needsLogoLinking = true;
 
       notifyListeners();
-      print("✅ Events fetched and expanded: ${_allEvents.length} total");
+      ErrorLogger.logInfo('EventProvider',
+          'Events fetched and expanded: ${_allEvents.length} total');
     } catch (e) {
       ErrorLogger.logError('EventProvider', 'Error fetching events', error: e);
     }
@@ -167,25 +181,28 @@ class EventProvider extends ChangeNotifier {
           .collection('events')
           .doc(eventId)
           .get();
-      
+
       if (doc.exists) {
         final newEvent = CalEvent.fromSnapshot(doc);
-        
+
         // Check if event already exists and update, otherwise add
         final existingIndex = _allEvents.indexWhere((e) => e.id == newEvent.id);
         if (existingIndex >= 0) {
           _allEvents[existingIndex] = newEvent;
-          ErrorLogger.logInfo('EventProvider', 'Updated existing event: ${newEvent.eventName}');
+          ErrorLogger.logInfo(
+              'EventProvider', 'Updated existing event: ${newEvent.eventName}');
         } else {
           _allEvents.add(newEvent);
-          ErrorLogger.logInfo('EventProvider', 'Added new event to calendar: ${newEvent.eventName}');
+          ErrorLogger.logInfo('EventProvider',
+              'Added new event to calendar: ${newEvent.eventName}');
         }
-        
+
         _needsLogoLinking = true;
         notifyListeners();
       }
     } catch (e) {
-      ErrorLogger.logError('EventProvider', 'Error fetching single event', error: e);
+      ErrorLogger.logError('EventProvider', 'Error fetching single event',
+          error: e);
     }
   }
 
@@ -199,5 +216,92 @@ class EventProvider extends ChangeNotifier {
     return null;
   }
 
-}
+  /// Start real-time listening to events collection for instant updates
+  /// Call this after initial fetchAllEvents() to enable live event updates
+  void startRealtimeListening() {
+    if (_eventListener != null) {
+      ErrorLogger.logWarning(
+          'EventProvider', 'Real-time listener already active');
+      return;
+    }
 
+    try {
+      _eventListener = FirebaseFirestore.instance
+          .collection('events')
+          .where('Status',
+              whereIn: ['approved', 'Approved', 'pending', 'Pending'])
+          .snapshots()
+          .listen(
+            (snapshot) {
+              try {
+                final updatedEvents = <CalEvent>[];
+
+                for (final doc in snapshot.docs) {
+                  try {
+                    updatedEvents.add(CalEvent.fromSnapshot(doc));
+                  } catch (e) {
+                    ErrorLogger.logError('EventProvider',
+                        'Failed to parse real-time event ${doc.id}',
+                        error: e);
+                  }
+                }
+
+                // Merge new events with existing ones, updating if already present
+                for (final newEvent in updatedEvents) {
+                  final index =
+                      _allEvents.indexWhere((e) => e.id == newEvent.id);
+                  if (index >= 0) {
+                    _allEvents[index] = newEvent;
+                  } else {
+                    _allEvents.add(newEvent);
+                  }
+                }
+
+                // Remove deleted events
+                _allEvents.removeWhere((event) =>
+                    !updatedEvents.any((updated) => updated.id == event.id));
+
+                _allEvents.sort((a, b) => a.startTime.compareTo(b.startTime));
+                _needsLogoLinking = true;
+                notifyListeners();
+
+                ErrorLogger.logInfo('EventProvider',
+                    'Real-time update: synced ${updatedEvents.length} events');
+              } catch (e) {
+                ErrorLogger.logError(
+                    'EventProvider', 'Error processing real-time event update',
+                    error: e);
+              }
+            },
+            onError: (e) {
+              ErrorLogger.logError('EventProvider', 'Real-time listener error',
+                  error: e);
+              // Attempt to restart listener after short delay
+              _eventListener = null;
+              Future.delayed(
+                  const Duration(seconds: 5), startRealtimeListening);
+            },
+          );
+
+      ErrorLogger.logInfo(
+          'EventProvider', 'Real-time event listener activated');
+    } catch (e) {
+      ErrorLogger.logError('EventProvider', 'Error starting real-time listener',
+          error: e);
+    }
+  }
+
+  /// Stop real-time listening and clean up resources
+  void stopRealtimeListening() {
+    _eventListener?.cancel();
+    _eventListener = null;
+    ErrorLogger.logInfo(
+        'EventProvider', 'Real-time event listener deactivated');
+  }
+
+  @override
+  void dispose() {
+    stopRealtimeListening();
+    super.dispose();
+  }
+}

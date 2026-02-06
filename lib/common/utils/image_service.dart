@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
+import 'package:ccce_application/services/error_logger.dart';
 
 class ImageService {
   static final FirebaseStorage _storage = FirebaseStorage.instance;
@@ -20,7 +21,7 @@ class ImageService {
       
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
-      debugPrint('Error uploading image: $e');
+      ErrorLogger.logError('ImageService', 'Error uploading image', error: e);
       return null;
     }
   }
@@ -38,7 +39,7 @@ class ImageService {
         return File(pickedFile.path);
       }
     } catch (e) {
-      debugPrint('Error picking image: $e');
+      ErrorLogger.logError('ImageService', 'Error picking image', error: e);
     }
     return null;
   }
@@ -60,7 +61,7 @@ class ImageService {
         final ref = _storage.refFromURL(oldImageUrl);
         await ref.delete();
       } catch (e) {
-        debugPrint('Error deleting old image: $e');
+        ErrorLogger.logError('ImageService', 'Error deleting old image', error: e);
       }
     }
 

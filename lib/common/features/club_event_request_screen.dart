@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:ccce_application/services/error_logger.dart';
 
 class ClubEventRequestScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -92,7 +93,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
         _isLoading = false;
         _hasError = true;
       });
-      debugPrint('Error loading clubs: $e');
+      ErrorLogger.logError('ClubEventRequestScreen', 'Error loading clubs', error: e);
     }
   }
 
@@ -205,9 +206,7 @@ class ClubEventRequestScreenState extends State<ClubEventRequestScreen> {
       );
       final clubName = selectedClub['Acronym'] ?? '';
 
-      print("Club recurrence data: ");
-      print(
-          "${_selectedRecurrence}, ${_recurrenceInterval}, ${_recurrenceEndDate}");
+      ErrorLogger.logInfo('ClubEventRequestScreen', 'Club recurrence data: ${_selectedRecurrence}, ${_recurrenceInterval}, ${_recurrenceEndDate}');
       await FirebaseFirestore.instance.collection('clubEventRequests').add({
         'clubId': _selectedClubId,
         'clubName': clubName,

@@ -119,8 +119,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
       backgroundColor: tanColor,
       endDrawer: SizedBox(
         width: MediaQuery.of(context).size.width,
-        child: DebugOutline(
-          child: Drawer(
+        child: Drawer(
             backgroundColor: lighterTanColor,
             child: SafeArea(
               child: ListView(
@@ -158,7 +157,6 @@ class _MyRenderedPageState extends State<RenderedPage> {
               ),
             ),
           ),
-        ),
       ),
     );
   }
