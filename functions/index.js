@@ -18,6 +18,101 @@ const {user} = require("firebase-functions/v1/auth");
 
 const ALLOWED_ROLES = new Set(["student", "faculty", "club admin", "admin", "recruiter"]);
 
+const RATE_LIMIT_DEFAULT = {max: 30, windowMs: 60 * 1000};
+const RATE_LIMIT_OVERRIDES = {
+  setUserRole: {max: 10, windowMs: 60 * 1000},
+  approveClubEvent: {max: 30, windowMs: 60 * 1000},
+  denyClubEvent: {max: 30, windowMs: 60 * 1000},
+  sendTestNotification: {max: 5, windowMs: 60 * 1000},
+  sendBroadcastNotification: {max: 2, windowMs: 60 * 1000},
+  backfillNotificationIndexes: {max: 1, windowMs: 60 * 60 * 1000},
+  rebuildEventNotifications: {max: 1, windowMs: 60 * 60 * 1000},
+  analyzeEvents: {max: 10, windowMs: 60 * 1000},
+  deleteClubEvent: {max: 120, windowMs: 60 * 1000},
+};
+const RATE_LIMIT_BYPASS_UIDS = new Set(
+  (process.env.RATE_LIMIT_BYPASS_UIDS || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0),
+);
+const RATE_LIMIT_BYPASS_FUNCTIONS = new Set(
+  (process.env.RATE_LIMIT_BYPASS_FUNCTIONS || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0),
+);
+
+function getRateLimitConfig(functionName) {
+  return Object.assign({}, RATE_LIMIT_DEFAULT, RATE_LIMIT_OVERRIDES[functionName] || {});
+}
+
+function getCallerRole(request) {
+  return request && request.auth && request.auth.token ? request.auth.token.role : null;
+}
+
+async function enforceRateLimit(request, functionName) {
+  if (!request || !request.auth || !request.auth.uid) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+
+  const uid = request.auth.uid;
+  const role = getCallerRole(request);
+  if (role === "admin") return;
+  if (RATE_LIMIT_BYPASS_UIDS.has(uid)) return;
+  if (RATE_LIMIT_BYPASS_FUNCTIONS.has(functionName)) return;
+
+  const {max, windowMs} = getRateLimitConfig(functionName);
+  const db = admin.firestore();
+  const docId = `${uid}_${functionName}`;
+  const ref = db.collection("rateLimits").doc(docId);
+  const now = Date.now();
+
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) {
+      tx.set(ref, {
+        count: 1,
+        resetAt: now + windowMs,
+        windowMs: windowMs,
+        max: max,
+        lastRequestAt: now,
+      });
+      return;
+    }
+
+    const data = snap.data() || {};
+    const resetAt = typeof data.resetAt === "number" ? data.resetAt : 0;
+    const count = typeof data.count === "number" ? data.count : 0;
+
+    if (resetAt <= now) {
+      tx.set(ref, {
+        count: 1,
+        resetAt: now + windowMs,
+        windowMs: windowMs,
+        max: max,
+        lastRequestAt: now,
+      });
+      return;
+    }
+
+    if (count >= max) {
+      throw new HttpsError(
+        "resource-exhausted",
+        `Rate limit exceeded for ${functionName}. Try again later.`,
+      );
+    }
+
+    tx.update(ref, {
+      count: count + 1,
+      lastRequestAt: now,
+      resetAt: resetAt,
+      windowMs: windowMs,
+      max: max,
+    });
+  });
+}
+
 // Clean up all user data when their account is deleted
 exports.onUserDeleted = user().onDelete(async (userRecord) => {
   console.log("onUserDeleted fired; raw userRecord keys:", userRecord ? Object.keys(userRecord).slice(0, 10) : userRecord);
@@ -130,6 +225,8 @@ exports.setUserRole = onCall(async (request) => {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
 
+  await enforceRateLimit(request, "setUserRole");
+
   const callerUid = request.auth.uid;
   const callerRecord = await admin.auth().getUser(callerUid);
   const callerRole = (callerRecord.customClaims && callerRecord.customClaims.role);
@@ -239,6 +336,8 @@ exports.approveClubEvent = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Request not authenticated");
   }
+
+  await enforceRateLimit(request, "approveClubEvent");
   const callerClaims = request.auth.token || {};
   if (callerClaims.role !== "admin") {
     throw new HttpsError("permission-denied", "Only admins can approve events");
@@ -389,6 +488,8 @@ exports.denyClubEvent = onCall(async (request) => {
       "Request not authenticated",
     );
   }
+
+  await enforceRateLimit(request, "denyClubEvent");
 
   const callerClaims = request.auth.token || {};
   if (callerClaims.role !== "admin") {
@@ -587,6 +688,8 @@ exports.sendTestNotification = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be authenticated to call this function");
   }
+
+  await enforceRateLimit(request, "sendTestNotification");
 
   const {uid, title, message} = request.data || {};
   if (!uid || typeof uid !== "string") {
@@ -1134,6 +1237,8 @@ exports.sendBroadcastNotification = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be authenticated to call this function");
   }
+
+  await enforceRateLimit(request, "sendBroadcastNotification");
   const callerUid = request.auth.uid;
   const callerRecord = await admin.auth().getUser(callerUid);
   const callerRole = (callerRecord.customClaims && callerRecord.customClaims.role);
@@ -1162,6 +1267,8 @@ exports.backfillNotificationIndexes = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
+
+  await enforceRateLimit(request, "backfillNotificationIndexes");
 
   const callerUid = request.auth.uid;
   const callerRecord = await admin.auth().getUser(callerUid);
@@ -1240,6 +1347,8 @@ exports.rebuildEventNotifications = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
+
+  await enforceRateLimit(request, "rebuildEventNotifications");
 
   const callerUid = request.auth.uid;
   const callerRecord = await admin.auth().getUser(callerUid);
@@ -1345,6 +1454,8 @@ exports.analyzeEvents = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
+
+  await enforceRateLimit(request, "analyzeEvents");
 
   const callerUid = request.auth.uid;
   const callerRecord = await admin.auth().getUser(callerUid);
@@ -1474,6 +1585,8 @@ exports.deleteClubEvent = onCall(async (request) => {
     console.log("Unauthenticated request to deleteClubEvent ERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
+
+  await enforceRateLimit(request, "deleteClubEvent");
 
   const callerUid = request.auth.uid;
   const eventId = request.data.eventId;
