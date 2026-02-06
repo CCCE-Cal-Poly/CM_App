@@ -10,22 +10,22 @@ service cloud.firestore {
       
       // Allow users to manage their own checked-in events
       match /checkedInEvents/{eventId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write, get: if request.auth != null && request.auth.uid == userId;
       }
       
       // Allow users to manage their own FCM tokens
       match /fcmTokens/{tokenId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write, get: if request.auth != null && request.auth.uid == userId;
       }
       
       // Allow users to manage their own favorite companies
       match /favoriteCompanies/{companyId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write, get: if request.auth != null && request.auth.uid == userId;
       }
       
       // Allow users to manage their own joined clubs
       match /joinedClubs/{clubId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write, get: if request.auth != null && request.auth.uid == userId;
       }
     }
 
