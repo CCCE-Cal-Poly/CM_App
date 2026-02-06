@@ -2,6 +2,15 @@ const admin = require("firebase-admin");
 
 admin.initializeApp();
 
+// Debug: environment and admin SDK info
+try {
+  const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT ||
+    (admin.app && admin.app().options && admin.app().options.projectId);
+  console.log("Admin SDK initialized for project:", projectId);
+} catch (e) {
+  console.log("Admin SDK initialized (project id unknown)", e && e.message ? e.message : e);
+}
+
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentCreated, onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
@@ -11,76 +20,107 @@ const ALLOWED_ROLES = new Set(["student", "faculty", "club admin", "admin", "rec
 
 // Clean up all user data when their account is deleted
 exports.onUserDeleted = user().onDelete(async (userRecord) => {
-  const uid = userRecord.uid;
+  console.log("onUserDeleted fired; raw userRecord keys:", userRecord ? Object.keys(userRecord).slice(0, 10) : userRecord);
+  const uid = userRecord && userRecord.uid;
   if (!uid) {
-    console.log("No UID provided for user deletion");
+    console.log("onUserDeleted: No UID provided for user deletion; exiting");
     return;
   }
 
-  console.log(`Cleaning up data for deleted user: ${uid}`);
+  console.log(`onUserDeleted: Cleaning up data for deleted user: ${uid}`);
   const db = admin.firestore();
 
   try {
     // 1. Delete user document and subcollections
+    console.log("onUserDeleted: Preparing to delete user document and known subcollections");
     const userDocRef = db.collection("users").doc(uid);
     const subcollections = ["checkedInEvents", "fcmTokens", "favoriteCompanies", "joinedClubs"];
 
     for (const subcol of subcollections) {
+      console.log(`onUserDeleted: Deleting subcollection ${subcol} for user ${uid}`);
       const snapshot = await userDocRef.collection(subcol).get();
-      const batch = db.batch();
-      snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+      console.log(`onUserDeleted: Found ${snapshot.size} docs in users/${uid}/${subcol}`);
       if (!snapshot.empty) {
+        const batch = db.batch();
+        snapshot.docs.forEach((doc) => {
+          console.log(`onUserDeleted: queue delete for ${doc.ref.path}`);
+          batch.delete(doc.ref);
+        });
         await batch.commit();
-        console.log(`Deleted ${snapshot.size} docs from users/${uid}/${subcol}`);
+        console.log(`onUserDeleted: Deleted ${snapshot.size} docs from users/${uid}/${subcol}`);
       }
     }
 
+    console.log("onUserDeleted: Deleting user document itself:", userDocRef.path);
     await userDocRef.delete();
-    console.log(`Deleted user document: ${uid}`);
+    console.log(`onUserDeleted: Deleted user document: ${uid}`);
 
     // 2. Remove user from all club memberships
+    console.log("onUserDeleted: Removing user from club membership collections (collectionGroup members)");
     const clubMemberships = await db.collectionGroup("members").where("uid", "==", uid).get();
+    console.log(`onUserDeleted: clubMemberships found: ${clubMemberships.size}`);
     if (!clubMemberships.empty) {
       const batch = db.batch();
-      clubMemberships.docs.forEach((doc) => batch.delete(doc.ref));
+      clubMemberships.docs.forEach((doc) => {
+          console.log(`onUserDeleted: queue delete for club member doc ${doc.ref.path}`);
+        batch.delete(doc.ref);
+      });
       await batch.commit();
-      console.log(`Removed user from ${clubMemberships.size} club memberships`);
+      console.log(`onUserDeleted: Removed user from ${clubMemberships.size} club memberships`);
     }
 
     // 3. Remove user from all event attendance records
+    console.log("onUserDeleted: Removing user from event attendance (collectionGroup attending)");
     const eventAttendance = await db.collectionGroup("attending").where("uid", "==", uid).get();
+    console.log(`onUserDeleted: eventAttendance found: ${eventAttendance.size}`);
     if (!eventAttendance.empty) {
       const batch = db.batch();
-      eventAttendance.docs.forEach((doc) => batch.delete(doc.ref));
+      eventAttendance.docs.forEach((doc) => {
+          console.log(`onUserDeleted: queue delete for attendance doc ${doc.ref.path}`);
+        batch.delete(doc.ref);
+      });
       await batch.commit();
-      console.log(`Removed user from ${eventAttendance.size} event attendance records`);
+      console.log(`onUserDeleted: Removed user from ${eventAttendance.size} event attendance records`);
     }
 
     // 4. Delete notifications targeted at this user
+    console.log("onUserDeleted: Deleting notifications targeted at user");
     const userNotifications = await db.collection("notifications")
       .where("targetType", "==", "user")
       .where("targetId", "==", uid)
       .get();
+    console.log(`onUserDeleted: notifications for user found: ${userNotifications.size}`);
     if (!userNotifications.empty) {
       const batch = db.batch();
-      userNotifications.docs.forEach((doc) => batch.delete(doc.ref));
+      userNotifications.docs.forEach((doc) => {
+          console.log(`onUserDeleted: queue delete for notification ${doc.ref.path}`);
+        batch.delete(doc.ref);
+      });
       await batch.commit();
-      console.log(`Deleted ${userNotifications.size} notifications for user`);
+      console.log(`onUserDeleted: Deleted ${userNotifications.size} notifications for user`);
     }
 
     // 5. Delete profile picture from Storage
     try {
+      console.log("onUserDeleted: Attempting to delete profile picture from Storage for", uid);
       const bucket = admin.storage().bucket();
-      await bucket.file(`profile_pictures/${uid}.jpg`).delete();
-      console.log(`Deleted profile picture for user ${uid}`);
+      const file = bucket.file(`profile_pictures/${uid}.jpg`);
+      const [exists] = await file.exists();
+      console.log(`onUserDeleted: profile picture exists? ${exists}`);
+      if (exists) {
+        await file.delete();
+        console.log(`onUserDeleted: Deleted profile picture for user ${uid}`);
+      } else {
+        console.log(`onUserDeleted: No profile picture to delete for user ${uid}`);
+      }
     } catch (storageErr) {
-      // Profile picture might not exist
-      console.log(`No profile picture to delete for user ${uid}`);
+      // Profile picture might not exist or deletion failed
+      console.error(`onUserDeleted: Storage deletion error for ${uid}:`, storageErr && storageErr.stack ? storageErr.stack : storageErr);
     }
 
-    console.log(`Successfully cleaned up all data for user: ${uid}`);
+    console.log(`onUserDeleted: Successfully cleaned up all data for user: ${uid}`);
   } catch (err) {
-    console.error(`Error cleaning up user ${uid}:`, err);
+    console.error(`onUserDeleted: Error cleaning up user ${uid}:`, err && err.stack ? err.stack : err);
     // Don't throw - allow the deletion to proceed even if cleanup fails
   }
 });
@@ -1422,6 +1462,14 @@ exports.setEventUpdatedAt = onDocumentWritten("events/{eventId}", async (event) 
 
 exports.deleteClubEvent = onCall(async (request) => {
   console.log("DELETE FUNC CALLED - deleteClubEvent called with data:", request.data);
+  try {
+    console.log("deleteClubEvent: request.auth present?", !!request.auth);
+    if (request.auth) {
+      console.log("deleteClubEvent: auth uid=", request.auth.uid, "token keys=", Object.keys(request.auth.token || {}).slice(0, 10));
+    }
+  } catch (dbgErr) {
+    console.log("deleteClubEvent: debug info error", dbgErr && dbgErr.message ? dbgErr.message : dbgErr);
+  }
   if (!request.auth) {
     console.log("Unauthenticated request to deleteClubEvent ERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
     throw new HttpsError("unauthenticated", "User must be authenticated");
@@ -1444,7 +1492,7 @@ exports.deleteClubEvent = onCall(async (request) => {
     }
 
     const eventData = eventSnap.data();
-    console.log("Event data retrieved for deletion:", eventData);
+    console.log("Event data retrieved for deletion:", JSON.stringify(eventData || {}, Object.keys(eventData || {}).slice(0, 20)));
     const clubId = eventData.clubId;
 
     if (!clubId) {
@@ -1454,24 +1502,32 @@ exports.deleteClubEvent = onCall(async (request) => {
     // Verify caller is a club admin of this club or a system admin
     const callerRecord = await admin.auth().getUser(callerUid);
     const callerRole = (callerRecord.customClaims && callerRecord.customClaims.role);
+    console.log("deleteClubEvent: callerRecord.uid=", callerRecord.uid, "callerRole=", callerRole);
+    console.log("deleteClubEvent: customClaims=", callerRecord.customClaims);
 
     if (callerRole !== "admin") {
       // Check if user is club admin for this specific club
       const userDoc = await db.collection("users").doc(callerUid).get();
       const userData = userDoc.data() || {};
       const clubsAdminOf = userData.clubsAdminOf || [];
+      console.log("deleteClubEvent: caller clubsAdminOf=", clubsAdminOf);
 
       if (!clubsAdminOf.includes(clubId)) {
+        console.log(`deleteClubEvent: permission denied for user ${callerUid} on club ${clubId}`);
         throw new HttpsError(
           "permission-denied",
           "You do not have permission to delete this event",
         );
       }
+      console.log("deleteClubEvent: user is club admin for clubId=", clubId);
+    } else {
+      console.log("deleteClubEvent: user is system admin");
     }
 
     // Delete the event document
+    console.log("deleteClubEvent: deleting eventRef at", eventRef.path);
     await eventRef.delete();
-    console.log(`Deleted event ${eventId} by user ${callerUid}`);
+    console.log(`deleteClubEvent: Deleted event ${eventId} by user ${callerUid}`);
 
     // Delete all notifications for this event
     const notificationsSnapshot = await db

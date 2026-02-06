@@ -8,6 +8,7 @@ import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/providers/club_provider.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/features/sign_in.dart';
+import 'package:ccce_application/common/constants/app_constants.dart';
 import 'package:ccce_application/services/error_logger.dart';
 import 'dart:io';
 
@@ -261,7 +262,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 decoration: const InputDecoration(
                   labelText: 'New Password',
                   border: OutlineInputBorder(),
-                  helperText: 'At least 6 characters',
+                  helperText: 'At least 8 characters',
                 ),
               ),
               const SizedBox(height: 16),
@@ -289,21 +290,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
               if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('All fields are required')),
+                  SnackBar(content: Text(AppConstants.errorAllFieldsRequired)),
                 );
                 return;
               }
 
               if (newPassword != confirmPassword) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('New passwords do not match')),
+                  SnackBar(content: Text(AppConstants.errorPasswordMismatchChange)),
                 );
                 return;
               }
 
-              if (newPassword.length < 6) {
+              if (newPassword.length < AppConstants.minPasswordLengthChange) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Password must be at least 6 characters')),
+                  SnackBar(content: Text(AppConstants.errorPasswordRequirementNotMet)),
                 );
                 return;
               }
@@ -426,37 +427,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 );
                 await user.reauthenticateWithCredential(credential);
 
-                // Delete user data from Firestore
-                final batch = FirebaseFirestore.instance.batch();
-                
-                // Delete user document
-                final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-                batch.delete(userDocRef);
-
-                // Delete subcollections
-                final subcollections = ['checkedInEvents', 'fcmTokens', 'favoriteCompanies', 'joinedClubs'];
-                for (final subcol in subcollections) {
-                  final snapshot = await userDocRef.collection(subcol).get();
-                  for (final doc in snapshot.docs) {
-                    batch.delete(doc.reference);
-                  }
-                }
-
-                await batch.commit();
-
-                // Delete profile picture from Storage if exists
-                try {
-                  final storageRef = FirebaseStorage.instance
-                      .ref()
-                      .child('profile_pictures')
-                      .child('${user.uid}.jpg');
-                  await storageRef.delete();
-                } catch (e) {
-                  // Profile picture might not exist, that's okay
-                  ErrorLogger.logInfo('EditProfileScreen', 'No profile picture to delete or error: $e');
-                }
-
                 // Delete Firebase Auth account
+                // Backend cleanup (Firestore, Storage, memberships, etc.) is handled by
+                // the onUserDeleted Cloud Function.
                 await user.delete();
 
                 if (!dialogContext.mounted) return;

@@ -82,7 +82,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               const Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text(
-                  "A verification email has been sent to your inbox.\nPlease verify your email to continue.\n\nThis page will automatically proceed once your email is verified.",
+                  "A verification email has been sent to your inbox.\nPlease verify your email to continue.\n\nCheck your spam or junk folder if you don't see the email.\n\nThis page will automatically proceed once your email is verified.",
                   textAlign: TextAlign.center,
                 ),
               ),

@@ -1,4 +1,5 @@
 import 'package:ccce_application/common/features/verification_screen.dart';
+import 'package:ccce_application/common/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ccce_application/common/features/sign_in.dart';
@@ -17,6 +18,8 @@ class SignUp extends StatefulWidget {
 
 class _SignUpState extends State<SignUp> {
   static dynamic errorMsg = '';
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
@@ -25,6 +28,16 @@ class _SignUpState extends State<SignUp> {
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -78,6 +91,72 @@ class _SignUpState extends State<SignUp> {
                       ),
                     ),
                   ),
+
+                  // First Name Field
+                  Container(
+                    width: screenWidth * 0.75,
+                    height: screenHeight * 0.065,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                    ),
+                    child: TextField(
+                      controller: _firstNameController,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlignVertical: TextAlignVertical.center,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText: 'First Name',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: screenHeight * 0.015,
+                          horizontal: screenWidth * 0.025,
+                        ),
+                        hintStyle: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: screenHeight * 0.020),
+
+                  // Last Name Field
+                  Container(
+                    width: screenWidth * 0.75,
+                    height: screenHeight * 0.065,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                    ),
+                    child: TextField(
+                      controller: _lastNameController,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlignVertical: TextAlignVertical.center,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText: 'Last Name',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: screenHeight * 0.015,
+                          horizontal: screenWidth * 0.025,
+                        ),
+                        hintStyle: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: screenHeight * 0.020),
 
                   // Email Field
                   Container(
@@ -222,20 +301,36 @@ class _SignUpState extends State<SignUp> {
 
   Future<void> _signUpFunc() async {
     try {
+      String firstName = _firstNameController.text.trim();
+      String lastName = _lastNameController.text.trim();
       String email = _emailController.text.trim();
       String password = _passwordController.text.trim();
       String confirmPassword = _confirmPasswordController.text.trim();
 
-      if (password.length < 8) {
+      if (firstName.isEmpty) {
         setState(() {
-          errorMsg = "Password must be at least 8 characters.";
+          errorMsg = AppConstants.errorFirstNameRequired;
+        });
+        return;
+      }
+
+      if (lastName.isEmpty) {
+        setState(() {
+          errorMsg = AppConstants.errorLastNameRequired;
+        });
+        return;
+      }
+
+      if (password.length < AppConstants.minPasswordLength) {
+        setState(() {
+          errorMsg = AppConstants.errorPasswordRequirementNotMet;
         });
         return;
       }
 
       if (password != confirmPassword) {
         setState(() {
-          errorMsg = "Passwords do not match";
+          errorMsg = AppConstants.errorPasswordMismatch;
         });
         return;
       }
@@ -249,7 +344,7 @@ class _SignUpState extends State<SignUp> {
       String? userID = userCredential.user?.uid;
       if (userID == null) {
         setState(() {
-          errorMsg = "Failed to create user.  Please try again.";
+          errorMsg = AppConstants.errorFailedCreateUser;
         });
         return;
       }
@@ -259,8 +354,8 @@ class _SignUpState extends State<SignUp> {
       // Prepare user data map
       Map<String, dynamic> userData = {
         'email': email,
-        'firstName': "",
-        'lastName': "",
+        'firstName': firstName,
+        'lastName': lastName,
         'schoolYear': "",
         'company': "",
         'role': "",
@@ -270,7 +365,8 @@ class _SignUpState extends State<SignUp> {
       if (fcmToken != null) {
         userData['fcmToken'] = fcmToken;
       } else {
-        ErrorLogger.logWarning('SignUp', 'FCM token was null during signup for user: $userID');
+        ErrorLogger.logWarning(
+            'SignUp', 'FCM token was null during signup for user: $userID');
         // Consider if you want to handle this more robustly, e.g.,
         // retrying token retrieval later or logging to an error reporting service.
       }
@@ -285,9 +381,8 @@ class _SignUpState extends State<SignUp> {
       if (userCredential.user != null) {
         setState(() {
           errorMsg = "";
-        }
-        );
-        
+        });
+
         await userCredential.user!.sendEmailVerification();
 
         Navigator.pushReplacement(
@@ -296,28 +391,15 @@ class _SignUpState extends State<SignUp> {
         );
       }
     } catch (e) {
+      String errorMessage = AppConstants.errorUnexpected;
       if (e is FirebaseAuthException) {
-        if (e.code == "weak-password") {
-          ErrorLogger.logInfo('SignUp', 'Email empty check: ${_emailController.text.trim().isEmpty}');
-          if (_emailController.text.trim().isEmpty) {
-            setState(() {
-              errorMsg = "Invalid Credentials";
-            });
-          } else {
-            setState(() {
-              errorMsg = "Password is too weak";
-            });
-          }
-        } else if (e.code == "invalid-email") {
-          setState(() {
-            errorMsg = "Invalid Email";
-          });
-        } else if (e.code == "email-already-in-use") {
-          setState(() {
-            errorMsg = "Email already in use";
-          });
-        }
+        errorMessage = ErrorLogger.getAuthErrorMessage(e);
+      } else {
+        ErrorLogger.logError('SignUp', 'Unexpected signup error', error: e);
       }
+      setState(() {
+        errorMsg = errorMessage;
+      });
     }
   }
 }

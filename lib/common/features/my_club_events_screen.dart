@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:ccce_application/services/error_logger.dart';
 
 class MyClubEventsScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -89,7 +90,7 @@ class _MyClubEventsScreenState extends State<MyClubEventsScreen> {
             events.add(event);
           }
         } catch (e) {
-          debugPrint('Error parsing event ${doc.id}: $e');
+          ErrorLogger.logError('MyClubEventsScreen', 'Error parsing event ${doc.id}', error: e);
         }
       }
 

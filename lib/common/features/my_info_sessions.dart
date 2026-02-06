@@ -15,10 +15,10 @@ Widget buildInfoSessionList(context) {
       Provider.of<AppState>(context, listen: true).checkedInEventIds ??
           <String>{};
   final allEvents = Provider.of<EventProvider>(context, listen: true).allEvents;
-  final allCheckedIn = allEvents
-      .where((event) => checkedInEventIds.contains(event.id))
-      .toList();
-  ErrorLogger.logInfo('MyInfoSessions', 'Checked-in sessions available: ${allCheckedIn.map((e) => e.id)}');
+  final allCheckedIn =
+      allEvents.where((event) => checkedInEventIds.contains(event.id)).toList();
+  ErrorLogger.logInfo('MyInfoSessions',
+      'Checked-in sessions available: ${allCheckedIn.map((e) => e.id)}');
   final checkedInInfoSessions =
       allCheckedIn.where((event) => event.eventType == "infoSession").toList();
   final List<CalEvent> future = checkedInInfoSessions

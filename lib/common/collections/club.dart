@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:ccce_application/services/error_logger.dart';
 
 class Club implements Comparable<Club> {
   dynamic id;
@@ -92,7 +93,7 @@ class Club implements Comparable<Club> {
             .toList();
       }
     } catch (e) {
-      debugPrint('Error fetching club events: $e');
+      ErrorLogger.logError('Club', 'Error fetching club events', error: e);
     }
   }
 
