@@ -335,12 +335,12 @@ class _SignInState extends State<SignIn> {
             final eventProvider =
                 Provider.of<EventProvider>(context, listen: false);
             await eventProvider.fetchAllEvents();
-            Navigator.pushReplacement(
-              context,
+            Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
-                builder: (context) => const MaterialApp(
-                    home: Scaffold(appBar: GoldAppBar(), body: RenderedPage())),
+                builder: (context) => const Scaffold(
+                    appBar: GoldAppBar(), body: RenderedPage()),
               ),
+              (route) => false,
             );
           }
           ErrorLogger.logInfo('SignIn', 'Navigation call to RenderedPage completed.');
@@ -462,13 +462,14 @@ class _SignInState extends State<SignIn> {
           final eventProvider = Provider.of<EventProvider>(context, listen: false);
           await eventProvider.fetchAllEvents();
           
-          Navigator.pushReplacement(
-            context,
+          Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
-              builder: (context) => const MaterialApp(
-                home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
+              builder: (context) => const Scaffold(
+                appBar: GoldAppBar(),
+                body: RenderedPage(),
               ),
             ),
+            (route) => false,
           );
         }
       }

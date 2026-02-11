@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/calevent.dart';
-import 'package:ccce_application/common/constants/app_constants.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ccce_application/services/error_logger.dart';
 import 'dart:async';
@@ -72,11 +71,6 @@ class EventProvider extends ChangeNotifier {
 
   Future<void> fetchAllEvents() async {
     try {
-      // Retry logic for auth token propagation (handles fresh sign-in edge case)
-      int retries = 0;
-      const maxRetries = 3;
-      Exception? lastError;
-
       final db = FirebaseFirestore.instance;
       Query query = db.collection('events');
 
@@ -94,7 +88,6 @@ class EventProvider extends ChangeNotifier {
             _allEvents.clear();
 
             for (final doc in cacheSnapshot.docs) {
-              final data = doc.data() as Map<String, dynamic>;
               try {
                 final event = CalEvent.fromSnapshot(doc);
                 _allEvents.add(event);
@@ -204,16 +197,6 @@ class EventProvider extends ChangeNotifier {
       ErrorLogger.logError('EventProvider', 'Error fetching single event',
           error: e);
     }
-  }
-
-  /// Convert Firestore types to DateTime
-  DateTime? _toDate(dynamic v) {
-    if (v == null) return null;
-    if (v is Timestamp) return v.toDate();
-    if (v is DateTime) return v;
-    if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
-    if (v is String) return DateTime.tryParse(v);
-    return null;
   }
 
   /// Start real-time listening to events collection for instant updates

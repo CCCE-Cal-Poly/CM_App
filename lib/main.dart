@@ -1,4 +1,5 @@
 import 'package:ccce_application/common/features/sign_in.dart';
+import 'package:ccce_application/common/features/verification_screen.dart';
 import 'package:ccce_application/common/providers/company_provider.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
@@ -151,12 +152,26 @@ class MyApp extends StatelessWidget {
                 home: SignIn(),
               );
             }
+
+            final user = snapshot.data!;
+
+            // CRITICAL: Enforce email verification for all users.
+            // If the user is signed in but their email is not verified,
+            // block access to the app and show the verification screen.
+            if (!user.emailVerified) {
+              return MaterialApp(
+                debugShowCheckedModeBanner: false,
+                navigatorObservers: [_observer],
+                home: const EmailVerificationScreen(),
+              );
+            }
+
             WidgetsBinding.instance.addPostFrameCallback((_) {
               Provider.of<UserProvider>(context, listen: false)
-                  .loadUserProfile(snapshot.data!.uid);
+                  .loadUserProfile(user.uid);
               Provider.of<ClubProvider>(context, listen: false).loadClubs();
               // Initialize notification service for this signed-in user
-              NotificationService.initForUid(snapshot.data!.uid);
+              NotificationService.initForUid(user.uid);
             });
 
             return Consumer2<EventProvider, CompanyProvider>(

@@ -336,12 +336,8 @@ class _SignUpState extends State<SignUp> {
       }
       await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
-      UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      String? userID = userCredential.user?.uid;
+      User? user = FirebaseAuth.instance.currentUser;
+      String? userID = user?.uid;
       if (userID == null) {
         setState(() {
           errorMsg = AppConstants.errorFailedCreateUser;
@@ -377,18 +373,23 @@ class _SignUpState extends State<SignUp> {
           .doc(userID)
           .set(userData);
 
-      // If sign-up is successful, navigate to the new page
-      if (userCredential.user != null) {
+      // Send verification email and navigate to verification screen.
+      // Even if the StreamBuilder in main.dart catches the auth state change
+      // and renders the verification screen, this explicit navigation ensures
+      // the user sees it immediately.
+      if (user != null) {
         setState(() {
           errorMsg = "";
         });
 
-        await userCredential.user!.sendEmailVerification();
+        await user.sendEmailVerification();
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const EmailVerificationScreen()),
-        );
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const EmailVerificationScreen()),
+          );
+        }
       }
     } catch (e) {
       String errorMessage = AppConstants.errorUnexpected;
