@@ -27,6 +27,12 @@ exports.onUserDeleted = user().onDelete(async (userRecord) => {
     return;
   }
 
+  // Create deletion marker FIRST
+  await db.collection("deletedAccounts").doc(uid).set({
+    deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+
   console.log(`onUserDeleted: Cleaning up data for deleted user: ${uid}`);
   const db = admin.firestore();
 
@@ -124,6 +130,7 @@ exports.onUserDeleted = user().onDelete(async (userRecord) => {
     // Don't throw - allow the deletion to proceed even if cleanup fails
   }
 });
+
 
 exports.setUserRole = onCall(async (request) => {
   if (!request.auth) {
