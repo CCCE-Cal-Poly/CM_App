@@ -4,7 +4,8 @@ import 'package:ccce_application/common/features/admin_control_panel.dart';
 import 'package:ccce_application/common/providers/user_provider.dart';
 import 'package:ccce_application/common/features/club_event_request_screen.dart';
 import 'package:ccce_application/common/features/my_club_events_screen.dart';
-import 'package:ccce_application/common/collections/user_data.dart' show UserRole;
+import 'package:ccce_application/common/collections/user_data.dart'
+    show UserRole;
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/features/faculty_directory.dart';
 import 'package:ccce_application/common/features/profile_screen.dart';
@@ -12,7 +13,6 @@ import 'package:ccce_application/common/features/member_directory.dart';
 import 'package:ccce_application/common/features/info_sessions_screen.dart';
 import 'package:ccce_application/common/features/club_directory.dart';
 import 'package:ccce_application/common/features/home_screen.dart';
-import 'package:ccce_application/common/widgets/debug_outline.dart';
 import 'package:provider/provider.dart';
 
 class RenderedPage extends StatefulWidget {
@@ -58,7 +58,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
 
   ListTile createListItem(String title, int index) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final fontSize = (screenHeight * 0.028).clamp(18.0, 24.0) as double;
+    final fontSize = (screenHeight * 0.028).clamp(18.0, 24.0);
     return ListTile(
         tileColor: lighterTanColor,
         dense: true,
@@ -77,20 +77,20 @@ class _MyRenderedPageState extends State<RenderedPage> {
 
   @override
   Widget build(BuildContext context) {
-  final userProvider = Provider.of<UserProvider>(context);
-  final user = userProvider.user;
-  final isAdmin = user?.role == UserRole.admin;
-  final isClubAdmin = user?.role == UserRole.clubAdmin;
-  
-  // If user data hasn't loaded yet, show loading state
-  if (user == null) {
-    return Scaffold(
-      key: _scaffoldKey,
-      body: const Center(child: CircularProgressIndicator()),
-      backgroundColor: tanColor,
-    );
-  }
-  
+    final userProvider = Provider.of<UserProvider>(context);
+    final user = userProvider.user;
+    final isAdmin = user?.role == UserRole.admin;
+    final isClubAdmin = user?.role == UserRole.clubAdmin;
+
+    // If user data hasn't loaded yet, show loading state
+    if (user == null) {
+      return Scaffold(
+        key: _scaffoldKey,
+        body: const Center(child: CircularProgressIndicator()),
+        backgroundColor: tanColor,
+      );
+    }
+
     if (_pages[_selectedIndex] == null) {
       _pages[_selectedIndex] = _pageBuilders[_selectedIndex]();
     }
@@ -115,43 +115,44 @@ class _MyRenderedPageState extends State<RenderedPage> {
       endDrawer: SizedBox(
         width: MediaQuery.of(context).size.width,
         child: Drawer(
-            backgroundColor: lighterTanColor,
-            child: SafeArea(
-              child: ListView(
-                padding: const EdgeInsets.only(top: 20.0, right: 20.0),
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(0),
-                        child: IconButton(
-                          iconSize: (MediaQuery.of(context).size.height * 0.032)
-                              .clamp(20.0, 28.0)
-                              .toDouble(),
-                          icon: const Icon(
-                            Icons.menu,
-                            color: standardGreen,
-                          ),
-                          onPressed: () => Navigator.pop(context),
+          backgroundColor: lighterTanColor,
+          child: SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.only(top: 20.0, right: 20.0),
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(0),
+                      child: IconButton(
+                        iconSize: (MediaQuery.of(context).size.height * 0.032)
+                            .clamp(20.0, 28.0)
+                            .toDouble(),
+                        icon: const Icon(
+                          Icons.menu,
+                          color: standardGreen,
                         ),
+                        onPressed: () => Navigator.pop(context),
                       ),
-                    ],
-                  ),
-                  createListItem("Home", 0),
-                  createListItem("Member Directory", 1),
-                  createListItem("Club Directory", 2),
-                  createListItem("Faculty Directory", 3),
-                  createListItem("Info Sessions", 4),
-                  // createListItem("Job Board", 5),
-                  createListItem("Profile", 5),
-                  if (isAdmin) createListItem("Admin Control Panel", 6),
-                  if (isClubAdmin || isAdmin) createListItem("Request Club Event", 7),
-                  if (isClubAdmin || isAdmin) createListItem("My Club Events", 8),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+                createListItem("Home", 0),
+                createListItem("Member Directory", 1),
+                createListItem("Club Directory", 2),
+                createListItem("Faculty Directory", 3),
+                createListItem("Info Sessions", 4),
+                // createListItem("Job Board", 5),
+                createListItem("Profile", 5),
+                if (isAdmin) createListItem("Admin Control Panel", 6),
+                if (isClubAdmin || isAdmin)
+                  createListItem("Request Club Event", 7),
+                if (isClubAdmin || isAdmin) createListItem("My Club Events", 8),
+              ],
             ),
           ),
+        ),
       ),
     );
   }

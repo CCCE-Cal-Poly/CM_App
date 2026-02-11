@@ -44,7 +44,8 @@ Future<void> _requestNotificationPermissions() async {
   } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
     ErrorLogger.logInfo('Notifications', 'User granted provisional permission');
   } else {
-    ErrorLogger.logWarning('Notifications', 'User declined or has not granted permission');
+    ErrorLogger.logWarning(
+        'Notifications', 'User declined or has not granted permission');
   }
 }
 
@@ -77,7 +78,8 @@ Future<void> main() async {
         : const AppleAppAttestProvider(),
   );
 
-  FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
+  FirebaseFirestore.instance.settings =
+      const Settings(persistenceEnabled: true);
   await FirebaseAnalytics.instance.logAppOpen();
 
   FirebaseMessaging.onBackgroundMessage(
@@ -134,9 +136,7 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             navigatorObservers: [_observer],
-            home: Scaffold(
-              appBar: GoldAppBar(),
-              body: OnboardingScreen()), 
+            home: Scaffold(appBar: GoldAppBar(), body: OnboardingScreen()),
           );
         }
         return StreamBuilder<User?>(
@@ -155,9 +155,6 @@ class MyApp extends StatelessWidget {
 
             final user = snapshot.data!;
 
-            // CRITICAL: Enforce email verification for all users.
-            // If the user is signed in but their email is not verified,
-            // block access to the app and show the verification screen.
             if (!user.emailVerified) {
               return MaterialApp(
                 debugShowCheckedModeBanner: false,
@@ -187,13 +184,15 @@ class MyApp extends StatelessWidget {
                     ),
                   );
                 }
-                
-                if (companyProvider.isLoaded && eventProvider.needsLogoLinking) {
+
+                if (companyProvider.isLoaded &&
+                    eventProvider.needsLogoLinking) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    eventProvider.linkCompanyLogos(companyProvider.allCompanies);
+                    eventProvider
+                        .linkCompanyLogos(companyProvider.allCompanies);
                   });
                 }
-                
+
                 return MaterialApp(
                   debugShowCheckedModeBanner: false,
                   navigatorObservers: [_observer],
