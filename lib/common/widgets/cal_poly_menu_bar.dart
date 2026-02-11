@@ -7,7 +7,7 @@ class CalPolyMenuBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final barHeight = (screenHeight * 0.06).clamp(36.0, 52.0) as double;
+    final barHeight = (screenHeight * 0.06).clamp(36.0, 52.0);
 
     return SizedBox(
       height: barHeight,

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
@@ -14,11 +13,11 @@ class ImageService {
       final fileName = path.basename(imageFile.path);
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final storagePath = '$folder/$timestamp\_$fileName';
-      
+
       final ref = _storage.ref().child(storagePath);
       final uploadTask = ref.putFile(imageFile);
       final snapshot = await uploadTask.whenComplete(() {});
-      
+
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
       ErrorLogger.logError('ImageService', 'Error uploading image', error: e);
@@ -30,7 +29,7 @@ class ImageService {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: fromCamera ? ImageSource.camera : ImageSource.gallery,
-        maxWidth: 1024,  // Reasonable max width
+        maxWidth: 1024, // Reasonable max width
         maxHeight: 1024, // Reasonable max height
         imageQuality: 85, // Good quality but smaller file size
       );
@@ -61,7 +60,8 @@ class ImageService {
         final ref = _storage.refFromURL(oldImageUrl);
         await ref.delete();
       } catch (e) {
-        ErrorLogger.logError('ImageService', 'Error deleting old image', error: e);
+        ErrorLogger.logError('ImageService', 'Error deleting old image',
+            error: e);
       }
     }
 

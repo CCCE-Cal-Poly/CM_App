@@ -293,8 +293,6 @@ class CalendarScreenState extends State<HomeScreen> {
 
     // Sort events by start time
     evs.sort((a, b) => a.startTime.compareTo(b.startTime));
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
     for (var ev in evs) {
       eventContainers.add(_buildEventTile(ev));
     }
@@ -908,7 +906,6 @@ class CalendarScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
     Widget calWidget = buildCalendar(context);
     Widget eventDisplayWidget = buildEventDisplay(context);
     Widget announcementDisplayWidget = buildAnnouncementDisplay(context);

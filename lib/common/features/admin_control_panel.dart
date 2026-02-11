@@ -11,16 +11,18 @@ import 'package:provider/provider.dart';
 class AdminPanelScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   const AdminPanelScreen({super.key, required this.scaffoldKey});
-  
+
   @override
   AdminPanelScreenState createState() => AdminPanelScreenState();
 }
 
 class AdminPanelScreenState extends State<AdminPanelScreen> {
   void _showChangeUserRoleDialog() async {
-    final usersSnapshot = await FirebaseFirestore.instance.collection('users').get();
+    final usersSnapshot =
+        await FirebaseFirestore.instance.collection('users').get();
     final users = usersSnapshot.docs;
-    final clubsSnapshot = await FirebaseFirestore.instance.collection('clubs').get();
+    final clubsSnapshot =
+        await FirebaseFirestore.instance.collection('clubs').get();
     final clubs = clubsSnapshot.docs;
 
     final outerContext = context;
@@ -30,11 +32,12 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
       builder: (dialogContext) {
         String? selectedUserId;
         String? selectedRole;
-        final Set<String> selectedClubIds = {}; 
+        final Set<String> selectedClubIds = {};
 
         return StatefulBuilder(builder: (context, setState) {
           return AlertDialog(
-            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+            shape:
+                const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
             title: const Text("Change User Role"),
             content: SingleChildScrollView(
               child: Column(
@@ -46,7 +49,8 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                       final user = doc.data();
                       return DropdownMenuItem(
                         value: doc.id,
-                        child: Text("${user['firstName'] ?? ''} ${user['lastName'] ?? ''}"),
+                        child: Text(
+                            "${user['firstName'] ?? ''} ${user['lastName'] ?? ''}"),
                       );
                     }).toList(),
                     onChanged: (value) => selectedUserId = value,
@@ -54,17 +58,24 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
                     hint: const Text("Select Role"),
-                    items: ['Student', 'Faculty', 'Club Admin', 'Admin', 'Recruiter']
-                        .map((role) => DropdownMenuItem(value: role, child: Text(role)))
+                    items: [
+                      'Student',
+                      'Faculty',
+                      'Club Admin',
+                      'Admin',
+                      'Recruiter'
+                    ]
+                        .map((role) =>
+                            DropdownMenuItem(value: role, child: Text(role)))
                         .toList(),
                     onChanged: (value) => setState(() => selectedRole = value),
                   ),
-
                   if ((selectedRole ?? '').toLowerCase() == 'club admin') ...[
                     const SizedBox(height: 12),
                     const Align(
                       alignment: Alignment.centerLeft,
-                      child: Text('Assign Clubs', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: Text('Assign Clubs',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                     const SizedBox(height: 8),
                     SizedBox(
@@ -84,8 +95,10 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                             value: checked,
                             onChanged: (v) {
                               setState(() {
-                                if (v == true) selectedClubIds.add(clubId);
-                                else selectedClubIds.remove(clubId);
+                                if (v == true)
+                                  selectedClubIds.add(clubId);
+                                else
+                                  selectedClubIds.remove(clubId);
                               });
                             },
                           );
@@ -104,18 +117,22 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
               ElevatedButton(
                 onPressed: () async {
                   if (selectedUserId != null && selectedRole != null) {
-                    final clubsToAssign = (selectedRole!.toLowerCase() == 'club admin') ? selectedClubIds.toList() : null;
+                    final clubsToAssign =
+                        (selectedRole!.toLowerCase() == 'club admin')
+                            ? selectedClubIds.toList()
+                            : null;
                     await FirebaseFunctions.instance
-                      .httpsCallable('setUserRole')
-                      .call(<String, dynamic>{
-                        'uid': selectedUserId!,
-                        'role': selectedRole!.toLowerCase(),
-                        if (clubsToAssign != null) 'clubs': clubsToAssign,
-                      });
+                        .httpsCallable('setUserRole')
+                        .call(<String, dynamic>{
+                      'uid': selectedUserId!,
+                      'role': selectedRole!.toLowerCase(),
+                      if (clubsToAssign != null) 'clubs': clubsToAssign,
+                    });
                     Navigator.of(dialogContext).pop();
                     if (!mounted) return;
                     ScaffoldMessenger.of(outerContext).showSnackBar(
-                      SnackBar(content: Text("User role updated to $selectedRole")),
+                      SnackBar(
+                          content: Text("User role updated to $selectedRole")),
                     );
                   }
                 },
@@ -142,7 +159,10 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
           content: SizedBox(
             width: double.maxFinite,
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('clubAdminRequests').where('status', isEqualTo: 'pending').snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection('clubAdminRequests')
+                  .where('status', isEqualTo: 'pending')
+                  .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -158,9 +178,11 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                     final doc = requests[index];
                     final request = doc.data() as Map<String, dynamic>;
                     final uid = request['uid']?.toString() ?? '';
-                    final requestedAt = request['requestedAt'] is Timestamp ? (request['requestedAt'] as Timestamp).toDate() : null;
+                    final requestedAt = request['requestedAt'] is Timestamp
+                        ? (request['requestedAt'] as Timestamp).toDate()
+                        : null;
                     final clubsField = request['clubs'];
-                    final List<Map<String,String>> clubs = [];
+                    final List<Map<String, String>> clubs = [];
                     if (clubsField is List) {
                       for (final c in clubsField) {
                         if (c == null) continue;
@@ -169,7 +191,8 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                         } else if (c is Map) {
                           final idv = c['id'] ?? c['clubId'] ?? c['club'] ?? '';
                           final namev = c['name'] ?? c['clubName'] ?? idv;
-                          clubs.add({'id': idv.toString(), 'name': namev.toString()});
+                          clubs.add(
+                              {'id': idv.toString(), 'name': namev.toString()});
                         }
                       }
                     }
@@ -180,85 +203,118 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            AutoSizeText('${request['name'] ?? ''} - ${request['email'] ?? ''}'),
-                            if (requestedAt != null) Text('Requested at: $requestedAt'),
+                            AutoSizeText(
+                                '${request['name'] ?? ''} - ${request['email'] ?? ''}'),
+                            if (requestedAt != null)
+                              Text('Requested at: $requestedAt'),
                             const SizedBox(height: 4),
                             Wrap(
                               spacing: 2,
                               children: clubs.asMap().entries.map((entry) {
                                 final idx = entry.key;
                                 final c = entry.value;
-                                final name = (c['name'] ?? c['id'] ?? '').toString();
+                                final name =
+                                    (c['name'] ?? c['id'] ?? '').toString();
                                 final hasSeparator = idx < clubs.length - 1;
                                 return Text(
                                   '$name${hasSeparator ? ',' : ''}',
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                  style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500),
                                 );
                               }).toList(),
                             ),
                             const SizedBox(height: 4),
                             Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ElevatedButton(
-                                onPressed: () async {
-                                  try {
-                                    final clubIds = clubs.map((c) => c['id'] ?? '').where((s) => s.isNotEmpty).toList();
-                                    if (clubIds.isEmpty) {
-                                      if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext).showSnackBar(const SnackBar(content: Text('No valid clubs in request')));
-                                      return;
-                                    }
-                                    await FirebaseFunctions.instance
-                                        .httpsCallable('setUserRole')
-                                        .call(<String, dynamic>{
-                                          'uid': uid,
-                                          'role': 'club admin',
-                                          'clubs': clubIds,
-                                        });
-                                    
-                                    await FirebaseFirestore.instance
-                                        .collection('clubAdminRequests')
-                                        .doc(doc.id)
-                                        .update({
-                                      'status': 'approved',
-                                      'reviewedBy':
-                                          FirebaseAuth.instance.currentUser?.uid,
-                                      'reviewedAt': FieldValue.serverTimestamp(),
-                                      'approvedAt': FieldValue.serverTimestamp(),
-                                    });
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    try {
+                                      final clubIds = clubs
+                                          .map((c) => c['id'] ?? '')
+                                          .where((s) => s.isNotEmpty)
+                                          .toList();
+                                      if (clubIds.isEmpty) {
+                                        if (!mounted) return;
+                                        ScaffoldMessenger.of(outerContext)
+                                            .showSnackBar(const SnackBar(
+                                                content: Text(
+                                                    'No valid clubs in request')));
+                                        return;
+                                      }
+                                      await FirebaseFunctions.instance
+                                          .httpsCallable('setUserRole')
+                                          .call(<String, dynamic>{
+                                        'uid': uid,
+                                        'role': 'club admin',
+                                        'clubs': clubIds,
+                                      });
 
-                                    if (!mounted) return;
-                                    ScaffoldMessenger.of(outerContext).showSnackBar(const SnackBar(content: Text('Approved')));
-                                  } catch (e) {
-                                    if (!mounted) return;
-                                    ScaffoldMessenger.of(outerContext).showSnackBar(SnackBar(content: Text('Approve failed: $e')));
-                                  }
-                                },
-                                child: const Text('Approve'),
-                              ),
-                              const SizedBox(width: 8),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, ),
-                                onPressed: () async {
-                                  try {
-                                    final adminUser = FirebaseAuth.instance.currentUser;
-                                    await FirebaseFirestore.instance.collection('clubAdminRequests').doc(doc.id).update({
-                                      'status': 'denied',
-                                      'reviewedBy': adminUser?.uid ?? null,
-                                      'reviewedAt': FieldValue.serverTimestamp(),
-                                    });
-                                    if (!mounted) return;
-                                    ScaffoldMessenger.of(outerContext).showSnackBar(const SnackBar(content: Text('Denied')));
-                                  } catch (e) {
-                                    if (!mounted) return;
-                                    ScaffoldMessenger.of(outerContext).showSnackBar(SnackBar(content: Text('Deny failed: $e')));
-                                  }
-                                },
-                                child: const Text('Deny', style: TextStyle(color: Colors.white),),
-                              ),
-                            ],
-                          ),
+                                      await FirebaseFirestore.instance
+                                          .collection('clubAdminRequests')
+                                          .doc(doc.id)
+                                          .update({
+                                        'status': 'approved',
+                                        'reviewedBy': FirebaseAuth
+                                            .instance.currentUser?.uid,
+                                        'reviewedAt':
+                                            FieldValue.serverTimestamp(),
+                                        'approvedAt':
+                                            FieldValue.serverTimestamp(),
+                                      });
+
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(outerContext)
+                                          .showSnackBar(const SnackBar(
+                                              content: Text('Approved')));
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(outerContext)
+                                          .showSnackBar(SnackBar(
+                                              content:
+                                                  Text('Approve failed: $e')));
+                                    }
+                                  },
+                                  child: const Text('Approve'),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                  ),
+                                  onPressed: () async {
+                                    try {
+                                      final adminUser =
+                                          FirebaseAuth.instance.currentUser;
+                                      await FirebaseFirestore.instance
+                                          .collection('clubAdminRequests')
+                                          .doc(doc.id)
+                                          .update({
+                                        'status': 'denied',
+                                        'reviewedBy': adminUser?.uid ?? null,
+                                        'reviewedAt':
+                                            FieldValue.serverTimestamp(),
+                                      });
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(outerContext)
+                                          .showSnackBar(const SnackBar(
+                                              content: Text('Denied')));
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(outerContext)
+                                          .showSnackBar(SnackBar(
+                                              content:
+                                                  Text('Deny failed: $e')));
+                                    }
+                                  },
+                                  child: const Text(
+                                    'Deny',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -311,21 +367,23 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                   itemBuilder: (context, index) {
                     final doc = requests[index];
                     final request = doc.data() as Map<String, dynamic>;
-                    final submittedAt = request['submittedAt'] is Timestamp 
-                        ? (request['submittedAt'] as Timestamp).toDate() 
+                    final submittedAt = request['submittedAt'] is Timestamp
+                        ? (request['submittedAt'] as Timestamp).toDate()
                         : null;
-                    final startTime = request['startTime'] is Timestamp 
-                        ? (request['startTime'] as Timestamp).toDate() 
+                    final startTime = request['startTime'] is Timestamp
+                        ? (request['startTime'] as Timestamp).toDate()
                         : null;
-                    final endTime = request['endTime'] is Timestamp 
-                        ? (request['endTime'] as Timestamp).toDate() 
+                    final endTime = request['endTime'] is Timestamp
+                        ? (request['endTime'] as Timestamp).toDate()
                         : null;
-                    final recurrenceEndDate = request['recurrenceEndDate'] is Timestamp 
-                        ? (request['recurrenceEndDate'] as Timestamp).toDate() 
+                    final recurrenceEndDate = request['recurrenceEndDate']
+                            is Timestamp
+                        ? (request['recurrenceEndDate'] as Timestamp).toDate()
                         : null;
 
                     return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
+                      margin: const EdgeInsets.symmetric(
+                          vertical: 6, horizontal: 0),
                       child: Padding(
                         padding: const EdgeInsets.all(12.0),
                         child: Column(
@@ -340,20 +398,29 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text('Club: ${request['clubName'] ?? 'Unknown'}'),
-                            Text('Requested by: ${request['requestedByName'] ?? request['requestedByEmail'] ?? 'Unknown'}'),
-                            if (submittedAt != null) 
-                              Text('Submitted: ${submittedAt.toString().substring(0, 16)}'),
+                            Text(
+                                'Requested by: ${request['requestedByName'] ?? request['requestedByEmail'] ?? 'Unknown'}'),
+                            if (submittedAt != null)
+                              Text(
+                                  'Submitted: ${submittedAt.toString().substring(0, 16)}'),
                             if (startTime != null)
-                              Text('Start: ${startTime.toString().substring(0, 16)}'),
+                              Text(
+                                  'Start: ${startTime.toString().substring(0, 16)}'),
                             if (endTime != null)
-                              Text('End: ${endTime.toString().substring(0, 16)}'),
+                              Text(
+                                  'End: ${endTime.toString().substring(0, 16)}'),
                             if (request['eventLocation'] != null)
                               Text('Location: ${request['eventLocation']}'),
-                            if (request['recurrenceType'] != null && request['recurrenceType'].toString().isNotEmpty)
+                            if (request['recurrenceType'] != null &&
+                                request['recurrenceType'].toString().isNotEmpty)
                               Text('Recurrence: ${request['recurrenceType']}'),
                             if (recurrenceEndDate != null)
-                              Text('Recurs until: ${recurrenceEndDate.toString().substring(0, 16)}'),
-                            if (request['description'] != null && request['description'].toString().isNotEmpty) ...[
+                              Text(
+                                  'Recurs until: ${recurrenceEndDate.toString().substring(0, 16)}'),
+                            if (request['description'] != null &&
+                                request['description']
+                                    .toString()
+                                    .isNotEmpty) ...[
                               const SizedBox(height: 4),
                               Text(
                                 'Description: ${request['description']}',
@@ -369,39 +436,49 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                                   onPressed: () async {
                                     try {
                                       // Check if user is authenticated
-                                      final currentUser = FirebaseAuth.instance.currentUser;
+                                      final currentUser =
+                                          FirebaseAuth.instance.currentUser;
                                       if (currentUser == null) {
                                         if (!mounted) return;
-                                        ScaffoldMessenger.of(outerContext).showSnackBar(
-                                          const SnackBar(content: Text('Not authenticated. Please log in again.'))
-                                        );
+                                        ScaffoldMessenger.of(outerContext)
+                                            .showSnackBar(const SnackBar(
+                                                content: Text(
+                                                    'Not authenticated. Please log in again.')));
                                         return;
                                       }
 
                                       // Get fresh token
                                       await currentUser.getIdToken(true);
-                                      
-                                      final result = await FirebaseFunctions.instance
+
+                                      final result = await FirebaseFunctions
+                                          .instance
                                           .httpsCallable('approveClubEvent')
                                           .call(<String, dynamic>{
-                                            'requestId': doc.id,
-                                          });
-                                      
+                                        'requestId': doc.id,
+                                      });
+
                                       // Add just the new event (cost-efficient)
-                                      if (mounted && result.data['eventId'] != null) {
-                                        final eventProvider = Provider.of<EventProvider>(outerContext, listen: false);
-                                        await eventProvider.addEventById(result.data['eventId']);
+                                      if (mounted &&
+                                          result.data['eventId'] != null) {
+                                        final eventProvider =
+                                            Provider.of<EventProvider>(
+                                                outerContext,
+                                                listen: false);
+                                        await eventProvider.addEventById(
+                                            result.data['eventId']);
                                       }
-                                      
+
                                       if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext).showSnackBar(
-                                        const SnackBar(content: Text('Event approved and added to calendar'))
-                                      );
+                                      ScaffoldMessenger.of(outerContext)
+                                          .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Event approved and added to calendar')));
                                     } catch (e) {
                                       if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext).showSnackBar(
-                                        SnackBar(content: Text('Approve failed: $e'))
-                                      );
+                                      ScaffoldMessenger.of(outerContext)
+                                          .showSnackBar(SnackBar(
+                                              content:
+                                                  Text('Approve failed: $e')));
                                     }
                                   },
                                   child: const Text('Approve'),
@@ -414,32 +491,36 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                                   onPressed: () async {
                                     try {
                                       // Check if user is authenticated
-                                      final currentUser = FirebaseAuth.instance.currentUser;
+                                      final currentUser =
+                                          FirebaseAuth.instance.currentUser;
                                       if (currentUser == null) {
                                         if (!mounted) return;
-                                        ScaffoldMessenger.of(outerContext).showSnackBar(
-                                          const SnackBar(content: Text('Not authenticated. Please log in again.'))
-                                        );
+                                        ScaffoldMessenger.of(outerContext)
+                                            .showSnackBar(const SnackBar(
+                                                content: Text(
+                                                    'Not authenticated. Please log in again.')));
                                         return;
                                       }
 
                                       // Get fresh token
                                       await currentUser.getIdToken(true);
-                                      
+
                                       await FirebaseFunctions.instance
                                           .httpsCallable('denyClubEvent')
                                           .call(<String, dynamic>{
-                                            'requestId': doc.id,
-                                          });
+                                        'requestId': doc.id,
+                                      });
                                       if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext).showSnackBar(
-                                        const SnackBar(content: Text('Event request denied'))
-                                      );
+                                      ScaffoldMessenger.of(outerContext)
+                                          .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Event request denied')));
                                     } catch (e) {
                                       if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext).showSnackBar(
-                                        SnackBar(content: Text('Deny failed: $e'))
-                                      );
+                                      ScaffoldMessenger.of(outerContext)
+                                          .showSnackBar(SnackBar(
+                                              content:
+                                                  Text('Deny failed: $e')));
                                     }
                                   },
                                   child: const Text(
@@ -473,7 +554,7 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
     final titleController = TextEditingController();
     final messageController = TextEditingController();
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    
+
     await showDialog(
       context: context,
       barrierDismissible: false,
@@ -487,7 +568,8 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
               children: [
                 const Text(
                   'This will send a notification to ALL users in the app.',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                  style:
+                      TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -527,48 +609,41 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                 final message = messageController.text.trim();
 
                 if (title.isEmpty || message.isEmpty) {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(content: Text('Title and message are required'))
-                  );
+                  scaffoldMessenger.showSnackBar(const SnackBar(
+                      content: Text('Title and message are required')));
                   return;
                 }
 
                 // Close dialog immediately
                 Navigator.pop(dialogContext);
-                
+
                 // Show loading
-                scaffoldMessenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('Sending broadcast notification...'),
-                    duration: Duration(seconds: 30),
-                  )
-                );
+                scaffoldMessenger.showSnackBar(const SnackBar(
+                  content: Text('Sending broadcast notification...'),
+                  duration: Duration(seconds: 30),
+                ));
 
                 try {
                   await FirebaseFunctions.instance
                       .httpsCallable('sendBroadcastNotification')
                       .call(<String, dynamic>{
-                        'title': title,
-                        'message': message,
-                      });
-                  
+                    'title': title,
+                    'message': message,
+                  });
+
                   if (!mounted) return;
                   scaffoldMessenger.clearSnackBars();
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('Broadcast notification sent successfully!'),
-                      backgroundColor: Colors.green,
-                    )
-                  );
+                  scaffoldMessenger.showSnackBar(const SnackBar(
+                    content: Text('Broadcast notification sent successfully!'),
+                    backgroundColor: Colors.green,
+                  ));
                 } catch (e) {
                   if (!mounted) return;
                   scaffoldMessenger.clearSnackBars();
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      content: Text('Failed to send notification: $e'),
-                      backgroundColor: Colors.red,
-                    )
-                  );
+                  scaffoldMessenger.showSnackBar(SnackBar(
+                    content: Text('Failed to send notification: $e'),
+                    backgroundColor: Colors.red,
+                  ));
                 }
               },
               child: const Text('Send to All Users'),
@@ -577,7 +652,7 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
         );
       },
     );
-    
+
     // Wait for dialog animation to complete before disposing
     await Future.delayed(const Duration(milliseconds: 300));
     titleController.dispose();
@@ -622,7 +697,8 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                         : null;
 
                     return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
+                      margin: const EdgeInsets.symmetric(
+                          vertical: 6, horizontal: 0),
                       child: Padding(
                         padding: const EdgeInsets.all(12.0),
                         child: Column(
@@ -638,7 +714,8 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                             const SizedBox(height: 4),
                             Text('Email: ${request['email'] ?? 'Unknown'}'),
                             if (requestedAt != null)
-                              Text('Requested at: ${requestedAt.toString().substring(0, 16)}'),
+                              Text(
+                                  'Requested at: ${requestedAt.toString().substring(0, 16)}'),
                             const SizedBox(height: 8),
                             Row(
                               mainAxisSize: MainAxisSize.min,
@@ -650,9 +727,9 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                                       await FirebaseFunctions.instance
                                           .httpsCallable('setUserRole')
                                           .call(<String, dynamic>{
-                                            'uid': uid,
-                                            'role': 'faculty',
-                                          });
+                                        'uid': uid,
+                                        'role': 'faculty',
+                                      });
 
                                       // Update the request status to approved
                                       await FirebaseFirestore.instance
@@ -660,20 +737,25 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                                           .doc(doc.id)
                                           .update({
                                         'status': 'approved',
-                                        'reviewedBy': FirebaseAuth.instance.currentUser?.uid,
-                                        'reviewedAt': FieldValue.serverTimestamp(),
-                                        'approvedAt': FieldValue.serverTimestamp(),
+                                        'reviewedBy': FirebaseAuth
+                                            .instance.currentUser?.uid,
+                                        'reviewedAt':
+                                            FieldValue.serverTimestamp(),
+                                        'approvedAt':
+                                            FieldValue.serverTimestamp(),
                                       });
 
                                       if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext).showSnackBar(
-                                        const SnackBar(content: Text('Faculty role approved'))
-                                      );
+                                      ScaffoldMessenger.of(outerContext)
+                                          .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Faculty role approved')));
                                     } catch (e) {
                                       if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext).showSnackBar(
-                                        SnackBar(content: Text('Approve failed: $e'))
-                                      );
+                                      ScaffoldMessenger.of(outerContext)
+                                          .showSnackBar(SnackBar(
+                                              content:
+                                                  Text('Approve failed: $e')));
                                     }
                                   },
                                   child: const Text('Approve'),
@@ -691,19 +773,23 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                                           .doc(doc.id)
                                           .update({
                                         'status': 'denied',
-                                        'reviewedBy': FirebaseAuth.instance.currentUser?.uid,
-                                        'reviewedAt': FieldValue.serverTimestamp(),
+                                        'reviewedBy': FirebaseAuth
+                                            .instance.currentUser?.uid,
+                                        'reviewedAt':
+                                            FieldValue.serverTimestamp(),
                                       });
 
                                       if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext).showSnackBar(
-                                        const SnackBar(content: Text('Faculty role request denied'))
-                                      );
+                                      ScaffoldMessenger.of(outerContext)
+                                          .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'Faculty role request denied')));
                                     } catch (e) {
                                       if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext).showSnackBar(
-                                        SnackBar(content: Text('Deny failed: $e'))
-                                      );
+                                      ScaffoldMessenger.of(outerContext)
+                                          .showSnackBar(SnackBar(
+                                              content:
+                                                  Text('Deny failed: $e')));
                                     }
                                   },
                                   child: const Text(
@@ -733,231 +819,81 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
     );
   }
 
-  Future<void> _rebuildEventNotifications() async {
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const AlertDialog(
-        content: Row(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 20),
-            Text('Rebuilding notifications...'),
-          ],
-        ),
-      ),
-    );
-
-    try {
-      final callable = FirebaseFunctions.instance.httpsCallable('rebuildEventNotifications');
-      final result = await callable.call();
-      
-      if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
-      
-      final data = result.data as Map<String, dynamic>;
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-          title: const Text('Rebuild Complete'),
-          content: Text(
-            'Deleted: ${data['deleted']} notifications\n'
-            'Created: ${data['created']} notifications\n'
-            'Skipped: ${data['skipped']} events\n\n'
-            '${data['message']}',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error rebuilding notifications: $e')),
-      );
-    }
-  }
-
-  Future<void> _analyzeEvents() async {
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const AlertDialog(
-        content: Row(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 20),
-            Text('Analyzing events...'),
-          ],
-        ),
-      ),
-    );
-
-    try {
-      final callable = FirebaseFunctions.instance.httpsCallable('analyzeEvents');
-      final result = await callable.call();
-      
-      if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
-      
-      final data = Map<String, dynamic>.from(result.data as Map);
-      final eventsList = (data['eventsList'] as List<dynamic>?) ?? [];
-      
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-          title: const Text('Events Analysis'),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: 500,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Total Events: ${data['totalEvents']}\n'
-                    '✅ Future Events (will get notification): ${data['futureEvents']}\n'
-                    '⏰ Within 1 Hour (too soon): ${data['withinOneHour']}\n'
-                    '📅 Past Events: ${data['pastEvents']}\n'
-                    '❌ Invalid StartTime: ${data['invalidStartTime']}\n',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const Divider(thickness: 2),
-                  const SizedBox(height: 10),
-                  const Text('Event Details:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  ...eventsList.map((event) {
-                    final e = Map<String, dynamic>.from(event as Map);
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              e['name'] ?? 'Unnamed',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            Text('Status: ${e['status']}'),
-                            Text('Start: ${e['startTime']}', style: const TextStyle(fontSize: 12)),
-                            Text('ID: ${e['id']}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error analyzing events: $e')),
-      );
-    }
-  }
-
   @override
-Widget build(BuildContext context) {
-  var screenHeight = MediaQuery.of(context).size.height;
-  return Scaffold(
-    backgroundColor: AppColors.calPolyGreen,
-    body: Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        children: [
-          CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
-          SizedBox(height: screenHeight * .05),
-          ElevatedButton(
-            onPressed: _showChangeUserRoleDialog,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.darkGold, 
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
+  Widget build(BuildContext context) {
+    var screenHeight = MediaQuery.of(context).size.height;
+    return Scaffold(
+      backgroundColor: AppColors.calPolyGreen,
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: [
+            CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
+            SizedBox(height: screenHeight * .05),
+            ElevatedButton(
+              onPressed: _showChangeUserRoleDialog,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.darkGold,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
+                ),
               ),
+              child: const Text("Change User Role"),
             ),
-            child: const Text("Change User Role"),
-          ),
-          const SizedBox(height: 20),
-
-          ElevatedButton(
-            onPressed: _showAdminRequestsDialog,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.darkGold,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _showAdminRequestsDialog,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.darkGold,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
+                ),
               ),
+              child: const Text("Pending Club Admin Requests"),
             ),
-            child: const Text("Pending Club Admin Requests"),
-          ),
-          const SizedBox(height: 20),
-
-          ElevatedButton(
-            onPressed: _showClubEventRequestsDialog,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.darkGold,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _showClubEventRequestsDialog,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.darkGold,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
+                ),
               ),
+              child: const Text("Pending Club Event Requests"),
             ),
-            child: const Text("Pending Club Event Requests"),
-          ),
-          const SizedBox(height: 20),
-
-          ElevatedButton(
-            onPressed: _showFacultyRequestsDialog,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.darkGold,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _showFacultyRequestsDialog,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.darkGold,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
+                ),
               ),
+              child: const Text("Pending Faculty Role Requests"),
             ),
-            child: const Text("Pending Faculty Role Requests"),
-          ),
-          const SizedBox(height: 20),
-
-          ElevatedButton(
-            onPressed: _showBroadcastNotificationDialog,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _showBroadcastNotificationDialog,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
+                ),
               ),
+              child: const Text("Send Broadcast Notification"),
             ),
-            child: const Text("Send Broadcast Notification"),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class AdminControlPanelRequests extends StatelessWidget {
@@ -965,21 +901,27 @@ class AdminControlPanelRequests extends StatelessWidget {
 
   Future<void> _approve(BuildContext context, String requestId) async {
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('approveClubEvent');
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('approveClubEvent');
       await callable.call(<String, dynamic>{'requestId': requestId});
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Approved')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Approved')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Approve failed: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Approve failed: $e')));
     }
   }
 
   Future<void> _deny(BuildContext context, String requestId) async {
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('denyClubEvent');
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('denyClubEvent');
       await callable.call(<String, dynamic>{'requestId': requestId});
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Denied')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Denied')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Deny failed: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Deny failed: $e')));
     }
   }
 
@@ -994,9 +936,11 @@ class AdminControlPanelRequests extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: stream,
       builder: (context, snap) {
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+        if (!snap.hasData)
+          return const Center(child: CircularProgressIndicator());
         final docs = snap.data!.docs;
-        if (docs.isEmpty) return const Center(child: Text('No pending requests'));
+        if (docs.isEmpty)
+          return const Center(child: Text('No pending requests'));
         return ListView.builder(
           shrinkWrap: true,
           itemCount: docs.length,
@@ -1006,8 +950,10 @@ class AdminControlPanelRequests extends StatelessWidget {
             return Card(
               margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
               child: ListTile(
-                title: Text('${data['eventName'] ?? 'Unnamed event'} — ${data['clubName'] ?? ''}'),
-                subtitle: Text('Requested by ${data['requestedByName'] ?? data['requestedByEmail'] ?? ''}\n${data['description'] ?? ''}'),
+                title: Text(
+                    '${data['eventName'] ?? 'Unnamed event'} — ${data['clubName'] ?? ''}'),
+                subtitle: Text(
+                    'Requested by ${data['requestedByName'] ?? data['requestedByEmail'] ?? ''}\n${data['description'] ?? ''}'),
                 isThreeLine: true,
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1018,9 +964,13 @@ class AdminControlPanelRequests extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      style:
+                          ElevatedButton.styleFrom(backgroundColor: Colors.red),
                       onPressed: () => _deny(context, id),
-                      child: const Text('Deny', style: TextStyle(color: Colors.white),),
+                      child: const Text(
+                        'Deny',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ],
                 ),

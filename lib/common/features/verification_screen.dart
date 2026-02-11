@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:ccce_application/common/features/sign_up.dart';
 import 'package:ccce_application/common/providers/event_provider.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
@@ -21,25 +20,50 @@ class EmailVerificationScreen extends StatefulWidget {
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   bool _isResending = false;
   Timer? _checkTimer;
+  int _resendCooldown = 0;
+  Timer? _cooldownTimer;
 
   @override
   void initState() {
     super.initState();
 
-    // Start polling for verification
+    // Immediately check if already verified (handles stale cache on app restart)
+    _checkVerificationNow();
+
+    // Then start polling every 3 seconds
     _checkTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
-      await FirebaseAuth.instance.currentUser?.reload();
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null && user.emailVerified) {
-        _checkTimer?.cancel();
-        _onVerified();
-      }
+      await _checkVerificationNow();
     });
+  }
+
+  Future<void> _checkVerificationNow() async {
+    try {
+      await FirebaseAuth.instance.currentUser?.reload();
+    } catch (e) {
+      // reload() can throw if user was deleted or token expired.
+      // If the user no longer exists, sign them out gracefully.
+      if (e is FirebaseAuthException &&
+          (e.code == 'user-not-found' || e.code == 'user-disabled')) {
+        _checkTimer?.cancel();
+        _cooldownTimer?.cancel();
+        await FirebaseAuth.instance.signOut();
+        return;
+      }
+      // For network errors, just skip this cycle — the timer will retry.
+      return;
+    }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && user.emailVerified) {
+      _checkTimer?.cancel();
+      _cooldownTimer?.cancel();
+      _onVerified();
+    }
   }
 
   @override
   void dispose() {
     _checkTimer?.cancel();
+    _cooldownTimer?.cancel();
     super.dispose();
   }
 
@@ -48,25 +72,32 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('TOS', true);
 
-    // Optional: fetch events after verification
-    final eventProvider = Provider.of<EventProvider>(context, listen: false);
-    await eventProvider.fetchAllEvents();
-
-    // Go to the main app
+    // Fetch events after verification
     if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const MaterialApp(
-          home: Scaffold(appBar: GoldAppBar(), body: RenderedPage()),
-        )),
+      final eventProvider = Provider.of<EventProvider>(context, listen: false);
+      await eventProvider.fetchAllEvents();
+    }
+
+    // Navigate to the main app without creating a nested MaterialApp.
+    // pushAndRemoveUntil clears the entire navigation stack so there is
+    // no way for the user to navigate back to the verification screen.
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => const Scaffold(
+            appBar: GoldAppBar(),
+            body: RenderedPage(),
+          ),
+        ),
+        (route) => false,
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false, // Prevent back button
+    return PopScope(
+      canPop: false, // Prevent back button — user must verify or sign out
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
@@ -88,7 +119,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Resend email
+              // Resend email with cooldown to prevent spam
               SizedBox(
                 width: 200,
                 child: ElevatedButton(
@@ -98,7 +129,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     shape: const RoundedRectangleBorder(
                         borderRadius: BorderRadius.zero),
                   ),
-                  onPressed: _isResending
+                  onPressed: (_isResending || _resendCooldown > 0)
                       ? null
                       : () async {
                           setState(() => _isResending = true);
@@ -112,6 +143,26 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                                   backgroundColor: Colors.green,
                                 ),
                               );
+                              // Start a 60-second cooldown to prevent abuse
+                              setState(() {
+                                _resendCooldown = 60;
+                              });
+                              _cooldownTimer?.cancel();
+                              _cooldownTimer = Timer.periodic(
+                                const Duration(seconds: 1),
+                                (timer) {
+                                  if (!mounted) {
+                                    timer.cancel();
+                                    return;
+                                  }
+                                  setState(() {
+                                    _resendCooldown--;
+                                    if (_resendCooldown <= 0) {
+                                      timer.cancel();
+                                    }
+                                  });
+                                },
+                              );
                             }
                           } catch (e) {
                             if (mounted) {
@@ -123,7 +174,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                               );
                             }
                           }
-                          setState(() => _isResending = false);
+                          if (mounted) {
+                            setState(() => _isResending = false);
+                          }
                         },
                   child: _isResending
                       ? const SizedBox(
@@ -134,14 +187,16 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text("Resend Email"),
+                      : Text(_resendCooldown > 0
+                          ? "Resend (${_resendCooldown}s)"
+                          : "Resend Email"),
                 ),
               ),
               const SizedBox(height: 16),
 
               TextButton(
                 onPressed: () async {
-                  // Sign out and go back to sign up
+                  // Clean up FCM token before signing out
                   final user = FirebaseAuth.instance.currentUser;
                   if (user != null) {
                     try {
@@ -152,12 +207,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     } catch (_) {}
                   }
                   await FirebaseAuth.instance.signOut();
-                  if (mounted) {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SignUp()),
-                    );
-                  }
+                  // After sign-out, authStateChanges() fires and main.dart's
+                  // StreamBuilder will show the SignIn screen automatically.
+                  // No manual navigation needed.
                 },
                 child: const Text(
                   "Use a different email",
