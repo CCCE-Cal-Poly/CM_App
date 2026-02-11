@@ -20,13 +20,13 @@ class GoldAppBar extends StatelessWidget implements PreferredSizeWidget {
   double _scaledHeightFromWindow() {
     final view = WidgetsBinding.instance.platformDispatcher.views.first;
     final screenHeight = view.physicalSize.height / view.devicePixelRatio;
-    final proportional = (screenHeight * 0.018).clamp(14.0, 24.0) as double;
+    final proportional = (screenHeight * 0.018).clamp(14.0, 24.0);
     return height == kToolbarHeight ? proportional : height;
   }
 
   double _scaledHeightFromContext(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final proportional = (screenHeight * 0.018).clamp(14.0, 24.0) as double;
+    final proportional = (screenHeight * 0.018).clamp(14.0, 24.0);
     return height == kToolbarHeight ? proportional : height;
   }
 

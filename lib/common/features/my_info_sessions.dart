@@ -47,31 +47,6 @@ Widget buildInfoSessionList(context) {
         ),
       );
 
-  Widget dateHeader(DateTime date) => Padding(
-        padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
-        child: Text(
-          DateFormat('EEEE, MMMM d').format(date),
-          style: const TextStyle(
-            color: AppColors.tanText,
-            fontFamily: "SansSerifPro",
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      );
-
-  Map<String, List<CalEvent>> groupInfoSessions(List<CalEvent> infoSessions) {
-    Map<String, List<CalEvent>> grouped = {};
-    for (CalEvent event in infoSessions) {
-      String dateKey = DateFormat('yyyy-MM-dd').format(event.startTime);
-      if (!grouped.containsKey(dateKey)) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey]!.add(event);
-    }
-    return grouped;
-  }
-
   Widget infoSessionRow(CalEvent event) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
         child: SizedBox(

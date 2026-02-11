@@ -39,37 +39,37 @@ class _MemberDirectoryState extends State<MemberDirectory> {
   Widget build(BuildContext context) {
     return Consumer<CompanyProvider>(
         builder: (context, companyProvider, child) {
-      OutlinedButton createButtonSorter(
-          String txt, VoidCallback sortingFunction) {
-        bool isActive = buttonStates[txt] ?? false;
-        return OutlinedButton(
-          onPressed: () {
-            setState(() {
-              sortingFunction(); // Call your sorting function
-              buttonStates[txt] = !isActive; // Flip the boolean
-            });
-          },
-          style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero, // Rounded corners
-              ),
-              textStyle: const TextStyle(fontSize: 14),
-              side: const BorderSide(
-                  color: Colors.black, width: 1), // Border color and width
-              minimumSize: const Size(75, 25), // Minimum size constraint
-              backgroundColor: !isActive
-                  ? Colors.transparent
-                  : AppColors.welcomeLightYellow),
-          child: Text(txt,
-              style: TextStyle(
-                  fontSize: 14,
-                  color: !isActive
-                      ? AppColors.welcomeLightYellow
-                      : AppColors.calPolyGreen,
-                  fontWeight: FontWeight.w600)),
-        );
-      }
+      // OutlinedButton createButtonSorter(
+      //     String txt, VoidCallback sortingFunction) {
+      //   bool isActive = buttonStates[txt] ?? false;
+      //   return OutlinedButton(
+      //     onPressed: () {
+      //       setState(() {
+      //         sortingFunction(); // Call your sorting function
+      //         buttonStates[txt] = !isActive; // Flip the boolean
+      //       });
+      //     },
+      //     style: OutlinedButton.styleFrom(
+      //         padding: const EdgeInsets.symmetric(horizontal: 10),
+      //         shape: const RoundedRectangleBorder(
+      //           borderRadius: BorderRadius.zero, // Rounded corners
+      //         ),
+      //         textStyle: const TextStyle(fontSize: 14),
+      //         side: const BorderSide(
+      //             color: Colors.black, width: 1), // Border color and width
+      //         minimumSize: const Size(75, 25), // Minimum size constraint
+      //         backgroundColor: !isActive
+      //             ? Colors.transparent
+      //             : AppColors.welcomeLightYellow),
+      //     child: Text(txt,
+      //         style: TextStyle(
+      //             fontSize: 14,
+      //             color: !isActive
+      //                 ? AppColors.welcomeLightYellow
+      //                 : AppColors.calPolyGreen,
+      //             fontWeight: FontWeight.w600)),
+      //   );
+      // }
 
       // TODO: Enable button sorters when filtering is implemented
       /* 

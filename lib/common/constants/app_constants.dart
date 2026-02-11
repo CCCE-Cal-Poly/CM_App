@@ -1,8 +1,3 @@
-/// Central location for app-wide constants
-/// Including error messages, durations, limits, and validation rules
-
-import 'package:flutter/material.dart';
-
 class AppConstants {
   // PASSWORD VALIDATION
   static const int minPasswordLength = 8;
