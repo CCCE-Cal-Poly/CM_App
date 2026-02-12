@@ -308,30 +308,38 @@ class _SignUpState extends State<SignUp> {
       String confirmPassword = _confirmPasswordController.text.trim();
 
       if (firstName.isEmpty) {
-        setState(() {
-          errorMsg = AppConstants.errorFirstNameRequired;
-        });
+        if (mounted) {
+          setState(() {
+            errorMsg = AppConstants.errorFirstNameRequired;
+          });
+        }
         return;
       }
 
       if (lastName.isEmpty) {
-        setState(() {
-          errorMsg = AppConstants.errorLastNameRequired;
-        });
+        if (mounted) {
+          setState(() {
+            errorMsg = AppConstants.errorLastNameRequired;
+          });
+        }
         return;
       }
 
       if (password.length < AppConstants.minPasswordLength) {
-        setState(() {
-          errorMsg = AppConstants.errorPasswordRequirementNotMet;
-        });
+        if (mounted) {
+          setState(() {
+            errorMsg = AppConstants.errorPasswordRequirementNotMet;
+          });
+        }
         return;
       }
 
       if (password != confirmPassword) {
-        setState(() {
-          errorMsg = AppConstants.errorPasswordMismatch;
-        });
+        if (mounted) {
+          setState(() {
+            errorMsg = AppConstants.errorPasswordMismatch;
+          });
+        }
         return;
       }
       await FirebaseAuth.instance
@@ -343,9 +351,11 @@ class _SignUpState extends State<SignUp> {
       );
       String? userID = userCredential.user?.uid;
       if (userID == null) {
-        setState(() {
-          errorMsg = AppConstants.errorFailedCreateUser;
-        });
+        if (mounted) {
+          setState(() {
+            errorMsg = AppConstants.errorFailedCreateUser;
+          });
+        }
         return;
       }
       // 3. Get FCM Token and add to user document in Firestore
@@ -377,11 +387,16 @@ class _SignUpState extends State<SignUp> {
           .doc(userID)
           .set(userData);
 
-      // If sign-up is successful, navigate to the new page
-      if (userCredential.user != null) {
-        setState(() {
-          errorMsg = "";
-        });
+      // Send verification email and navigate to verification screen.
+      // Even if the StreamBuilder in main.dart catches the auth state change
+      // and renders the verification screen, this explicit navigation ensures
+      // the user sees it immediately.
+      if (user != null) {
+        if (mounted) {
+          setState(() {
+            errorMsg = "";
+          });
+        }
 
         await userCredential.user!.sendEmailVerification();
 
@@ -397,9 +412,11 @@ class _SignUpState extends State<SignUp> {
       } else {
         ErrorLogger.logError('SignUp', 'Unexpected signup error', error: e);
       }
-      setState(() {
-        errorMsg = errorMessage;
-      });
+      if (mounted) {
+        setState(() {
+          errorMsg = errorMessage;
+        });
+      }
     }
   }
 }
