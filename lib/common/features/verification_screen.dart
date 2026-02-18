@@ -1,6 +1,5 @@
- 
 // verification_screen.dart:
- 
+
 import 'dart:async';
 import 'package:ccce_application/common/features/app_entry_gate.dart';
 import 'package:ccce_application/common/theme/theme.dart';
@@ -9,34 +8,34 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:ccce_application/services/notification_service.dart';
- 
+
 class EmailVerificationScreen extends StatefulWidget {
   const EmailVerificationScreen({super.key});
- 
+
   @override
   State<EmailVerificationScreen> createState() =>
       _EmailVerificationScreenState();
 }
- 
+
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   bool _isResending = false;
   Timer? _checkTimer;
   int _resendCooldown = 0;
   Timer? _cooldownTimer;
- 
+
   @override
   void initState() {
     super.initState();
- 
+
     // Immediately check if already verified (handles stale cache on app restart)
     _checkVerificationNow();
- 
+
     // Then start polling every 3 seconds
     _checkTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
       await _checkVerificationNow();
     });
   }
- 
+
   Future<void> _checkVerificationNow() async {
     try {
       await FirebaseAuth.instance.currentUser?.reload();
@@ -60,19 +59,19 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       _onVerified();
     }
   }
- 
+
   @override
   void dispose() {
     _checkTimer?.cancel();
     _cooldownTimer?.cancel();
     super.dispose();
   }
- 
+
   void _onVerified() async {
     // Set TOS now that they're verified
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('TOS', true);
- 
+
     // Route back through the shared app entry gate so all bootstrap logic
     // (auth/TOS checks, provider loading, app shell routing) runs in one place.
     if (!mounted) return;
@@ -83,7 +82,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       (route) => false,
     );
   }
- 
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -108,7 +107,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 ),
               ),
               const SizedBox(height: 20),
- 
+
               // Resend email with cooldown to prevent spam
               SizedBox(
                 width: 200,
@@ -128,14 +127,14 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                             await FirebaseAuth.instance.currentUser
                                 ?.sendEmailVerification();
                             if (!context.mounted) return;
- 
+
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Verification email sent!'),
                                 backgroundColor: Colors.green,
                               ),
                             );
- 
+
                             // Start a 60-second cooldown to prevent abuse
                             setState(() {
                               _resendCooldown = 60;
@@ -183,9 +182,12 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 ),
               ),
               const SizedBox(height: 16),
- 
+
               TextButton(
                 onPressed: () async {
+                  _checkTimer?.cancel();
+                  _cooldownTimer?.cancel();
+
                   // Clean up FCM token before signing out
                   final user = FirebaseAuth.instance.currentUser;
                   if (user != null) {
@@ -198,9 +200,14 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     } catch (_) {}
                   }
                   await FirebaseAuth.instance.signOut();
-                  // After sign-out, authStateChanges() fires and main.dart's
-                  // StreamBuilder will show the SignIn screen automatically.
-                  // No manual navigation needed.
+
+                  if (!context.mounted) return;
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (_) => const AppEntryGate(),
+                    ),
+                    (route) => false,
+                  );
                 },
                 child: const Text(
                   "Use a different email",
