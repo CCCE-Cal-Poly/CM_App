@@ -36,6 +36,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
 
   @override
   void initState() {
+    print("Initializing RenderedPage");
     super.initState();
     _pageBuilders = [
       () => HomeScreen(scaffoldKey: _scaffoldKey),
@@ -82,6 +83,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
 
   @override
   Widget build(BuildContext context) {
+    print("Building RenderedPage");
     final userProvider = Provider.of<UserProvider>(context);
     final user = userProvider.user;
     final isAdmin = user?.role == UserRole.admin;
