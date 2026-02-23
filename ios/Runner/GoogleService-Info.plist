@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>913522987647-841g9p1qos3cj3lf0tiu1i45jjil8634.apps.googleusercontent.com</string>
+	<string>913522987647-ommij5nflndgvqih3n347kdv554lj2ri.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.913522987647-841g9p1qos3cj3lf0tiu1i45jjil8634</string>
+	<string>com.googleusercontent.apps.913522987647-ommij5nflndgvqih3n347kdv554lj2ri</string>
 	<key>ANDROID_CLIENT_ID</key>
 	<string>913522987647-28ov4ifcm6t8920s760qnmm8mt8so1fu.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
@@ -15,7 +15,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.ccceApplication</string>
+	<string>com.ccce.ccceApplication</string>
 	<key>PROJECT_ID</key>
 	<string>cm-app-90d65</string>
 	<key>STORAGE_BUCKET</key>
@@ -31,7 +31,7 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:913522987647:ios:8edc0b49e1ac6ce899a54a</string>
+	<string>1:913522987647:ios:b9531bb8a35cf02299a54a</string>
 	<key>DATABASE_URL</key>
 	<string>https://cm-app-90d65-default-rtdb.firebaseio.com</string>
 </dict>

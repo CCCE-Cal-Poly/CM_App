@@ -56,7 +56,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '913522987647',
     projectId: 'cm-app-90d65',
     storageBucket: 'cm-app-90d65.appspot.com',
-    iosBundleId: 'com.example.ccceApplication',
+    iosBundleId: 'com.ccce.ccceApplication',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -65,6 +65,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '913522987647',
     projectId: 'cm-app-90d65',
     storageBucket: 'cm-app-90d65.appspot.com',
-    iosBundleId: 'com.example.ccceApplication.RunnerTests',
+    iosBundleId: 'com.ccce.ccceApplication.RunnerTests',
   );
 }
