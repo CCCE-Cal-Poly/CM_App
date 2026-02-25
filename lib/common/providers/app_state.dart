@@ -12,7 +12,7 @@ class AppState extends ChangeNotifier {
   Set<Company>? favoriteCompanies;
   Set<Job>? favoriteJobs;
   Set<Club>? joinedClubs;
-  Set<String>? checkedInEventIds; 
+  Set<String>? checkedInEventIds;
   Set<CalEvent>? calendarEvents;
   bool _isLoadingCheckIns = false;
   bool _checkInsLoaded = false;
@@ -20,7 +20,7 @@ class AppState extends ChangeNotifier {
   bool _favoritesLoaded = false;
   bool _isLoadingClubs = false;
   bool _clubsLoaded = false;
-  
+
   bool get isCheckInsLoaded => _checkInsLoaded;
   bool get isFavoritesLoaded => _favoritesLoaded;
   bool get isClubsLoaded => _clubsLoaded;
@@ -48,7 +48,8 @@ class AppState extends ChangeNotifier {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        ErrorLogger.logWarning('AppState', 'No user logged in, skipping check-in load');
+        ErrorLogger.logWarning(
+            'AppState', 'No user logged in, skipping check-in load');
         _isLoadingCheckIns = false;
         return;
       }
@@ -60,14 +61,15 @@ class AppState extends ChangeNotifier {
           .get();
 
       final Set<String> loadedEventIds = {};
-      
+
       for (final doc in checkInsSnapshot.docs) {
-        loadedEventIds.add(doc.id); 
+        loadedEventIds.add(doc.id);
       }
 
       checkedInEventIds = loadedEventIds;
       _checkInsLoaded = true;
-      ErrorLogger.logInfo('AppState', 'Loaded ${loadedEventIds.length} check-ins from Firestore');
+      ErrorLogger.logInfo('AppState',
+          'Loaded ${loadedEventIds.length} check-ins from Firestore');
       notifyListeners();
     } catch (e) {
       ErrorLogger.logError('AppState', 'Error loading check-ins', error: e);
@@ -85,7 +87,8 @@ class AppState extends ChangeNotifier {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        ErrorLogger.logWarning('AppState', 'No user logged in, skipping favorites load');
+        ErrorLogger.logWarning(
+            'AppState', 'No user logged in, skipping favorites load');
         _isLoadingFavorites = false;
         return;
       }
@@ -97,7 +100,7 @@ class AppState extends ChangeNotifier {
           .get();
 
       final Set<Company> loadedFavorites = {};
-      
+
       for (final doc in favoritesSnapshot.docs) {
         final data = doc.data();
         loadedFavorites.add(Company(
@@ -116,10 +119,12 @@ class AppState extends ChangeNotifier {
 
       favoriteCompanies = loadedFavorites;
       _favoritesLoaded = true;
-      ErrorLogger.logInfo('AppState', 'Loaded ${loadedFavorites.length} favorite companies from Firestore');
+      ErrorLogger.logInfo('AppState',
+          'Loaded ${loadedFavorites.length} favorite companies from Firestore');
       notifyListeners();
     } catch (e) {
-      ErrorLogger.logError('AppState', 'Error loading favorite companies', error: e);
+      ErrorLogger.logError('AppState', 'Error loading favorite companies',
+          error: e);
       _favoritesLoaded = true;
       notifyListeners();
     } finally {
@@ -134,7 +139,8 @@ class AppState extends ChangeNotifier {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        ErrorLogger.logWarning('AppState', 'No user logged in, skipping clubs load');
+        ErrorLogger.logWarning(
+            'AppState', 'No user logged in, skipping clubs load');
         _isLoadingClubs = false;
         return;
       }
@@ -146,7 +152,7 @@ class AppState extends ChangeNotifier {
           .get();
 
       final Set<Club> loadedClubs = {};
-      
+
       for (final doc in clubsSnapshot.docs) {
         final data = doc.data();
         loadedClubs.add(Club(
@@ -161,7 +167,8 @@ class AppState extends ChangeNotifier {
       }
       joinedClubs = loadedClubs;
       _clubsLoaded = true;
-      ErrorLogger.logInfo('AppState', 'Loaded ${loadedClubs.length} joined clubs from Firestore');
+      ErrorLogger.logInfo('AppState',
+          'Loaded ${loadedClubs.length} joined clubs from Firestore');
       notifyListeners();
     } catch (e) {
       ErrorLogger.logError('AppState', 'Error loading joined clubs', error: e);
@@ -175,11 +182,12 @@ class AppState extends ChangeNotifier {
   Future<void> addFavorite(Favoritable item) async {
     if (item is Company) {
       ErrorLogger.logInfo('AppState', 'Adding favorite company: ${item.name}');
-      
+
       try {
         final user = FirebaseAuth.instance.currentUser;
         if (user == null) {
-          ErrorLogger.logWarning('AppState', 'No user logged in, cannot add favorite');
+          ErrorLogger.logWarning(
+              'AppState', 'No user logged in, cannot add favorite');
           return;
         }
 
@@ -207,7 +215,8 @@ class AppState extends ChangeNotifier {
 
         ErrorLogger.logInfo('AppState', 'Added favorite company: ${item.name}');
       } catch (e) {
-        ErrorLogger.logError('AppState', 'Error adding favorite company', error: e);
+        ErrorLogger.logError('AppState', 'Error adding favorite company',
+            error: e);
         favoriteCompanies?.remove(item);
         notifyListeners();
       }
@@ -220,20 +229,24 @@ class AppState extends ChangeNotifier {
   }
 
   bool isFavorite(Favoritable item) {
-     // ignore: curly_braces_in_flow_control_structures
-     if (item is Company) return favoriteCompanies?.contains(item) ?? false;
-     // ignore: curly_braces_in_flow_control_structures
-     else return favoriteJobs?.contains(item) ?? false;
+    // ignore: curly_braces_in_flow_control_structures
+    if (item is Company)
+      return favoriteCompanies?.contains(item) ?? false;
+    // ignore: curly_braces_in_flow_control_structures
+    else
+      return favoriteJobs?.contains(item) ?? false;
   }
 
   Future<void> removeFavorite(Favoritable item) async {
     if (item is Company) {
-      ErrorLogger.logInfo('AppState', 'Removing favorite company: ${item.name}');
-      
+      ErrorLogger.logInfo(
+          'AppState', 'Removing favorite company: ${item.name}');
+
       try {
         final user = FirebaseAuth.instance.currentUser;
         if (user == null) {
-          ErrorLogger.logWarning('AppState', 'No user logged in, cannot remove favorite');
+          ErrorLogger.logWarning(
+              'AppState', 'No user logged in, cannot remove favorite');
           return;
         }
 
@@ -247,9 +260,11 @@ class AppState extends ChangeNotifier {
             .doc(item.id)
             .delete();
 
-        ErrorLogger.logInfo('AppState', 'Removed favorite company: ${item.name}');
+        ErrorLogger.logInfo(
+            'AppState', 'Removed favorite company: ${item.name}');
       } catch (e) {
-        ErrorLogger.logError('AppState', 'Error removing favorite company', error: e);
+        ErrorLogger.logError('AppState', 'Error removing favorite company',
+            error: e);
         favoriteCompanies?.add(item);
         notifyListeners();
       }
@@ -262,11 +277,12 @@ class AppState extends ChangeNotifier {
 
   Future<void> addJoinedClub(Club club) async {
     ErrorLogger.logInfo('AppState', 'Joining club: ${club.name}');
-    
+
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        ErrorLogger.logWarning('AppState', 'No user logged in, cannot join club');
+        ErrorLogger.logWarning(
+            'AppState', 'No user logged in, cannot join club');
         return;
       }
 
@@ -292,10 +308,11 @@ class AppState extends ChangeNotifier {
           .collection('users')
           .doc(user.uid)
           .get();
-      
+
       final userData = userDoc.data();
-      final userName = userData?['name'] ?? 
-          '${userData?['firstName'] ?? ''} ${userData?['lastName'] ?? ''}'.trim();
+      final userName = userData?['name'] ??
+          '${userData?['firstName'] ?? ''} ${userData?['lastName'] ?? ''}'
+              .trim();
 
       await Future.wait([
         // User's personal club list (full club data)
@@ -305,7 +322,7 @@ class AppState extends ChangeNotifier {
             .collection('joinedClubs')
             .doc(club.id?.toString())
             .set(clubData),
-        
+
         // Club's member list (for notifications - minimal data)
         FirebaseFirestore.instance
             .collection('clubs')
@@ -319,10 +336,13 @@ class AppState extends ChangeNotifier {
         }),
       ]);
 
-      ErrorLogger.logInfo('AppState', 'Joined club: ${club.name} (dual-write completed)');
+      ErrorLogger.logInfo(
+          'AppState', 'Joined club: ${club.name} (dual-write completed)');
     } catch (e) {
       ErrorLogger.logError('AppState', 'Error joining club', error: e);
-      joinedClubs?.remove(club);
+      joinedClubs?.removeWhere(
+        (c) => c.id.toString() == club.id.toString(),
+      );
       notifyListeners();
     }
   }
@@ -334,15 +354,18 @@ class AppState extends ChangeNotifier {
 
   Future<void> removeJoinedClub(Club club) async {
     ErrorLogger.logInfo('AppState', 'Leaving club: ${club.name}');
-    
+
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        ErrorLogger.logWarning('AppState', 'No user logged in, cannot leave club');
+        ErrorLogger.logWarning(
+            'AppState', 'No user logged in, cannot leave club');
         return;
       }
 
-      joinedClubs?.remove(club);
+      joinedClubs?.removeWhere(
+        (c) => c.id.toString() == club.id.toString(),
+      );
       notifyListeners();
 
       // Dual-delete: Remove from both user's joinedClubs AND club's members collection
@@ -354,7 +377,7 @@ class AppState extends ChangeNotifier {
             .collection('joinedClubs')
             .doc(club.id?.toString())
             .delete(),
-        
+
         // Club's member list (for notifications)
         FirebaseFirestore.instance
             .collection('clubs')
@@ -364,7 +387,8 @@ class AppState extends ChangeNotifier {
             .delete(),
       ]);
 
-      ErrorLogger.logInfo('AppState', 'Left club: ${club.name} (dual-delete completed)');
+      ErrorLogger.logInfo(
+          'AppState', 'Left club: ${club.name} (dual-delete completed)');
     } catch (e) {
       ErrorLogger.logError('AppState', 'Error leaving club', error: e);
       joinedClubs?.add(club);
@@ -377,12 +401,14 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> checkInto(CalEvent session) async {
-    ErrorLogger.logInfo('AppState', 'Checking into session: ${session.eventName}');
-    
+    ErrorLogger.logInfo(
+        'AppState', 'Checking into session: ${session.eventName}');
+
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        ErrorLogger.logWarning('AppState', 'No user logged in, cannot check in');
+        ErrorLogger.logWarning(
+            'AppState', 'No user logged in, cannot check in');
         return;
       }
 
@@ -416,7 +442,8 @@ class AppState extends ChangeNotifier {
         }),
       ]);
 
-      ErrorLogger.logInfo('AppState', 'Checked in to ${session.eventName} (dual-write completed)');
+      ErrorLogger.logInfo('AppState',
+          'Checked in to ${session.eventName} (dual-write completed)');
     } catch (e) {
       ErrorLogger.logError('AppState', 'Error checking in', error: e);
       checkedInEventIds?.remove(session.id);
@@ -425,12 +452,14 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> checkOutOf(CalEvent session) async {
-    ErrorLogger.logInfo('AppState', 'Checking out of session: ${session.eventName}');
-    
+    ErrorLogger.logInfo(
+        'AppState', 'Checking out of session: ${session.eventName}');
+
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        ErrorLogger.logWarning('AppState', 'No user logged in, cannot check out');
+        ErrorLogger.logWarning(
+            'AppState', 'No user logged in, cannot check out');
         return;
       }
 
@@ -455,7 +484,8 @@ class AppState extends ChangeNotifier {
             .delete(),
       ]);
 
-      ErrorLogger.logInfo('AppState', 'Checked out of ${session.eventName} (dual-delete completed)');
+      ErrorLogger.logInfo('AppState',
+          'Checked out of ${session.eventName} (dual-delete completed)');
     } catch (e) {
       ErrorLogger.logError('AppState', 'Error checking out', error: e);
       checkedInEventIds?.add(session.id);
