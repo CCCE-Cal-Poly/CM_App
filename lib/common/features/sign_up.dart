@@ -1,5 +1,5 @@
 // sign_up.dart:
- 
+
 import 'package:ccce_application/common/features/verification_screen.dart';
 import 'package:ccce_application/common/constants/app_constants.dart';
 import 'package:flutter/material.dart';
@@ -10,14 +10,14 @@ import 'package:ccce_application/common/theme/theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:ccce_application/services/error_logger.dart';
- 
+
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
- 
+
   @override
   _SignUpState createState() => _SignUpState();
 }
- 
+
 class _SignUpState extends State<SignUp> {
   static dynamic errorMsg = '';
   final TextEditingController _firstNameController = TextEditingController();
@@ -26,12 +26,12 @@ class _SignUpState extends State<SignUp> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
- 
+
   @override
   void initState() {
     super.initState();
   }
- 
+
   @override
   void dispose() {
     _firstNameController.dispose();
@@ -41,12 +41,12 @@ class _SignUpState extends State<SignUp> {
     _confirmPasswordController.dispose();
     super.dispose();
   }
- 
+
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
- 
+
     return Scaffold(
       appBar: const GoldAppBar(),
       backgroundColor: AppColors.calPolyGreen,
@@ -59,7 +59,7 @@ class _SignUpState extends State<SignUp> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: <Widget>[
                   SizedBox(height: screenHeight * 0.1),
- 
+
                   // 👷 Hardhat logo image
                   Padding(
                     padding: EdgeInsets.only(
@@ -71,7 +71,7 @@ class _SignUpState extends State<SignUp> {
                       height: screenHeight * 0.12,
                     ),
                   ),
- 
+
                   const Text(
                     'Cal Poly Construction\nManagement',
                     textAlign: TextAlign.center,
@@ -93,7 +93,7 @@ class _SignUpState extends State<SignUp> {
                       ),
                     ),
                   ),
- 
+
                   // First Name Field
                   Container(
                     width: screenWidth * 0.75,
@@ -126,7 +126,7 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ),
                   SizedBox(height: screenHeight * 0.020),
- 
+
                   // Last Name Field
                   Container(
                     width: screenWidth * 0.75,
@@ -159,7 +159,7 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ),
                   SizedBox(height: screenHeight * 0.020),
- 
+
                   // Email Field
                   Container(
                     width: screenWidth * 0.75,
@@ -193,7 +193,7 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ),
                   SizedBox(height: screenHeight * 0.020),
- 
+
                   // Password Field
                   Container(
                     width: screenWidth * 0.75,
@@ -223,7 +223,7 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ),
                   SizedBox(height: screenHeight * 0.020),
- 
+
                   // Confirm Password Field
                   Container(
                     width: screenWidth * 0.75,
@@ -253,7 +253,7 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ),
                   SizedBox(height: screenHeight * 0.030),
- 
+
                   // Sign Up Button
                   SizedBox(
                     width: screenWidth * 0.75,
@@ -300,61 +300,72 @@ class _SignUpState extends State<SignUp> {
       ),
     );
   }
- 
+
   Future<void> _signUpFunc() async {
-    ErrorLogger.logInfo('SignUp', 'Attempting to sign up user with email: ${_emailController.text.trim()}');
+    ErrorLogger.logInfo('SignUp',
+        'Attempting to sign up user with email: ${_emailController.text.trim()}');
     try {
       String firstName = _firstNameController.text.trim();
       String lastName = _lastNameController.text.trim();
       String email = _emailController.text.trim();
       String password = _passwordController.text.trim();
       String confirmPassword = _confirmPasswordController.text.trim();
- 
+
       if (firstName.isEmpty) {
-        ErrorLogger.logWarning('SignUp', 'First name is empty during signup attempt');
+        ErrorLogger.logWarning(
+            'SignUp', 'First name is empty during signup attempt');
         setState(() {
           errorMsg = AppConstants.errorFirstNameRequired;
         });
         return;
       }
- 
+
       if (lastName.isEmpty) {
-        ErrorLogger.logWarning('SignUp', 'Last name is empty during signup attempt');
+        ErrorLogger.logWarning(
+            'SignUp', 'Last name is empty during signup attempt');
         setState(() {
           errorMsg = AppConstants.errorLastNameRequired;
         });
         return;
       }
- 
+
       if (password.length < AppConstants.minPasswordLength) {
-        ErrorLogger.logWarning('SignUp', 'Password does not meet length requirement during signup attempt');
+        ErrorLogger.logWarning('SignUp',
+            'Password does not meet length requirement during signup attempt');
         setState(() {
           errorMsg = AppConstants.errorPasswordRequirementNotMet;
         });
         return;
       }
- 
+
       if (password != confirmPassword) {
-        ErrorLogger.logWarning('SignUp', 'Password and confirm password do not match during signup attempt');
+        ErrorLogger.logWarning('SignUp',
+            'Password and confirm password do not match during signup attempt');
         setState(() {
           errorMsg = AppConstants.errorPasswordMismatch;
         });
         return;
       }
 
-      ErrorLogger.logInfo('SignUp', 'Input validation passed for email: $email, proceeding with Firebase signup');
+      ErrorLogger.logInfo('SignUp',
+          'Input validation passed for email: $email, proceeding with Firebase signup');
 
       try {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: password);
+        await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(email: email, password: password);
       } catch (e) {
         if (e is FirebaseAuthException) {
           String errorMessage = ErrorLogger.getAuthErrorMessage(e);
-          ErrorLogger.logError('SignUp', 'FirebaseAuthException during user creation: $errorMessage', error: e);
+          ErrorLogger.logError('SignUp',
+              'FirebaseAuthException during user creation: $errorMessage',
+              error: e);
           setState(() {
             errorMsg = errorMessage;
           });
         } else {
-          ErrorLogger.logError('SignUp', 'Unexpected error during user creation', error: e);
+          ErrorLogger.logError(
+              'SignUp', 'Unexpected error during user creation',
+              error: e);
           setState(() {
             errorMsg = AppConstants.errorUnexpected;
           });
@@ -374,8 +385,9 @@ class _SignUpState extends State<SignUp> {
       // 3. Get FCM Token and add to user document in Firestore
       String? fcmToken = await FirebaseMessaging.instance.getToken();
 
-      ErrorLogger.logInfo('SignUp', 'Retrieved FCM token during signup: $fcmToken for user: $userID');
- 
+      ErrorLogger.logInfo('SignUp',
+          'Retrieved FCM token during signup: $fcmToken for user: $userID');
+
       ErrorLogger.logInfo('SignUp', 'FCM Token on signup: $fcmToken');
       // Prepare user data map
       Map<String, dynamic> userData = {
@@ -396,22 +408,25 @@ class _SignUpState extends State<SignUp> {
         // Consider if you want to handle this more robustly, e.g.,
         // retrying token retrieval later or logging to an error reporting service.
       }
- 
-      ErrorLogger.logInfo('SignUp', 'Storing user data in Firestore for user: $userID with data: $userData');
+
+      ErrorLogger.logInfo('SignUp',
+          'Storing user data in Firestore for user: $userID with data: $userData');
       // Store user data in Firestore
-      try{
-          await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .set(userData);
-      }catch(e){
-        ErrorLogger.logError('SignUp', 'Error storing user data in Firestore for user: $userID', error: e);
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userID)
+            .set(userData);
+      } catch (e) {
+        ErrorLogger.logError(
+            'SignUp', 'Error storing user data in Firestore for user: $userID',
+            error: e);
         // You might want to decide how to handle this case. For example, you could choose to continue with the signup process even if Firestore storage fails, or you could set an error message and return.
       }
 
+      ErrorLogger.logInfo(
+          'SignUp', 'User data stored in Firestore for user: $userID');
 
-      ErrorLogger.logInfo('SignUp', 'User data stored in Firestore for user: $userID');
- 
       // Send verification email and navigate to verification screen.
       // Even if the StreamBuilder in main.dart catches the auth state change
       // and renders the verification screen, this explicit navigation ensures
@@ -420,12 +435,14 @@ class _SignUpState extends State<SignUp> {
         setState(() {
           errorMsg = "";
         });
- 
+
         await user.sendEmailVerification();
 
-        ErrorLogger.logInfo('SignUp', 'Verification email sent to: $email for user: $userID');
+        ErrorLogger.logInfo(
+            'SignUp', 'Verification email sent to: $email for user: $userID');
 
-        ErrorLogger.logInfo('SignUp', 'User signed up with email: $email, verification email sent');
+        ErrorLogger.logInfo('SignUp',
+            'User signed up with email: $email, verification email sent');
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const EmailVerificationScreen()),
