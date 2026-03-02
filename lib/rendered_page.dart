@@ -13,6 +13,7 @@ import 'package:ccce_application/common/features/member_directory.dart';
 import 'package:ccce_application/common/features/info_sessions_screen.dart';
 import 'package:ccce_application/common/features/club_directory.dart';
 import 'package:ccce_application/common/features/home_screen.dart';
+import 'package:ccce_application/common/features/asc_2026_screen.dart';
 import 'package:provider/provider.dart';
 
 class RenderedPage extends StatefulWidget {
@@ -21,8 +22,6 @@ class RenderedPage extends StatefulWidget {
   @override
   _MyRenderedPageState createState() => _MyRenderedPageState();
 }
-
-
 
 class _MyRenderedPageState extends State<RenderedPage> {
   static const standardGreen = Color(0xFF164734);
@@ -44,6 +43,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
       () => ClubDirectory(scaffoldKey: _scaffoldKey),
       () => FacultyDirectory(scaffoldKey: _scaffoldKey),
       () => InfoSessionsScreen(scaffoldKey: _scaffoldKey),
+      () => Asc2026Screen(scaffoldKey: _scaffoldKey),
       // () => JobBoard(scaffoldKey: _scaffoldKey),
       () => ProfileScreen(scaffoldKey: _scaffoldKey),
       () => AdminPanelScreen(scaffoldKey: _scaffoldKey),
@@ -51,7 +51,6 @@ class _MyRenderedPageState extends State<RenderedPage> {
       () => MyClubEventsScreen(scaffoldKey: _scaffoldKey),
     ];
     _pages = List<Widget?>.filled(_pageBuilders.length, null);
-
   }
 
   void _onItemTapped(int index) {
@@ -59,8 +58,6 @@ class _MyRenderedPageState extends State<RenderedPage> {
       _selectedIndex = index;
     });
   }
-
-  
 
   ListTile createListItem(String title, int index) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -89,7 +86,6 @@ class _MyRenderedPageState extends State<RenderedPage> {
     final isAdmin = user?.role == UserRole.admin;
     final isClubAdmin = user?.role == UserRole.clubAdmin;
 
-    // If user data hasn't loaded yet, show loading state
     if (user == null) {
       return Scaffold(
         key: _scaffoldKey,
@@ -150,12 +146,13 @@ class _MyRenderedPageState extends State<RenderedPage> {
                 createListItem("Club Directory", 2),
                 createListItem("Faculty Directory", 3),
                 createListItem("Info Sessions", 4),
+                createListItem("ASC 2026", 5),
                 // createListItem("Job Board", 5),
-                createListItem("Profile", 5),
-                if (isAdmin) createListItem("Admin Control Panel", 6),
+                createListItem("Profile", 6),
+                if (isAdmin) createListItem("Admin Control Panel", 7),
                 if (isClubAdmin || isAdmin)
-                  createListItem("Request Club Event", 7),
-                if (isClubAdmin || isAdmin) createListItem("My Club Events", 8),
+                  createListItem("Request Club Event", 8),
+                if (isClubAdmin || isAdmin) createListItem("My Club Events", 9),
               ],
             ),
           ),
