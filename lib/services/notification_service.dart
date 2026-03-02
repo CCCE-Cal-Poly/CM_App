@@ -99,7 +99,13 @@ class NotificationService {
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         ErrorLogger.logInfo('NotificationService', 'User granted permission');
-        
+
+        await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+                
         final String? token = await FirebaseMessaging.instance.getToken();
         if (token != null) {
           ErrorLogger.logInfo('NotificationService', 'FCM Token: $token');
