@@ -1,6 +1,6 @@
 PRIVACY POLICY
 
-Last Updated: November 28, 2025
+Last Updated: March 2nd, 2026
 
 1. INTRODUCTION
 
@@ -9,8 +9,8 @@ This Privacy Policy explains how the Cal Poly Construction Management (CM) mobil
 2. INFORMATION WE COLLECT
 
 2.1 Information You Provide
-- Account Information: Name, email address, password (encrypted)
-- Profile Information: Profile photo, school year, role (student/faculty/admin)
+- Account Information: Name, email address
+- Profile Information: Profile photo, role (student/faculty/club admin/admin/recruiter)
 - Preferences: Clubs joined, favorite companies, event interests
 - User-Generated Content: Event check-ins, club memberships, requests
 
@@ -18,6 +18,7 @@ This Privacy Policy explains how the Cal Poly Construction Management (CM) mobil
 - Device Information: Device type, operating system, unique device identifiers
 - Usage Data: Features used, events viewed, pages visited, time spent in app
 - FCM Tokens: For push notification delivery
+- Crash Reports: App crash data and stack traces via Firebase Crashlytics
 - Log Data: IP addresses, access times, app crashes, performance data
 
 2.3 Information from Third Parties
@@ -86,6 +87,7 @@ This Privacy Policy explains how the Cal Poly Construction Management (CM) mobil
 5.2 Account Security
 - You are responsible for maintaining your password confidentiality
 - Enable device security features (PIN, biometric)
+- Firebase App Check is used to verify device integrity and protect backend resources
 - We cannot guarantee absolute security despite best efforts
 - Notify us immediately of any suspected security breach
 
@@ -103,7 +105,7 @@ This Privacy Policy explains how the Cal Poly Construction Management (CM) mobil
 
 6.2 Account Deletion
 - Delete your account anytime through App settings
-- This permanently removes your personal information within 30 days
+- This permanently removes your personal information immediately
 - Some data may be retained in backups for up to 90 days
 - Anonymized analytics may be retained indefinitely
 
@@ -126,10 +128,11 @@ This Privacy Policy explains how the Cal Poly Construction Management (CM) mobil
 - Session tokens for authentication
 - User preferences and settings
 
-7.2 Analytics
+7.2 Analytics and Crash Reporting
 - We use Firebase Analytics to understand app usage
-- Analytics data is anonymized and aggregated
-- No personal identification from analytics alone
+- We use Firebase Crashlytics to collect crash reports and performance data
+- Analytics and crash data is anonymized and aggregated
+- No personal identification from analytics or crash reports alone
 
 7.3 Third-Party Services
 - Google Sign-In and Firebase use cookies per their privacy policies
@@ -165,7 +168,8 @@ This Privacy Policy explains how the Cal Poly Construction Management (CM) mobil
 10.3 Specific Data Types
 - Event check-ins: Retained for academic year + 2 years
 - Club memberships: Retained while account active
-- FCM tokens: Deleted when app is uninstalled or account deleted
+- FCM tokens: Stale tokens automatically removed after 90 days of inactivity; all tokens deleted with account
+- Sent notifications: Automatically purged from the system after 3 days
 - Profile photos: Deleted with account
 
 11. CALIFORNIA PRIVACY RIGHTS (CCPA)

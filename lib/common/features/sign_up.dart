@@ -19,7 +19,8 @@ class SignUp extends StatefulWidget {
 }
 
 class _SignUpState extends State<SignUp> {
-  static dynamic errorMsg = '';
+  String errorMsg = '';
+  bool _isLoading = false;
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -259,20 +260,29 @@ class _SignUpState extends State<SignUp> {
                     width: screenWidth * 0.75,
                     height: screenHeight * 0.065,
                     child: ElevatedButton(
-                      onPressed: _signUpFunc,
+                      onPressed: _isLoading ? null : _signUpFunc,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.lightGold,
                         shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.zero),
                       ),
-                      child: const Text(
-                        'Sign Up',
-                        style: TextStyle(
-                          fontSize: 20,
-                          color: Colors.black,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.black,
+                              ),
+                            )
+                          : const Text(
+                              'Sign Up',
+                              style: TextStyle(
+                                fontSize: 20,
+                                color: Colors.black,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                     ),
                   ),
                   SizedBox(height: screenHeight * 0.020),
@@ -302,6 +312,12 @@ class _SignUpState extends State<SignUp> {
   }
 
   Future<void> _signUpFunc() async {
+    if (_isLoading) return;
+    setState(() {
+      _isLoading = true;
+      errorMsg = '';
+    });
+
     ErrorLogger.logInfo('SignUp',
         'Attempting to sign up user with email: ${_emailController.text.trim()}');
     try {
@@ -458,6 +474,12 @@ class _SignUpState extends State<SignUp> {
       setState(() {
         errorMsg = errorMessage;
       });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 }
