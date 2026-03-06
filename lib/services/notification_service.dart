@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -9,6 +11,20 @@ import 'package:ccce_application/services/error_logger.dart';
 class NotificationService {
   static String? _currentUid;
   static bool _lifecycleObserverAttached = false;
+  static bool _localNotificationsInitialized = false;
+  static bool _messagingInitialized = false;
+  static StreamSubscription<String>? _tokenRefreshSubscription;
+  static StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
+  static StreamSubscription<RemoteMessage>? _messageOpenedAppSubscription;
+
+  static bool get _shouldUseSystemForegroundPresentationOnApple {
+    if (kIsWeb) {
+      return false;
+    }
+
+    return defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS;
+  }
 
   static Future<void> firebaseMessagingBackgroundHandler(
       RemoteMessage message) async {
@@ -21,13 +37,16 @@ class NotificationService {
         rethrow;
       }
     }
-    ErrorLogger.logInfo('NotificationService', 'Background message received: ${message.messageId}');
-    ErrorLogger.logInfo('NotificationService', 'Title: ${message.notification?.title}');
-    ErrorLogger.logInfo('NotificationService', 'Body: ${message.notification?.body}');
+    ErrorLogger.logInfo('NotificationService',
+        'Background message received: ${message.messageId}');
+    ErrorLogger.logInfo(
+        'NotificationService', 'Title: ${message.notification?.title}');
+    ErrorLogger.logInfo(
+        'NotificationService', 'Body: ${message.notification?.body}');
     ErrorLogger.logInfo('NotificationService', 'Data: ${message.data}');
-    
+
     final notif = message.notification;
-    if (notif != null) {
+    if (notif != null && !_shouldUseSystemForegroundPresentationOnApple) {
       await flutterLocalNotificationsPlugin.show(
         notif.hashCode,
         notif.title,
@@ -59,7 +78,8 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  static const AndroidNotificationChannel _androidChannel = AndroidNotificationChannel(
+  static const AndroidNotificationChannel _androidChannel =
+      AndroidNotificationChannel(
     'ccce_notifications',
     'CCCE Notifications',
     description: 'Channel for CCCE app notifications',
@@ -67,31 +87,48 @@ class NotificationService {
   );
 
   static Future<void> _initLocalNotifications() async {
+    if (_localNotificationsInitialized) {
+      return;
+    }
+
     try {
       const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
       const iosInit = DarwinInitializationSettings();
-      final initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
+      final initSettings =
+          InitializationSettings(android: androidInit, iOS: iosInit);
 
       await flutterLocalNotificationsPlugin.initialize(initSettings,
           onDidReceiveNotificationResponse: (NotificationResponse response) {
-        if (kDebugMode) ErrorLogger.logInfo('NotificationService', 'Local notification tapped: ${response.payload}');
+        if (kDebugMode)
+          ErrorLogger.logInfo('NotificationService',
+              'Local notification tapped: ${response.payload}');
       });
 
       await flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(_androidChannel);
+
+      _localNotificationsInitialized = true;
     } catch (e) {
-      ErrorLogger.logError('NotificationService', 'Error initializing local notifications', error: e);
+      ErrorLogger.logError(
+          'NotificationService', 'Error initializing local notifications',
+          error: e);
     }
   }
 
   static Future<void> initForUid(String uid) async {
     try {
+      if (_currentUid == uid && _messagingInitialized) {
+        return;
+      }
+
       _currentUid = uid;
       _ensureLifecycleObserver();
       await _initLocalNotifications();
 
-      final NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
+      final NotificationSettings settings =
+          await FirebaseMessaging.instance.requestPermission(
         alert: true,
         badge: true,
         sound: true,
@@ -100,32 +137,47 @@ class NotificationService {
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         ErrorLogger.logInfo('NotificationService', 'User granted permission');
 
-        await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+        await FirebaseMessaging.instance
+            .setForegroundNotificationPresentationOptions(
           alert: true,
           badge: true,
           sound: true,
         );
-                
+
         final String? token = await FirebaseMessaging.instance.getToken();
         if (token != null) {
           ErrorLogger.logInfo('NotificationService', 'FCM Token: $token');
-          ErrorLogger.logInfo('NotificationService', 'Copy this token to test notifications in Firebase Console');
+          ErrorLogger.logInfo('NotificationService',
+              'Copy this token to test notifications in Firebase Console');
           await saveTokenForUser(uid, token);
         }
 
-        FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-          ErrorLogger.logInfo('NotificationService', 'FCM Token refreshed: $newToken');
-          await saveTokenForUser(uid, newToken);
+        await _tokenRefreshSubscription?.cancel();
+        _tokenRefreshSubscription =
+            FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+          final currentUid = _currentUid;
+          if (currentUid == null) {
+            return;
+          }
+
+          ErrorLogger.logInfo(
+              'NotificationService', 'FCM Token refreshed: $newToken');
+          await saveTokenForUser(currentUid, newToken);
         });
 
-        FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-          ErrorLogger.logInfo('NotificationService', 'Foreground message received: ${message.messageId}');
-          ErrorLogger.logInfo('NotificationService', 'Title: ${message.notification?.title}');
-          ErrorLogger.logInfo('NotificationService', 'Body: ${message.notification?.body}');
+        await _foregroundMessageSubscription?.cancel();
+        _foregroundMessageSubscription =
+            FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+          ErrorLogger.logInfo('NotificationService',
+              'Foreground message received: ${message.messageId}');
+          ErrorLogger.logInfo(
+              'NotificationService', 'Title: ${message.notification?.title}');
+          ErrorLogger.logInfo(
+              'NotificationService', 'Body: ${message.notification?.body}');
           ErrorLogger.logInfo('NotificationService', 'Data: ${message.data}');
 
           final notif = message.notification;
-          if (notif != null) {
+          if (notif != null && !_shouldUseSystemForegroundPresentationOnApple) {
             await flutterLocalNotificationsPlugin.show(
               notif.hashCode,
               notif.title,
@@ -154,18 +206,27 @@ class NotificationService {
           }
         });
 
-        FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-          ErrorLogger.logInfo('NotificationService', 'App opened from notification:');
-          ErrorLogger.logInfo('NotificationService', 'Title: ${message.notification?.title}');
-          ErrorLogger.logInfo('NotificationService', 'Body: ${message.notification?.body}');
+        await _messageOpenedAppSubscription?.cancel();
+        _messageOpenedAppSubscription = FirebaseMessaging.onMessageOpenedApp
+            .listen((RemoteMessage message) {
+          ErrorLogger.logInfo(
+              'NotificationService', 'App opened from notification:');
+          ErrorLogger.logInfo(
+              'NotificationService', 'Title: ${message.notification?.title}');
+          ErrorLogger.logInfo(
+              'NotificationService', 'Body: ${message.notification?.body}');
           ErrorLogger.logInfo('NotificationService', 'Data: ${message.data}');
         });
 
+        _messagingInitialized = true;
       } else {
-        ErrorLogger.logWarning('NotificationService', 'User declined or has not accepted permission');
+        ErrorLogger.logWarning('NotificationService',
+            'User declined or has not accepted permission');
       }
     } catch (e) {
-      ErrorLogger.logError('NotificationService', 'Error initializing NotificationService', error: e);
+      ErrorLogger.logError(
+          'NotificationService', 'Error initializing NotificationService',
+          error: e);
     }
   }
 
@@ -176,7 +237,8 @@ class NotificationService {
         await saveTokenForUser(uid, token);
       }
     } catch (e) {
-      ErrorLogger.logError('NotificationService', 'Error refreshing token', error: e);
+      ErrorLogger.logError('NotificationService', 'Error refreshing token',
+          error: e);
     }
   }
 
@@ -185,6 +247,7 @@ class NotificationService {
     WidgetsBinding.instance.addObserver(_NotificationLifecycleObserver());
     _lifecycleObserverAttached = true;
   }
+
   static Future<void> saveTokenForUser(String uid, String token) async {
     try {
       final docRef = FirebaseFirestore.instance
@@ -192,9 +255,11 @@ class NotificationService {
           .doc(uid)
           .collection('fcmTokens')
           .doc(token);
-      await docRef.set({'token': token, 'createdAt': FieldValue.serverTimestamp()});
+      await docRef
+          .set({'token': token, 'createdAt': FieldValue.serverTimestamp()});
     } catch (e) {
-      ErrorLogger.logError('NotificationService', 'Error saving token', error: e);
+      ErrorLogger.logError('NotificationService', 'Error saving token',
+          error: e);
     }
   }
 
@@ -207,7 +272,8 @@ class NotificationService {
           .doc(token);
       await docRef.delete();
     } catch (e) {
-      ErrorLogger.logError('NotificationService', 'Error removing token', error: e);
+      ErrorLogger.logError('NotificationService', 'Error removing token',
+          error: e);
     }
   }
 }

@@ -32,6 +32,9 @@ class AppEntryGate extends StatefulWidget {
 
 class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver {
     StreamSubscription<DocumentSnapshot>? _deletionListener;
+  String? _initializedUserUid;
+  String? _deletionListenerUserUid;
+  bool _hasSeenExistingUserDoc = false;
 
     Future<bool> _isTOSAccepted() async {
     final prefs = await SharedPreferences.getInstance();
@@ -78,22 +81,40 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
     }
 
     void _setupDeletionListener() {
-      _deletionListener?.cancel();
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        _deletionListener = FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .snapshots()
-            .listen((snapshot) {
-          if (!snapshot.exists) {
-            ErrorLogger.logInfo('Auth', 'Account deleted remotely');
-            FirebaseAuth.instance.signOut();
-          }
-        }, onError: (error) {
-          ErrorLogger.logError('Auth', 'Deletion listener error: $error');
-        });
+      if (user == null) {
+        return;
       }
+
+      if (_deletionListenerUserUid == user.uid && _deletionListener != null) {
+        return;
+      }
+
+      _deletionListener?.cancel();
+      _deletionListenerUserUid = user.uid;
+      _hasSeenExistingUserDoc = false;
+
+      _deletionListener = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots()
+          .listen((snapshot) {
+        if (snapshot.exists) {
+          _hasSeenExistingUserDoc = true;
+          return;
+        }
+
+        if (_hasSeenExistingUserDoc) {
+          ErrorLogger.logInfo('Auth', 'Account deleted remotely');
+          FirebaseAuth.instance.signOut();
+          return;
+        }
+
+        ErrorLogger.logWarning(
+            'Auth', 'User document missing during initial bootstrap');
+      }, onError: (error) {
+        ErrorLogger.logError('Auth', 'Deletion listener error: $error');
+      });
   }
 
   
@@ -139,20 +160,30 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
             }
  
             final user = snapshot.data!;
+
+            final requiresEmailVerification =
+                user.providerData.any((p) => p.providerId == 'password');
  
-            if (!user.emailVerified) {
+            if (requiresEmailVerification && !user.emailVerified) {
               ErrorLogger.logInfo('Auth', 'User email not verified: ${user.uid}');
               return const EmailVerificationScreen();
             }
 
             ErrorLogger.logInfo('Auth', 'User authenticated and email verified: ${user.uid}');
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Provider.of<UserProvider>(context, listen: false)
-                  .loadUserProfile(user.uid);
-              Provider.of<ClubProvider>(context, listen: false).loadClubs();
-              NotificationService.initForUid(user.uid);
-              _setupDeletionListener();
-            });
+            if (_initializedUserUid != user.uid) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) {
+                  return;
+                }
+
+                _initializedUserUid = user.uid;
+                Provider.of<UserProvider>(context, listen: false)
+                    .loadUserProfile(user.uid);
+                Provider.of<ClubProvider>(context, listen: false).loadClubs();
+                NotificationService.initForUid(user.uid);
+                _setupDeletionListener();
+              });
+            }
  
             return Consumer2<EventProvider, CompanyProvider>(
               builder: (context, eventProvider, companyProvider, child) {

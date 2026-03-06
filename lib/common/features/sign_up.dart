@@ -1,14 +1,17 @@
 // sign_up.dart:
 
 import 'package:ccce_application/common/features/verification_screen.dart';
+import 'package:ccce_application/common/features/app_entry_gate.dart';
 import 'package:ccce_application/common/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ccce_application/common/features/sign_in.dart';
+import 'package:ccce_application/common/config/microsoft_sso_config.dart';
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ccce_application/services/error_logger.dart';
 
 class SignUp extends StatefulWidget {
@@ -21,6 +24,7 @@ class SignUp extends StatefulWidget {
 class _SignUpState extends State<SignUp> {
   String errorMsg = '';
   bool _isLoading = false;
+  bool _isMicrosoftLoading = false;
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -286,6 +290,43 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ),
                   SizedBox(height: screenHeight * 0.020),
+
+                  SizedBox(
+                    width: screenWidth * 0.75,
+                    height: screenHeight * 0.065,
+                    child: ElevatedButton(
+                      onPressed:
+                          _isMicrosoftLoading ? null : _signUpWithCalPoly,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.white70,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
+                        ),
+                        elevation: 0,
+                      ),
+                      child: _isMicrosoftLoading
+                          ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: AppColors.calPolyGreen,
+                              ),
+                            )
+                          : const Text(
+                              'SIGN UP WITH CAL POLY',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: AppColors.calPolyGreen,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                  ),
+
+                  SizedBox(height: screenHeight * 0.020),
+
                   GestureDetector(
                     onTap: () {
                       Navigator.pushReplacement(
@@ -481,6 +522,138 @@ class _SignUpState extends State<SignUp> {
         });
       }
     }
+  }
+
+  Future<void> _signUpWithCalPoly() async {
+    if (_isMicrosoftLoading) return;
+
+    setState(() {
+      _isMicrosoftLoading = true;
+      errorMsg = '';
+    });
+
+    try {
+      final provider = OAuthProvider('microsoft.com');
+      provider.addScope('openid');
+      provider.addScope('profile');
+      provider.addScope('email');
+
+      final customParameters = <String, String>{
+        'tenant': MicrosoftSsoConfig.resolvedTenant,
+        'prompt': 'select_account',
+      };
+
+      final loginHint =
+          MicrosoftSsoConfig.buildLoginHint(_emailController.text);
+      if (loginHint.isNotEmpty) {
+        customParameters['login_hint'] = loginHint;
+      }
+
+      provider.setCustomParameters(customParameters);
+
+      final userCredential =
+          await FirebaseAuth.instance.signInWithProvider(provider);
+      final user = userCredential.user;
+
+      if (user == null) {
+        setState(() {
+          errorMsg = 'Microsoft sign-in did not return a valid user.';
+        });
+        return;
+      }
+
+      await _ensureUserDocumentForOAuth(user);
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('TOS', true);
+
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AppEntryGate()),
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e, s) {
+      ErrorLogger.logError(
+        'SignUp',
+        'MICROSOFT_SIGN_UP_ERROR',
+        error: e,
+        stackTrace: s,
+      );
+
+      String message = 'Unable to sign up with Cal Poly right now.';
+      if (e.code == 'account-exists-with-different-credential') {
+        message =
+            'An account already exists with the same email using a different sign-in method.';
+      } else if ((e.message ?? '').contains('AADSTS700016')) {
+        message =
+            'Microsoft app registration was not found for the selected tenant. Check Microsoft provider settings in Firebase Console.';
+      } else if (e.message != null && e.message!.trim().isNotEmpty) {
+        message = e.message!;
+      }
+
+      if (mounted) {
+        setState(() {
+          errorMsg = message;
+        });
+      }
+    } catch (e, s) {
+      ErrorLogger.logError(
+        'SignUp',
+        'MICROSOFT_SIGN_UP_UNKNOWN_ERROR',
+        error: e,
+        stackTrace: s,
+      );
+      if (mounted) {
+        setState(() {
+          errorMsg = 'Unable to sign up with Cal Poly right now.';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isMicrosoftLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _ensureUserDocumentForOAuth(User user) async {
+    final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final snapshot = await docRef.get();
+    if (snapshot.exists) {
+      return;
+    }
+
+    final fullName = (user.displayName ?? '').trim();
+    final parts =
+        fullName.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final firstName = parts.isNotEmpty ? parts.first : 'Cal Poly';
+    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : 'User';
+
+    String email = user.email ?? '';
+    if (email.isEmpty) {
+      for (final providerData in user.providerData) {
+        final providerEmail = (providerData.email ?? '').trim();
+        if (providerEmail.isNotEmpty) {
+          email = providerEmail;
+          break;
+        }
+      }
+    }
+
+    final userData = <String, dynamic>{
+      'email': email,
+      'firstName': firstName,
+      'lastName': lastName,
+      'schoolYear': '',
+      'company': '',
+      'role': '',
+      'admin': false,
+      'createdAt': FieldValue.serverTimestamp(),
+      'authProvider': 'microsoft.com',
+    };
+
+    await docRef.set(userData, SetOptions(merge: true));
   }
 }
 

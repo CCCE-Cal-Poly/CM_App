@@ -22,10 +22,13 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   Timer? _checkTimer;
   int _resendCooldown = 0;
   Timer? _cooldownTimer;
+  bool _autoSendAttempted = false;
 
   @override
   void initState() {
     super.initState();
+
+    _maybeAutoSendVerificationEmail();
 
     // Immediately check if already verified (handles stale cache on app restart)
     _checkVerificationNow();
@@ -34,6 +37,93 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     _checkTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
       await _checkVerificationNow();
     });
+  }
+
+  Future<void> _maybeAutoSendVerificationEmail() async {
+    if (_autoSendAttempted) return;
+    _autoSendAttempted = true;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.emailVerified) {
+      return;
+    }
+
+    await _sendVerificationEmail(userInitiated: false);
+  }
+
+  Future<void> _sendVerificationEmail({required bool userInitiated}) async {
+    if (_isResending || _resendCooldown > 0) {
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() => _isResending = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw FirebaseAuthException(
+          code: 'no-current-user',
+          message: 'No authenticated user found.',
+        );
+      }
+
+      await user.sendEmailVerification();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(userInitiated
+              ? 'Verification email sent!'
+              : 'Verification email sent. Check your inbox or spam folder.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Start a 60-second cooldown to prevent abuse
+      setState(() {
+        _resendCooldown = 60;
+      });
+      _cooldownTimer?.cancel();
+      _cooldownTimer = Timer.periodic(
+        const Duration(seconds: 1),
+        (timer) {
+          if (!mounted) {
+            timer.cancel();
+            return;
+          }
+          setState(() {
+            _resendCooldown--;
+            if (_resendCooldown <= 0) {
+              timer.cancel();
+            }
+          });
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      String message = 'Failed to send verification email. Please try again.';
+      if (e is FirebaseAuthException) {
+        if (e.code == 'too-many-requests') {
+          message = 'Too many requests. Please wait and try again.';
+        } else if (e.code == 'network-request-failed') {
+          message = 'Network error. Check your connection and try again.';
+        } else if (e.message != null && e.message!.trim().isNotEmpty) {
+          message = e.message!;
+        }
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() => _isResending = false);
+    }
   }
 
   Future<void> _checkVerificationNow() async {
@@ -120,53 +210,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   ),
                   onPressed: (_isResending || _resendCooldown > 0)
                       ? null
-                      : () async {
-                          if (!mounted) return;
-                          setState(() => _isResending = true);
-                          try {
-                            await FirebaseAuth.instance.currentUser
-                                ?.sendEmailVerification();
-                            if (!context.mounted) return;
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Verification email sent!'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-
-                            // Start a 60-second cooldown to prevent abuse
-                            setState(() {
-                              _resendCooldown = 60;
-                            });
-                            _cooldownTimer?.cancel();
-                            _cooldownTimer = Timer.periodic(
-                              const Duration(seconds: 1),
-                              (timer) {
-                                if (!mounted) {
-                                  timer.cancel();
-                                  return;
-                                }
-                                setState(() {
-                                  _resendCooldown--;
-                                  if (_resendCooldown <= 0) {
-                                    timer.cancel();
-                                  }
-                                });
-                              },
-                            );
-                          } catch (e) {
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Error: $e'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                          if (!mounted) return;
-                          setState(() => _isResending = false);
-                        },
+                      : () => _sendVerificationEmail(userInitiated: true),
                   child: _isResending
                       ? const SizedBox(
                           height: 16,

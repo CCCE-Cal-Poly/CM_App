@@ -128,3 +128,8 @@ devtools_options.yaml
 
 #Ignore Claude
 CLAUDE.md
+
+# Microsoft SSO local credentials
+.env.microsoft
+.env.microsoft.local
+lib/common/config/microsoft_sso_secrets.dart

@@ -3,8 +3,10 @@
 import 'package:ccce_application/common/features/app_entry_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ccce_application/common/features/sign_up.dart';
 import 'package:ccce_application/common/features/verification_screen.dart';
+import 'package:ccce_application/common/config/microsoft_sso_config.dart';
 import 'package:ccce_application/common/widgets/gold_app_bar.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,6 +21,7 @@ class SignIn extends StatefulWidget {
 
 class _SignInState extends State<SignIn> {
   dynamic errorMsg = '';
+  bool _isMicrosoftSignInLoading = false;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -172,6 +175,43 @@ class _SignInState extends State<SignIn> {
                   ),
 
                   SizedBox(height: screenHeight * 0.015),
+
+                  // Sign In with Cal Poly (Microsoft SSO)
+                  SizedBox(
+                    width: screenWidth * 0.75,
+                    height: screenHeight * 0.065,
+                    child: ElevatedButton(
+                      onPressed:
+                          _isMicrosoftSignInLoading ? null : _signInWithCalPoly,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.white70,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
+                        ),
+                        elevation: 0,
+                      ),
+                      child: _isMicrosoftSignInLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.black,
+                              ),
+                            )
+                          : const Text(
+                              'SIGN IN WITH CAL POLY',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: AppColors.calPolyGreen,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+
+                  SizedBox(height: screenHeight * 0.02),
 
                   GestureDetector(
                     onTap: _showForgotPasswordDialog,
@@ -350,6 +390,148 @@ class _SignInState extends State<SignIn> {
         });
       }
     }
+  }
+
+  Future<void> _signInWithCalPoly() async {
+    if (_isMicrosoftSignInLoading) {
+      return;
+    }
+
+    setState(() {
+      _isMicrosoftSignInLoading = true;
+      errorMsg = '';
+    });
+
+    try {
+      final provider = OAuthProvider('microsoft.com');
+      provider.addScope('openid');
+      provider.addScope('profile');
+      provider.addScope('email');
+
+      final customParameters = <String, String>{};
+      customParameters['tenant'] = MicrosoftSsoConfig.resolvedTenant;
+      customParameters['prompt'] = 'select_account';
+
+      final loginHint =
+          MicrosoftSsoConfig.buildLoginHint(_emailController.text);
+      if (loginHint.isNotEmpty) {
+        customParameters['login_hint'] = loginHint;
+      }
+
+      if (customParameters.isNotEmpty) {
+        provider.setCustomParameters(customParameters);
+      }
+
+      final userCredential =
+          await FirebaseAuth.instance.signInWithProvider(provider);
+      final user = userCredential.user;
+
+      if (user == null) {
+        if (mounted) {
+          setState(() {
+            errorMsg = 'Microsoft sign-in did not return a valid user.';
+          });
+        }
+        return;
+      }
+
+      ErrorLogger.logInfo('SignIn',
+          'Microsoft sign-in successful. UID: ${user.uid}. Provider: microsoft.com');
+
+        await _ensureUserDocumentForOAuth(user);
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('TOS', true);
+
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AppEntryGate()),
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e, s) {
+      ErrorLogger.logError(
+        'SignIn',
+        'MICROSOFT_SIGN_IN_ERROR',
+        error: e,
+        stackTrace: s,
+      );
+
+      String message = 'Unable to sign in with Cal Poly right now.';
+      if (e.code == 'account-exists-with-different-credential') {
+        message =
+            'An account already exists with the same email using a different sign-in method.';
+      } else if (e.code == 'popup-closed-by-user' ||
+          e.code == 'web-context-cancelled') {
+        message = 'Sign-in was cancelled.';
+      } else if ((e.message ?? '').contains('AADSTS700016')) {
+        message =
+            'Microsoft app registration is not found in the selected tenant. Use MS_TENANT_ID=common, and verify Microsoft provider client ID/secret in Firebase Console.';
+      } else if (e.message != null && e.message!.trim().isNotEmpty) {
+        message = e.message!;
+      }
+
+      if (mounted) {
+        setState(() {
+          errorMsg = message;
+        });
+      }
+    } catch (e, s) {
+      ErrorLogger.logError(
+        'SignIn',
+        'MICROSOFT_SIGN_IN_UNKNOWN_ERROR',
+        error: e,
+        stackTrace: s,
+      );
+
+      if (mounted) {
+        setState(() {
+          errorMsg = 'Unable to sign in with Cal Poly right now.';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isMicrosoftSignInLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _ensureUserDocumentForOAuth(User user) async {
+    final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final fullName = (user.displayName ?? '').trim();
+    final parts = fullName.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final firstName = parts.isNotEmpty ? parts.first : 'Cal Poly';
+    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : 'User';
+
+    String email = user.email ?? '';
+    if (email.isEmpty) {
+      for (final providerData in user.providerData) {
+        final providerEmail = (providerData.email ?? '').trim();
+        if (providerEmail.isNotEmpty) {
+          email = providerEmail;
+          break;
+        }
+      }
+    }
+
+    final userData = <String, dynamic>{
+      'email': email,
+      'firstName': firstName,
+      'lastName': lastName,
+      'name': fullName,
+      'schoolYear': '',
+      'company': '',
+      'role': '',
+      'admin': false,
+      'createdAt': FieldValue.serverTimestamp(),
+      'lastSignInAt': FieldValue.serverTimestamp(),
+      'authProvider': 'microsoft.com',
+    };
+
+    await docRef.set(userData, SetOptions(merge: true));
+    ErrorLogger.logInfo('SignIn',
+        'Ensured Firestore profile for Microsoft user: ${user.uid}');
   }
 
   void _showForgotPasswordDialog() {
