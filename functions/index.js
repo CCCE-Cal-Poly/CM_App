@@ -402,43 +402,43 @@ exports.approveClubEvent = onCall(async (request) => {
 
     const createdEventRefs = [eventRef];
 
-    if (isRecurring) {
-      const nextOccurrence = calculateNextOccurrence(
-        currentStart,
-        currentEnd,
-        recurrenceType,
-        recurrenceInterval,
-      );
+    // if (isRecurring) {
+    //   const nextOccurrence = calculateNextOccurrence(
+    //     currentStart,
+    //     currentEnd,
+    //     recurrenceType,
+    //     recurrenceInterval,
+    //   );
 
-      if (nextOccurrence && (!endDate || nextOccurrence.start <= endDate)) {
-        const nextEventRef = db.collection("events").doc();
-        batch.set(nextEventRef, {
-          company: reqData.clubName || "",
-          clubId: clubId,
-          eventName: reqData.eventName || "",
-          startTime: admin.firestore.Timestamp.fromDate(nextOccurrence.start),
-          endTime: admin.firestore.Timestamp.fromDate(nextOccurrence.end),
-          mainLocation: reqData.eventLocation || "",
-          eventType: "club",
-          logo: reqData.logoUrl || reqData.logo || "",
-          Status: "approved",
-          description: reqData.description || "",
-          recurrenceType: recurrenceType,
-          recurrenceInterval: recurrenceInterval,
-          recurrenceEndDate: endDate,
-          recurring: true,
-          recurrenceSeriesId: eventRef.id,
-          recurrenceSequence: 1,
-          submittedBy: {
-            uid: reqData.requestedByUid || null,
-            name: reqData.requestedByName || null,
-            email: reqData.requestedByEmail || null,
-          },
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-        createdEventRefs.push(nextEventRef);
-      }
-    }
+    //   if (nextOccurrence && (!endDate || nextOccurrence.start <= endDate)) {
+    //     const nextEventRef = db.collection("events").doc();
+    //     batch.set(nextEventRef, {
+    //       company: reqData.clubName || "",
+    //       clubId: clubId,
+    //       eventName: reqData.eventName || "",
+    //       startTime: admin.firestore.Timestamp.fromDate(nextOccurrence.start),
+    //       endTime: admin.firestore.Timestamp.fromDate(nextOccurrence.end),
+    //       mainLocation: reqData.eventLocation || "",
+    //       eventType: "club",
+    //       logo: reqData.logoUrl || reqData.logo || "",
+    //       Status: "approved",
+    //       description: reqData.description || "",
+    //       recurrenceType: recurrenceType,
+    //       recurrenceInterval: recurrenceInterval,
+    //       recurrenceEndDate: endDate,
+    //       recurring: true,
+    //       recurrenceSeriesId: eventRef.id,
+    //       recurrenceSequence: 1,
+    //       submittedBy: {
+    //         uid: reqData.requestedByUid || null,
+    //         name: reqData.requestedByName || null,
+    //         email: reqData.requestedByEmail || null,
+    //       },
+    //       createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    //     });
+    //     createdEventRefs.push(nextEventRef);
+    //   }
+    // }
 
     if (clubId) {
       const clubRef = db.collection("clubs").doc(clubId);
@@ -463,30 +463,30 @@ function normalizeRecurrenceEndDate(endDate) {
   return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 23, 59, 59, 999);
 }
 
-function calculateNextOccurrence(start, end, recurrenceType, interval) {
-  if (!start || !end || recurrenceType === "Never") return null;
-  const nextStart = new Date(start);
-  const durationMs = end.getTime() - start.getTime();
-  const parsedInterval = parseInt(interval || 1);
-  const safeInterval = Number.isNaN(parsedInterval) || parsedInterval < 1 ? 1 : parsedInterval;
+// function calculateNextOccurrence(start, end, recurrenceType, interval) {
+//   if (!start || !end || recurrenceType === "Never") return null;
+//   const nextStart = new Date(start);
+//   const durationMs = end.getTime() - start.getTime();
+//   const parsedInterval = parseInt(interval || 1);
+//   const safeInterval = Number.isNaN(parsedInterval) || parsedInterval < 1 ? 1 : parsedInterval;
 
-  if (recurrenceType === "Interval (days)") {
-    nextStart.setDate(nextStart.getDate() + safeInterval);
-  } else if (recurrenceType === "Weekly") {
-    nextStart.setDate(nextStart.getDate() + 7 * safeInterval);
-  } else if (recurrenceType === "Monthly") {
-    const originalDay = start.getDate();
-    nextStart.setMonth(nextStart.getMonth() + safeInterval);
-    if (nextStart.getDate() !== originalDay) {
-      nextStart.setDate(0);
-    }
-  } else {
-    return null;
-  }
+//   if (recurrenceType === "Interval (days)") {
+//     nextStart.setDate(nextStart.getDate() + safeInterval);
+//   } else if (recurrenceType === "Weekly") {
+//     nextStart.setDate(nextStart.getDate() + 7 * safeInterval);
+//   } else if (recurrenceType === "Monthly") {
+//     const originalDay = start.getDate();
+//     nextStart.setMonth(nextStart.getMonth() + safeInterval);
+//     if (nextStart.getDate() !== originalDay) {
+//       nextStart.setDate(0);
+//     }
+//   } else {
+//     return null;
+//   }
 
-  const nextEnd = new Date(nextStart.getTime() + durationMs);
-  return {start: nextStart, end: nextEnd};
-}
+//   const nextEnd = new Date(nextStart.getTime() + durationMs);
+//   return {start: nextStart, end: nextEnd};
+// }
 
 exports.denyClubEvent = onCall(async (request) => {
   if (!request.auth) {
@@ -920,13 +920,22 @@ exports.processPendingNotifications = onSchedule("every 5 minutes", async (event
       console.log("No pending notifications ready to send");
       return;
     }
+    console.log(`Found ${q.size} pending notifications to process`);
     const sends = [];
-    q.forEach(async (doc) => {
-      if (doc.data().eventData.recurrenceType && doc.data().eventData.recurrenceType !== "Never") {
-            sends.push(scheduleRecurringEventNotification(doc));
+    // q.forEach(async (doc) => {
+    //   if (doc.data().eventData.recurrenceType && doc.data().eventData.recurrenceType !== "Never") {
+    //         sends.push(scheduleRecurringEventNotification(doc));
+    //   }
+    //   sends.push(sendNotificationDocNow(doc));
+    // });
+    for (const doc of q.docs) {
+      console.log(`Processing notification ${doc.id} with data`, doc.data());
+      if (doc.data().eventData?.recurrenceType && doc.data().eventData.recurrenceType !== "Never") {
+        console.log(`Scheduling next occurrence for recurring event notification ${doc.id}`);
+        sends.push(scheduleRecurringEventNotification(doc));
       }
       sends.push(sendNotificationDocNow(doc));
-    });
+    }
     await Promise.all(sends);
   } catch (err) {
     console.error("Error in scheduled processing", err);
@@ -994,6 +1003,7 @@ exports.scheduleEventReminder = onDocumentCreated("events/{eventId}", async (eve
         company: eventData.company || null,
         startTime: startTime,
         location: eventLocation,
+        recurrenceType: eventData.recurrenceType || "Never",
         recurrenceInterval: eventData.recurrenceInterval || null,
         recurrenceEndDate: eventData.recurrenceEndDate || null,
       },
@@ -1157,10 +1167,12 @@ function computeNextOccurrence(ev, currentStart) {
 
 
 async function scheduleRecurringEventNotification(notificationDoc) {
+  console.log(`Scheduling next occurrence for recurring notification ${notificationDoc.id}`);
   // Pre-schedule the next occurrence (idempotent)
   const notificationData = notificationDoc.data() || {};
   const eventData = notificationData.eventData || {};
   if (!eventData.recurrenceInterval) return;
+  console.log("Interval for next occurrence:", eventData.recurrenceInterval);
 
 
   const currentStartTs = eventData.startTime;
@@ -1170,28 +1182,34 @@ async function scheduleRecurringEventNotification(notificationDoc) {
     // currentStart = currentStartTs.toMillis();
   }
   if (!currentStart) return;
+  console.log("Current event start time:", currentStart.toISOString());
 
 
   const eventId = eventData.eventId || notificationData.targetId || notificationData.targetId;
   if (!eventId) return;
+  console.log("Event ID for recurrence:", eventId);
 
 
   try {
     const eventSnap = await admin.firestore().collection("events").doc(eventId).get();
     if (!eventSnap.exists) return;
+    console.log("Fetched event data for recurrence scheduling");
     const ev = eventSnap.data() || {};
 
 
     const nextStart = computeNextOccurrence(ev, currentStart);
     if (!nextStart) return;
+    console.log("Next occurrence start time:", nextStart.toISOString());
 
 
     const recurrenceEndTs = ev.recurrenceEndDate;
     if (recurrenceEndTs && recurrenceEndTs.toMillis() && nextStart.getTime() > recurrenceEndTs.toMillis()) return;
+    console.log("Next occurrence is within recurrence end date");
 
 
     const sendAt = new Date(nextStart.getTime() - (60 * 60 * 1000));
     if (sendAt.getTime() <= Date.now()) return;
+    console.log("Next occurrence reminder send time:", sendAt.toISOString());
 
     // Avoid duplicates
     const eventType = ev.eventType || "infoSession";
@@ -1207,6 +1225,7 @@ async function scheduleRecurringEventNotification(notificationDoc) {
       .get();
 
     if (!existing.empty) return;
+    console.log("No existing pending notification for this occurrence, creating new one");
 
     const eventName = ev.eventName || ev.company || "Upcoming Event";
     const eventLocation = ev.mainLocation || "No Listed Location";
@@ -1227,6 +1246,7 @@ async function scheduleRecurringEventNotification(notificationDoc) {
         company: ev.company || null,
         startTime: admin.firestore.Timestamp.fromDate(nextStart),
         location: eventLocation,
+        recurrenceType: ev.recurrenceType || "Never",
         recurrenceInterval: ev.recurrenceInterval || null,
         recurrenceEndDate: ev.recurrenceEndDate || null,
       },
