@@ -27,6 +27,9 @@ class EventProvider extends ChangeNotifier {
   List<CalEvent> getEventsByType(String type) =>
       _allEvents.where((event) => event.eventType == type).toList();
 
+  List<CalEvent> getEventsByTypes(List<String> types) =>
+      _allEvents.where((event) => types.contains(event.eventType)).toList();
+
   void linkCompanyLogos(List<dynamic> companies) {
     final Map<String, String?> logosByName = {};
     final Map<String, String?> logosById = {};

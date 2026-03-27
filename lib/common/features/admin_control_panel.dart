@@ -11,12 +11,16 @@ import 'package:provider/provider.dart';
 class AdminPanelScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   const AdminPanelScreen({super.key, required this.scaffoldKey});
+  
 
   @override
   AdminPanelScreenState createState() => AdminPanelScreenState();
 }
 
 class AdminPanelScreenState extends State<AdminPanelScreen> {
+  bool _isFacultyApproveLoading = false;
+  bool _isClubApproveLoading = false;
+
   void _showChangeUserRoleDialog() async {
     final usersSnapshot =
         await FirebaseFirestore.instance.collection('users').get();
@@ -433,8 +437,15 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 ElevatedButton(
-                                  onPressed: () async {
+                                  onPressed: _isClubApproveLoading ? null : () async {
+                                    if (mounted) {
+                                      setState(() {
+                                        print("Setting loading state to true for denying club event request ${doc.id}");
+                                        _isClubApproveLoading = true;
+                                      });
+                                    }
                                     try {
+                                      print('Attempting to approve club event request ${doc.id}');
                                       // Check if user is authenticated
                                       final currentUser =
                                           FirebaseAuth.instance.currentUser;
@@ -479,18 +490,37 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                                           .showSnackBar(SnackBar(
                                               content:
                                                   Text('Approve failed: $e')));
+                                    } finally {
+                                      if (mounted) {
+                                        setState(() {
+                                          print("Setting loading state to false for denying club event request ${doc.id}");
+                                          _isClubApproveLoading = false;
+                                        });
+                                      }
                                     }
                                   },
-                                  child: const Text('Approve'),
+                                  child: _isClubApproveLoading ? const SizedBox(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: Colors.black,
+                                        ),
+                                      ) : const Text('Approve'),
                                 ),
                                 const SizedBox(width: 8),
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red,
                                   ),
-                                  onPressed: () async {
+                                  onPressed: _isClubApproveLoading ? null : () async {
+                                    if (mounted) {
+                                      setState(() {
+                                        print("Setting loading state to true for denying club event request ${doc.id}");
+                                        _isClubApproveLoading = true;
+                                      });
+                                    }
                                     try {
                                       // Check if user is authenticated
+                                      print('Attempting to deny club event request ${doc.id}');
                                       final currentUser =
                                           FirebaseAuth.instance.currentUser;
                                       if (currentUser == null) {
@@ -521,11 +551,21 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                                           .showSnackBar(SnackBar(
                                               content:
                                                   Text('Deny failed: $e')));
+                                    } finally {
+                                      if (mounted) {
+                                        setState(() {
+                                          print("Setting loading state to false for denying club event request ${doc.id}");
+                                          _isClubApproveLoading = false;
+                                        });
+                                      }
                                     }
                                   },
-                                  child: const Text(
-                                    'Deny',
-                                    style: TextStyle(color: Colors.white),
+                                  child: _isClubApproveLoading ? const SizedBox(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: Colors.black,
+                                        ),
+                                      ) : Text('Deny', style: TextStyle(color: Colors.white),
                                   ),
                                 ),
                               ],
@@ -721,7 +761,13 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 ElevatedButton(
-                                  onPressed: () async {
+                                  onPressed: _isFacultyApproveLoading ? null : 
+                                  () async {
+                                    if (mounted) {
+                                      setState(() {
+                                        _isFacultyApproveLoading = true;
+                                      });
+                                    }
                                     try {
                                       // Call Cloud Function to set user role to faculty
                                       await FirebaseFunctions.instance
@@ -756,16 +802,35 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                                           .showSnackBar(SnackBar(
                                               content:
                                                   Text('Approve failed: $e')));
+                                    } finally {
+                                      if (mounted) {
+                                        setState(() {
+                                          _isFacultyApproveLoading = false;
+                                        });
+                                      }
                                     }
                                   },
-                                  child: const Text('Approve'),
+                                  // child: const Text('Approve'),
+                                  child: _isFacultyApproveLoading
+                                    ? const SizedBox(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: Colors.black,
+                                        ),
+                                      )
+                                    : const Text('Approve'),
                                 ),
                                 const SizedBox(width: 8),
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red,
                                   ),
-                                  onPressed: () async {
+                                  onPressed: _isFacultyApproveLoading ? null : () async {
+                                    if (mounted) {
+                                      setState(() {
+                                        _isFacultyApproveLoading = true;
+                                      });
+                                    }
                                     try {
                                       // Update the request status to denied
                                       await FirebaseFirestore.instance
@@ -790,12 +855,26 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                                           .showSnackBar(SnackBar(
                                               content:
                                                   Text('Deny failed: $e')));
+                                    } finally {
+                                      if (mounted) {
+                                        setState(() {
+                                          _isFacultyApproveLoading = false;
+                                        });
+                                      }
                                     }
                                   },
-                                  child: const Text(
-                                    'Deny',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
+                                  // child: const Text(
+                                  //   'Deny',
+                                  //   style: TextStyle(color: Colors.white),
+                                  // ),
+                                child: _isFacultyApproveLoading
+                                    ? const SizedBox(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: Colors.black,
+                                        ),
+                                      )
+                                    : const Text('Deny', style: TextStyle(color: Colors.white)),
                                 ),
                               ],
                             ),
@@ -982,3 +1061,4 @@ class AdminControlPanelRequests extends StatelessWidget {
     );
   }
 }
+

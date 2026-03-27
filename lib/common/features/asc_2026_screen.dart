@@ -1,3 +1,5 @@
+import 'package:ccce_application/common/features/asc_2026_sponsors_directory.dart';
+import 'package:ccce_application/common/features/asc_2026_agenda.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:flutter/material.dart';
@@ -68,6 +70,8 @@ class Asc2026Screen extends StatelessWidget {
     );
   }
 
+
+
   void _showComingSoon(BuildContext context, String label) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -83,10 +87,14 @@ class Asc2026Screen extends StatelessWidget {
 
     return Container(
       color: AppColors.calPolyGreen,
-      child: SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(right: 16.0, left: 16.0, top: 16.0),
         child: Column(
           children: [
-            CalPolyMenuBar(scaffoldKey: scaffoldKey),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: CalPolyMenuBar(scaffoldKey: scaffoldKey)
+            ),
             Expanded(
               child: SingleChildScrollView(
                 child: Center(
@@ -117,7 +125,13 @@ class Asc2026Screen extends StatelessWidget {
                         body:
                             'View conference sessions, keynotes, and timing updates in one place.',
                         buttonLabel: 'View Agenda',
-                        onPressed: () => _showComingSoon(context, 'Agenda'),
+                        onPressed: () =>  {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const Asc2026Agenda(),
+                            ),
+                          ),
+                        },
                       ),
                       const SizedBox(height: 12),
                       _sectionCard(
@@ -135,18 +149,14 @@ class Asc2026Screen extends StatelessWidget {
                         body:
                             'See sponsor companies, booths, and featured opportunities during ASC 2026.',
                         buttonLabel: 'View Sponsors',
-                        onPressed: () => _showComingSoon(context, 'Sponsors'),
+                        onPressed: () => {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const Asc2026SponsorsDirectory(),
+                            ),
+                          ),
+                        },
                       ),
-                      const SizedBox(height: 12),
-                      _sectionCard(
-                        context: context,
-                        title: 'Check-In',
-                        body:
-                            'Use this section for attendee check-in and on-site conference QR details.',
-                        buttonLabel: 'Open Check-In',
-                        onPressed: () => _showComingSoon(context, 'Check-In'),
-                      ),
-                      SizedBox(height: screenHeight * 0.05),
                     ],
                   ),
                 ),
