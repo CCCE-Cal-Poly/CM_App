@@ -123,6 +123,15 @@ class CalendarScreenState extends State<HomeScreen> {
           const SnackBar(content: Text('Error loading club details')),
         );
       }
+    } else if (event.eventType.toLowerCase() == "asc2026") {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ascEventPopUp(
+            ascEvent: event,
+            onClose: () => Navigator.of(context).pop(),
+          ),
+        ),
+      );
     } else {
       Navigator.of(context).push(
         MaterialPageRoute(

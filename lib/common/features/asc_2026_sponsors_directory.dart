@@ -110,7 +110,7 @@ class _Asc2026SponsorsDirectoryState extends State<Asc2026SponsorsDirectory> {
       return OutlinedButton(
         onPressed: () {
           setState(() {
-            sortingFunction(); // Call your sorting function
+            sortingFunction(); 
             buttonStates[txt] = !isActive; // Flip the boolean
           });
         },
@@ -153,7 +153,7 @@ class _Asc2026SponsorsDirectoryState extends State<Asc2026SponsorsDirectory> {
             Row(
               children: [
                 Image.asset(
-                  'assets/icons/faculty_catalog.png', // CHANGE THIS LATER TO COMPANY ICON
+                  'assets/icons/default_company.png', // CHANGE THIS LATER TO COMPANY ICON
                   color: AppColors.welcomeLightYellow,
                   width: 26,
                   height: 28,

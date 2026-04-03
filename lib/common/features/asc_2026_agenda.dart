@@ -19,9 +19,9 @@ class _Asc2026AgendaState extends State<Asc2026Agenda> {
   List<CalEvent> filteredAscEvents = [];
 
   Map<String, bool> buttonStates = {
-    'Chronological': false,
-    'Hiring': false,
-    'Future': false,
+    'Wednesday': false,
+    'Thursday': false,
+    'Friday': false,
   };
 
   @override
@@ -40,19 +40,19 @@ class _Asc2026AgendaState extends State<Asc2026Agenda> {
     var sorted = List<CalEvent>.from(sessions);
 
     // Filter for future events if that button is active
-    if (buttonStates['Future']!) {
-      final now = DateTime.now();
-      sorted = sorted.where((event) => event.startTime.isAfter(now)).toList();
-    }
+    // if (buttonStates['Future']!) {
+    //   final now = DateTime.now();
+    //   sorted = sorted.where((event) => event.startTime.isAfter(now)).toList();
+    // }
 
 
     // Sort chronologically or alphabetically
-    if (buttonStates['Chronological']!) {
-      sorted.sort((a, b) => a.startTime.compareTo(b.startTime));
-    } else {
-      sorted.sort((a, b) =>
-          a.eventName.toLowerCase().compareTo(b.eventName.toLowerCase()));
-    }
+    // if (buttonStates['Chronological']!) {
+    sorted.sort((a, b) => a.startTime.compareTo(b.startTime));
+    // } else {
+    //   sorted.sort((a, b) =>
+    //       a.eventName.toLowerCase().compareTo(b.eventName.toLowerCase()));
+    // }
 
     return sorted;
   }
@@ -188,46 +188,46 @@ class _Asc2026AgendaState extends State<Asc2026Agenda> {
                   ],
                 ),
               ),
-              // Padding(
-              //   padding: const EdgeInsets.only(top: 2, left: 12, right: 12),
-              //   child: SingleChildScrollView(
-              //     scrollDirection: Axis.horizontal,
-              //     child: Row(
-              //       children: [
-              //         createButtonSorter('Chronological', () {}),
-              //         const Padding(
-              //             padding: EdgeInsets.symmetric(horizontal: 6)),
-              //         createButtonSorter('Hiring', () {}),
-              //         const Padding(
-              //             padding: EdgeInsets.symmetric(horizontal: 6)),
-              //         createButtonSorter('Future', () {}),
-              //       ],
-              //     ),
-              //   ),
-              // ),
+              Padding(
+                padding: const EdgeInsets.only(top: 2, left: 12, right: 12),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      createButtonSorter('Wednesday', () {}),
+                      const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6)),
+                      createButtonSorter('Thursday', () {}),
+                      const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6)),
+                      createButtonSorter('Friday', () {})
+                    ],
+                  ),
+                ),
+              ),
               Expanded(
-                child: ListView.builder(
-                  scrollDirection: Axis.vertical,
-                  itemCount: _isTextEntered
-                      ? filteredAscEvents.length
-                      : ascEvents.length,
-                  itemBuilder: (context, index) {
-                    final List<CalEvent> displayList =
-                        _isTextEntered ? filteredAscEvents : ascEvents;
-                    return GestureDetector(
-                      onTap: () {
-                        CalEvent ascEventData = displayList[index];
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return ascEventPopUp(
-                              ascEvent: ascEventData,
-                              onClose: () => Navigator.pop(context),
-                            );
-                          },
-                        );
-                      },
-                      child: AscEventItem(displayList[index]),
+                child: Builder(
+                  builder: (context) {
+                    final List<CalEvent> displayList = _isTextEntered ? filteredAscEvents : ascEvents;
+
+                    // Split into admin and faculty
+                    final List<CalEvent> fifteenth =
+                        displayList.where((f) => f.startTime.day == 15).toList();
+                    final List<CalEvent> sixteenth =
+                        displayList.where((f) => f.startTime.day == 16).toList();
+                    final List<CalEvent> seventeenth =
+                        displayList.where((f) => f.startTime.day == 17).toList();
+
+                    // Combine with section headers
+                    final List<Widget> sectionedList = [];
+
+                    _addDateSection("Wednesday", fifteenth, context, sectionedList);
+                    _addDateSection("Thursday", sixteenth, context, sectionedList);
+                    _addDateSection("Friday", seventeenth, context, sectionedList);
+
+
+                    return ListView(
+                      children: sectionedList,
                     );
                   },
                 ),
@@ -238,4 +238,72 @@ class _Asc2026AgendaState extends State<Asc2026Agenda> {
       );
     });
   }
+
+
+
+
+    _addDateSection(
+    String eventDate,
+    List<CalEvent> eventList,
+    BuildContext context,
+    List<Widget> sectionedList
+  ){
+    final bool shouldShow = ((buttonStates[eventDate]!) || buttonStates.values.every((value) => !value));
+    if (shouldShow){
+        sectionedList.add(
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+          child: Text(
+            "$eventDate",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w400,
+              color: AppColors.welcomeLightYellow,
+            ),
+          ),
+        ),
+      );
+    }
+    else {
+      null;
+    }
+
+    if (shouldShow) {
+        if (eventList.isEmpty) {
+          sectionedList.add(
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+              child: Text("None", style: TextStyle(color: Colors.grey)),
+            ),
+          );
+        }
+        else{
+        sectionedList.addAll(
+          eventList.map((f) => GestureDetector(
+                      onTap: () {
+                        CalEvent ascEventData = f;
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return ascEventPopUp(
+                              ascEvent: ascEventData,
+                              onClose: () => Navigator.pop(context),
+                            );
+                          },
+                        );
+                      },
+                      child: AscEventItem(f),
+                    )).toList(),
+          );
+      }
+      }
+      else{
+        const SizedBox(height: 10);
+      }
+
+
+  }
 }
+
+
+

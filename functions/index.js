@@ -985,7 +985,7 @@ exports.scheduleEventReminder = onDocumentCreated("events/{eventId}", async (eve
     }
 
     const eventName = eventData.eventName || eventData.company || "Upcoming Event";
-    const eventLocation = eventData.mainLocation || "No Listed Location";
+    const eventLocation = eventData.mainLocation || eventData.eventLocation || "No Listed Location";
     const eventDescription = eventData.description || "";
 
     const notification = {
@@ -1596,7 +1596,119 @@ exports.setEventUpdatedAt = onDocumentWritten("events/{eventId}", async (event) 
   } catch (err) {
     console.error(`Error setting updatedAt for event ${event.params.eventId}:`, err);
   }
+
+
+    // NEW: Check if notification-relevant fields changed
+    // status
+  const relevantFields = ["eventName", "company", "mainLocation", "description", "startTime", "eventLocation", "status"];
+  const fieldsChanged = relevantFields.some((field) =>
+    JSON.stringify(beforeData[field]) !== JSON.stringify(afterData[field]),
+  );
+
+  if (fieldsChanged) {
+    try {
+      await updateEventNotifications(event.params.eventId, afterData);
+      console.log(`Updated notifications for event ${event.params.eventId}`);
+    } catch (err) {
+      console.error(`Error updating notifications for event ${event.params.eventId}:`, err);
+    }
+  }
 });
+
+// Helper function to update notifications for a specific event
+// NOTE: This function DOES NOT work with recurring event notifications
+// The notifcation's sendAt parameter will be calculated based on the main startTime
+// this is innaccurate, and should be fixed in the future
+// low priority for now though, since it is not currently possible for users to update recurring events at all
+async function updateEventNotifications(eventId, eventData) {
+  console.log(`Updating notifications for event ${eventId}`);
+  const db = admin.firestore();
+  // Find all pending system notifications for this event
+  const notificationsQuery = db.collection("notifications")
+    .where("targetId", "==", eventId)
+    .where("targetType", "in", ["infoSession"])
+    .where("createdBy", "==", "system")
+    .where("status", "==", "pending");
+
+  const notificationsSnap = await notificationsQuery.get();
+
+  if (notificationsSnap.empty) {
+    return; // No notifications to update
+  }
+
+
+  // const eventType = eventData.eventType || "infoSession";
+  const eventName = eventData.eventName || eventData.company || "Upcoming Event";
+  const eventLocation = eventData.mainLocation || eventData.eventLocation || "No Listed Location";
+  const eventDescription = eventData.description || "";
+  const startTime = eventData.startTime;
+
+  // Calculate new sendAt if startTime changed
+  let sendAtMillis = null;
+  if (startTime && startTime.toMillis) {
+    sendAtMillis = startTime.toMillis() - (60 * 60 * 1000); // 1 hour before
+  }
+
+  const batch = db.batch();
+  let updateCount = 0;
+
+  for (const doc of notificationsSnap.docs) {
+    console.log(`Updating notification ${doc.id} for event ${eventId}`);
+    // const notificationData = doc.data();
+    const updates = {};
+
+    // Update title and message
+    updates.title = `${eventName} starts in 1 hour`;
+    updates.message = `${eventName} at ${eventLocation}. ${eventDescription}`.trim();
+
+    // Update sendAt if startTime changed and it's still in the future
+    if (sendAtMillis && sendAtMillis > Date.now()) {
+      updates.sendAt = admin.firestore.Timestamp.fromMillis(sendAtMillis);
+    }
+
+      // const notification = {
+      //   targetType: targetType,
+      //   targetId: eventId,
+      //   title: `${eventName} starts in 1 hour`,
+      //   message: `${eventName} at ${eventLocation}. ${eventDescription}`.trim(),
+      //   sendAt: admin.firestore.Timestamp.fromMillis(sendAtMillis),
+      //   createdBy: "system",
+      //   createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      //   status: "pending",
+      //   eventData: {
+      //     eventId: eventId,
+      //     eventName: eventName,
+      //     company: eventData.company || null,
+      //     startTime: startTime,
+      //     location: eventLocation,
+      //     recurrenceType: eventData.recurrenceType || "Never",
+      //     recurrenceInterval: eventData.recurrenceInterval || null,
+      //     recurrenceEndDate: eventData.recurrenceEndDate || null,
+      //   },
+      // };
+
+    // Update embedded eventData
+    updates.eventData = {
+      eventId: eventId,
+      eventName: eventName,
+      company: eventData.company || null,
+      startTime: startTime,
+      location: eventLocation,
+      recurrenceType: eventData.recurrenceType || "Never",
+      recurrenceInterval: eventData.recurrenceInterval || null,
+      recurrenceEndDate: eventData.recurrenceEndDate || null,
+    };
+
+
+    batch.update(doc.ref, updates);
+    updateCount++;
+  }
+
+  if (updateCount > 0) {
+    await batch.commit();
+    console.log(`Updated ${updateCount} notifications for event ${eventId}`);
+  }
+}
 
 exports.deleteClubEvent = onCall(async (request) => {
   console.log("DELETE FUNC CALLED - deleteClubEvent called with data:", request.data);

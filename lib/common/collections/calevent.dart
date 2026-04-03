@@ -41,7 +41,11 @@ class CalEvent {
 
   String? sessionType;   // For ASC 2026 events, e.g. Pre-conference session(Wed), Poster display*(Thursday), Paper presentation(Thursday/Friday), Keynote address etc.
   String? presenters;    // For ASC 2026 events, e.g. list of presenter names for poster/paper sessions
-  
+  String? description;   // For ASC 2026 events, the description field provided by the organizers
+  String? topic;         // For ASC 2026 events, the topic field provided by the organizers
+  String? moderator;      // For ASC 2026 events, the moderator field provided by the organizers (if any)
+  int? paperNumber;
+  int? track;
 
 
   CalEvent({
@@ -59,6 +63,11 @@ class CalEvent {
     this.seriesId,
     this.sessionType,
     this.presenters,
+    this.description,
+    this.topic,
+    this.moderator,
+    this.paperNumber,
+    this.track,
     this.isInstance = false,
   });
 
@@ -130,6 +139,11 @@ class CalEvent {
 
     final sessionType = data["sessionType"] ?? "";
     final presenters = data["presenters"] ?? "";
+    final description = data["description"] ?? "";
+    final topic = data["topic"] ?? "";
+    final moderator = data["moderator"] ?? "";
+    final paperNumber = data["paperNumber"] is int ? data["paperNumber"] : null;
+    final track = data["track"] is int ? data["track"] : null;
 
     return CalEvent(
       id: doc.id,
@@ -147,6 +161,11 @@ class CalEvent {
       isInstance: data["isInstance"] == true,
       sessionType: sessionType,
       presenters: presenters,
+      description: description,
+      topic: topic,
+      paperNumber: paperNumber,
+      track: track,
+      moderator: moderator
     );
   }else {
     // Info session - support both new (companyId) and legacy (company name) approaches
@@ -382,7 +401,7 @@ class AscEventItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: _pickColorBasedOnSessionType(ascEvent.sessionType),
           border: Border.all(color: Colors.transparent),
           borderRadius: BorderRadius.zero,
           boxShadow: [
@@ -419,13 +438,32 @@ class AscEventItem extends StatelessWidget {
                   minFontSize: 11,
                   maxLines: 2,
                 ),
-                subtitle: Text("${ascEvent.sessionType ?? ""}\n${ascEvent.startTime.month}/${ascEvent.startTime.day}/${ascEvent.startTime.year} • ${ascEvent.startTime.hour}:${ascEvent.startTime.minute.toString().padLeft(2, '0')} ${ascEvent.startTime.hour < 12 ? 'AM' : 'PM'}"),
+                subtitle: Text("${ascEvent.sessionType ?? ""}\n${ascEvent.startTime.month}/${ascEvent.startTime.day}/${ascEvent.startTime.year} • ${ascEvent.startTime.hour % 12 == 0 ? 12 : ascEvent.startTime.hour % 12}:${ascEvent.startTime.minute.toString().padLeft(2, '0')} ${ascEvent.startTime.hour < 12 ? 'AM' : 'PM'}"),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  _pickColorBasedOnSessionType(String? sessionType) {
+    switch (sessionType) {
+      case "Pre-conference Session":
+        return const Color.fromARGB(255, 243, 242, 201);
+      case "Poster Display":
+        return const Color.fromARGB(255, 251, 223, 221);
+      case "Paper Session":
+        return const Color.fromARGB(255, 216, 240, 215);
+      case "Keynote Address":
+        return const Color.fromARGB(255, 210, 227, 245);
+      case "General":
+        return const Color.fromARGB(255, 236, 217, 245);
+      case "Business Meeting":
+        return const Color.fromARGB(255, 245, 227, 217);
+      default:
+        return Colors.white;
+    }
   }
 }
 
@@ -965,9 +1003,15 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                     style: const TextStyle(color: Colors.black87, fontSize: 14),
                                   ),
                                   SizedBox(height: screenHeight * 0.006),
+                                  if (widget.ascEvent.topic != null && widget.ascEvent.topic!.isNotEmpty)
+                                    Text(
+                                      widget.ascEvent.topic!,
+                                      style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                    ),
+                                    SizedBox(height: screenHeight * 0.006),
                                   if (widget.ascEvent.eventLocation.isNotEmpty)
                                     Text(
-                                      widget.ascEvent.eventLocation,
+                                      "Location: " + widget.ascEvent.eventLocation,
                                       style: const TextStyle(color: Colors.black87, fontSize: 14),
                                     ),
                                   if (widget.ascEvent.eventLocation.isNotEmpty)
@@ -1010,7 +1054,7 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                           Icon(Icons.check, color: Colors.black),
                                           SizedBox(width: 6),
                                           Text(
-                                            'CHECKED IN',
+                                            'ADDED TO AGENDA',
                                             style: TextStyle(
                                               color: Colors.black,
                                               fontSize: 16,
@@ -1020,7 +1064,7 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                         ],
                                       )
                                     : const Text(
-                                        'CHECK IN',
+                                        'ADD TO MY AGENDA',
                                         style: TextStyle(
                                           color: AppColors.welcomeLightYellow,
                                           fontSize: 16,
@@ -1045,23 +1089,71 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                            const Text(
-                      "Presenters",
-                      style: TextStyle(
-                        color: AppColors.lightGold,
-                        fontSize: 22.0,
-                        fontWeight: FontWeight.w400,
+                    if ((widget.ascEvent.presenters ?? '').isNotEmpty) ...[
+                      const Text(
+                        "Presenters",
+                        style: TextStyle(
+                          color: AppColors.lightGold,
+                          fontSize: 22.0,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      widget.ascEvent.presenters ?? 'No Presenters Info',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14.0,
+                      const SizedBox(height: 5),
+                      Text(
+                        widget.ascEvent.presenters ?? 'No Presenters Info',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.0,
+                        ),
+                        softWrap: true,
                       ),
-                      softWrap: true,
-                    ),
+                      const SizedBox(height: 4),
+                      const Divider(),
+                    ],
+                    if ((widget.ascEvent.moderator ?? '').isNotEmpty && widget.ascEvent.moderator != null && widget.ascEvent.moderator != "TBD") ...[
+                      const SizedBox(height: 8),
+                      const Text(
+                        "Moderator",
+                        style: TextStyle(
+                          color: AppColors.lightGold,
+                          fontSize: 22.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        widget.ascEvent.moderator ?? 'No Moderator Info',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.0,
+                        ),
+                        softWrap: true,
+                      ),
+                      const SizedBox(height: 4),
+                      const Divider(),
+                    ],
+                    if ((widget.ascEvent.description ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 5),
+                      const Text(
+                        "Description",
+                        style: TextStyle(
+                          color: AppColors.lightGold,
+                          fontSize: 22.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        widget.ascEvent.description ?? 'No Description Info',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.0,
+                        ),
+                        softWrap: true,
+                      ),
+                      const SizedBox(height: 4),
+                      const Divider(),
+                    ]
                     // Builder(builder: (_) {
                     //   // final raw = widget.ascEvent.presenters ?? '';
                     //   // final items = raw.split('|').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
@@ -1080,8 +1172,6 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                   ],
                 ),
           ),
-        const SizedBox(height: 4),
-        const Divider(),
         ],
       ),
     );

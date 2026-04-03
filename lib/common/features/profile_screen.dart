@@ -414,7 +414,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                               foregroundColor: Colors.white,
                             ),
                             backgroundColor: AppColors.calPolyGreen,
-                            body: buildInfoSessionDisplay(context),
+                            body: buildInfoSessionDisplay(context, "infoSession"),
                           ),
                         ),
                       ),
@@ -423,6 +423,43 @@ class ProfileScreenState extends State<ProfileScreen> {
                         mainAxisSize: MainAxisSize.max,
                         children: [
                           Text("My Info Sessions",
+                              style: TextStyle(color: Colors.black)),
+                          Icon(Icons.arrow_forward, color: Colors.black),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: screenHeight * 0.01),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.yellowButton,
+                        shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero),
+                        minimumSize:
+                            const Size(double.infinity, 48), // Forces full width
+                      ),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => Scaffold(
+                            appBar: AppBar(
+                              title: const Text("My ASC 2026 Agenda",
+                                  style: TextStyle(
+                                      fontFamily: AppFonts.sansProSemiBold,
+                                      color: AppColors.welcomeLightYellow,
+                                      fontWeight: FontWeight.w600)),
+                              backgroundColor: AppColors.calPolyGreen,
+                              foregroundColor: Colors.white,
+                            ),
+                            backgroundColor: AppColors.calPolyGreen,
+                            body: buildInfoSessionDisplay(context, "asc2026"),
+                          ),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Text("My ASC 2026 Agenda",
                               style: TextStyle(color: Colors.black)),
                           Icon(Icons.arrow_forward, color: Colors.black),
                         ],
