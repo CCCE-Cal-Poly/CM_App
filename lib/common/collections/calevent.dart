@@ -438,13 +438,23 @@ class AscEventItem extends StatelessWidget {
                   minFontSize: 11,
                   maxLines: 2,
                 ),
-                subtitle: Text("${ascEvent.sessionType ?? ""}\n${ascEvent.startTime.month}/${ascEvent.startTime.day}/${ascEvent.startTime.year} • ${ascEvent.startTime.hour % 12 == 0 ? 12 : ascEvent.startTime.hour % 12}:${ascEvent.startTime.minute.toString().padLeft(2, '0')} ${ascEvent.startTime.hour < 12 ? 'AM' : 'PM'}"),
+                subtitle: Text("${ascEvent.sessionType ?? ""}\n${_getTimeAsString(ascEvent.startTime)} "),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+//${ascEvent.startTime.month}/${ascEvent.startTime.day}/${ascEvent.startTime.year} • ${ascEvent.startTime.hour % 12 == 0 ? 12 : ascEvent.startTime.hour % 12}:${ascEvent.startTime.minute.toString().padLeft(2, '0')} ${ascEvent.startTime.hour < 12 ? 'AM' : 'PM'}
+  _getTimeAsString(DateTime time) {
+    final month = time.month.toString();
+    final day = time.day.toString();
+    final year = time.year;
+    final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final ampm = time.hour < 12 ? 'AM' : 'PM';
+    return "$month/$day/$year • $hour:$minute $ampm";
   }
 
   _pickColorBasedOnSessionType(String? sessionType) {
@@ -1005,8 +1015,9 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                   SizedBox(height: screenHeight * 0.006),
                                   if (widget.ascEvent.topic != null && widget.ascEvent.topic!.isNotEmpty)
                                     Text(
-                                      widget.ascEvent.topic!,
+                                      "Track ${widget.ascEvent.track == null ? '' : widget.ascEvent.track!}: ${widget.ascEvent.topic!}",
                                       style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                      textAlign: TextAlign.center,
                                     ),
                                     SizedBox(height: screenHeight * 0.006),
                                   if (widget.ascEvent.eventLocation.isNotEmpty)
