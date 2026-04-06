@@ -162,6 +162,7 @@ class Asc2026Screen extends StatelessWidget {
                           ),
                         },
                       ),
+                      const SizedBox(height: 12),
                     ],
                   ),
                 ),

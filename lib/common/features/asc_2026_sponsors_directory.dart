@@ -239,13 +239,13 @@ class _Asc2026SponsorsDirectoryState extends State<Asc2026SponsorsDirectory> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    createButtonSorter('SLO', () => {}),
-                    const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
-                    createButtonSorter('Green', () => {}),
+                    createButtonSorter('Mustang', () => {}),
                     const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
                     createButtonSorter('Gold', () => {}),
                     const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
-                    createButtonSorter('Mustang', () => {}),
+                    createButtonSorter('Green', () => {}),
+                    const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
+                    createButtonSorter('SLO', () => {}),
                   ],
                 ),
               ),
