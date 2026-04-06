@@ -1063,12 +1063,12 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Icon(Icons.check, color: Colors.black),
-                                          SizedBox(width: 6),
+                                          SizedBox(width: 6.5),
                                           Text(
                                             'ADDED TO AGENDA',
                                             style: TextStyle(
                                               color: Colors.black,
-                                              fontSize: 16,
+                                              fontSize: 15,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
@@ -1078,7 +1078,7 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                         'ADD TO MY AGENDA',
                                         style: TextStyle(
                                           color: AppColors.welcomeLightYellow,
-                                          fontSize: 16,
+                                          fontSize: 15,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
