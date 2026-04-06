@@ -1,5 +1,6 @@
 // ignore_for_file: prefer_interpolation_to_compose_strings
 
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/providers/app_state.dart';
@@ -9,7 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:ccce_application/services/error_logger.dart';
 
-Widget buildInfoSessionList(context) {
+Widget buildInfoSessionList(context, eventType) {
   final now = DateTime.now();
   final checkedInEventIds =
       Provider.of<AppState>(context, listen: true).checkedInEventIds ??
@@ -20,7 +21,7 @@ Widget buildInfoSessionList(context) {
   ErrorLogger.logInfo('MyInfoSessions',
       'Checked-in sessions available: ${allCheckedIn.map((e) => e.id)}');
   final checkedInInfoSessions =
-      allCheckedIn.where((event) => event.eventType == "infoSession").toList();
+      allCheckedIn.where((event) => event.eventType == eventType).toList();
   final List<CalEvent> future = checkedInInfoSessions
       .where((event) =>
           (event.startTime.isAfter(now)) ||
@@ -93,10 +94,14 @@ Widget buildInfoSessionList(context) {
                           child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(event.eventName,
-                              style: const TextStyle(
-                                  fontFamily: "AppFonts.sansProSemiBold",
-                                  fontSize: 13)),
+                          AutoSizeText(
+                            event.eventName,
+                            style: const TextStyle(
+                                fontFamily: "AppFonts.sansProSemiBold",
+                                fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -136,7 +141,7 @@ Widget buildInfoSessionList(context) {
 
   List<Widget> buildSection(String sectionTitle, List<CalEvent> items) {
     if (items.isEmpty)
-      return [sectionHeader("No " + sectionTitle + " Info Sessions.")];
+      return [sectionHeader("No " + sectionTitle + " Events.")];
     return [sectionHeader(sectionTitle, italic: true)] +
         items.map(infoSessionRow).toList();
   }
@@ -156,9 +161,9 @@ Widget buildInfoSessionList(context) {
             ...buildSection('Past', past),
           ],
         )
-      : sectionHeader("You are not checked in to any info sessions.");
+      : sectionHeader("You are not checked in to any events.");
 }
 
-Widget buildInfoSessionDisplay(context) {
-  return buildInfoSessionList(context);
+Widget buildInfoSessionDisplay(context, eventType) {
+  return buildInfoSessionList(context, eventType);
 }

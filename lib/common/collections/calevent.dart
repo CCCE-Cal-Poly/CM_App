@@ -16,6 +16,14 @@ Widget eventLogoImage(String? url, double width, double height) {
   );
 }
 
+Widget ascImage(double width, double height) {
+  return ResilientCircleImage(
+    imageUrl: null,
+    placeholderAsset: 'assets/icons/app_icon_asc.png',
+    size: width,
+  );
+}
+
 class CalEvent {
   String id;
   String eventName;
@@ -31,6 +39,15 @@ class CalEvent {
   String? seriesId;      // Parent series ID if this is a recurring instance
   bool isInstance;       // True if this is a generated occurrence instance
 
+  String? sessionType;   // For ASC 2026 events, e.g. Pre-conference session(Wed), Poster display*(Thursday), Paper presentation(Thursday/Friday), Keynote address etc.
+  String? presenters;    // For ASC 2026 events, e.g. list of presenter names for poster/paper sessions
+  String? description;   // For ASC 2026 events, the description field provided by the organizers
+  String? topic;         // For ASC 2026 events, the topic field provided by the organizers
+  String? moderator;      // For ASC 2026 events, the moderator field provided by the organizers (if any)
+  int? paperNumber;
+  int? track;
+
+
   CalEvent({
     required this.id,
     required this.eventName,
@@ -44,6 +61,13 @@ class CalEvent {
     this.updatedAt,
     this.isd,
     this.seriesId,
+    this.sessionType,
+    this.presenters,
+    this.description,
+    this.topic,
+    this.moderator,
+    this.paperNumber,
+    this.track,
     this.isInstance = false,
   });
 
@@ -97,7 +121,53 @@ class CalEvent {
       seriesId: data["seriesId"],
       isInstance: data["isInstance"] == true,
     );
-  } else {
+  } else if (eventType == "asc2026") {
+
+    final eventName = data["eventName"] ?? "";
+
+    final start = (data["startTime"] is Timestamp)
+        ? data["startTime"].toDate()
+        : DateTime.now();
+
+    final end = (data["endTime"] is Timestamp)
+        ? data["endTime"].toDate()
+        : start.add(const Duration(hours: 1));
+    
+    final updatedAt = data["updatedAt"] is Timestamp
+        ? data["updatedAt"].toDate()
+        : null;
+
+    final sessionType = data["sessionType"] ?? "";
+    final presenters = data["presenters"] ?? "";
+    final description = data["description"] ?? "";
+    final topic = data["topic"] ?? "";
+    final moderator = data["moderator"] ?? "";
+    final paperNumber = data["paperNumber"] is int ? data["paperNumber"] : null;
+    final track = data["track"] is int ? data["track"] : null;
+
+    return CalEvent(
+      id: doc.id,
+      eventName: eventName,
+      startTime: start,
+      endTime: end,
+      eventLocation: data["mainLocation"] ?? data["eventLocation"] ?? "",
+      eventType: eventType,
+      logo: data.containsKey("logo") ? data["logo"] : null,
+      status: data["Status"] ?? data["status"] ?? "pending",
+      companyId: null, 
+      updatedAt: updatedAt,
+      isd: null,
+      seriesId: null,
+      isInstance: data["isInstance"] == true,
+      sessionType: sessionType,
+      presenters: presenters,
+      description: description,
+      topic: topic,
+      paperNumber: paperNumber,
+      track: track,
+      moderator: moderator
+    );
+  }else {
     // Info session - support both new (companyId) and legacy (company name) approaches
     String openPositions = data["isHiring"] == "No" ? "" : (data["position"] ?? "");
     String? theLogo = data.containsKey("logo") && data["logo"] != null && data["logo"].toString().isNotEmpty 
@@ -154,6 +224,20 @@ class CalEvent {
       eventType: data['eventType'] ?? '',
       logo: data['Logo'],
       status: data['Status'] ?? 'pending',
+    );
+  }
+
+  factory CalEvent.ascEventFromMap(Map<String, dynamic> data) {
+    return CalEvent(
+      id: data['id'] ?? '',
+      eventName: data['eventName'] ?? '',
+      startTime: (data['startTime']).toDate(),
+      endTime: (data['endTime']).toDate(),
+      eventLocation: data['eventLocation'] ?? '',
+      eventType: data['eventType'] ?? '',
+      status: data['Status'] ?? 'pending',
+      sessionType: data['sessionType'] ?? '',
+      presenters: data['presenters'] ?? '',
     );
   }
 
@@ -303,6 +387,106 @@ class InfoSessionItem extends StatelessWidget {
     );
   }
 }
+
+class AscEventItem extends StatelessWidget {
+  final CalEvent ascEvent;
+
+  const AscEventItem(this.ascEvent, {Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    double screenHeight = MediaQuery.of(context).size.height;
+    double screenWidth = MediaQuery.of(context).size.width;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _pickColorBasedOnSessionType(ascEvent.sessionType),
+          border: Border.all(color: Colors.transparent),
+          borderRadius: BorderRadius.zero,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(
+                alpha: 0.2,
+              ),
+              spreadRadius: 1,
+              blurRadius: 2,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            vertical: screenHeight * .005,
+            horizontal: screenWidth * 0.01,
+          ),
+          child: Column(
+            children: [
+              ListTile(
+                leading: ascImage(
+                  screenWidth * .1,
+                  screenWidth * .1,
+                ),
+                title: AutoSizeText(
+                  ascEvent.eventName,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 13.0,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  minFontSize: 11,
+                  maxLines: 2,
+                ),
+                subtitle: Text("${ascEvent.sessionType ?? ""}\n${_getTimeAsString(ascEvent.startTime)} "),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+//${ascEvent.startTime.month}/${ascEvent.startTime.day}/${ascEvent.startTime.year} • ${ascEvent.startTime.hour % 12 == 0 ? 12 : ascEvent.startTime.hour % 12}:${ascEvent.startTime.minute.toString().padLeft(2, '0')} ${ascEvent.startTime.hour < 12 ? 'AM' : 'PM'}
+  _getTimeAsString(DateTime time) {
+    final month = time.month.toString();
+    final day = time.day.toString();
+    final year = time.year;
+    final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final ampm = time.hour < 12 ? 'AM' : 'PM';
+    return "$month/$day/$year • $hour:$minute $ampm";
+  }
+
+  _pickColorBasedOnSessionType(String? sessionType) {
+    switch (sessionType) {
+      case "Pre-conference Session":
+        return const Color.fromARGB(255, 243, 242, 201);
+      case "Poster Display":
+        return const Color.fromARGB(255, 251, 223, 221);
+      case "Paper Session":
+        return const Color.fromARGB(255, 216, 240, 215);
+      case "Keynote Address":
+        return const Color.fromARGB(255, 210, 227, 245);
+      case "General":
+        return const Color.fromARGB(255, 236, 217, 245);
+      case "Business Meeting":
+        return const Color.fromARGB(255, 245, 227, 217);
+      default:
+        return Colors.white;
+    }
+  }
+}
+
+
+// Builder(builder: (context) {
+//                               final start = widget.infoSession.startTime;
+//                               final end = widget.infoSession.endTime;
+//                               String formatTime(DateTime d) {
+//                                 final hour = d.hour % 12 == 0 ? 12 : d.hour % 12;
+//                                 final minute = d.minute.toString().padLeft(2, '0');
+//                                 final ampm = d.hour < 12 ? 'AM' : 'PM';
+//                                 return '$hour:$minute $ampm';
+//                               }
 
 class InfoSessionPopUp extends StatefulWidget {
   final CalEvent infoSession;
@@ -715,4 +899,293 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
       ),
     );
   }
+}
+
+class ascEventPopUp extends StatefulWidget {
+  final CalEvent ascEvent;
+  final VoidCallback onClose;
+
+  const ascEventPopUp({
+    required this.ascEvent,
+    required this.onClose,
+    Key? key,
+  }) : super(key: key);
+
+    @override
+  _AscEventPopUpState createState() => _AscEventPopUpState();
+
+}
+
+class _AscEventPopUpState extends State<ascEventPopUp> {
+
+  @override
+  Widget build(BuildContext context) {
+    double screenHeight = MediaQuery.of(context).size.height;
+    double screenWidth = MediaQuery.of(context).size.width;
+    return Scaffold(
+      backgroundColor: AppColors.calPolyGreen,
+      body: ListView(
+        children: [
+          Stack(
+            children: [
+              Center(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.only(
+                          left: screenWidth * .02,
+                          top: screenHeight * .012,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            SizedBox(
+                              height: screenHeight * .03,
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.arrow_back,
+                                  color: Colors.black,
+                                ),
+                                onPressed: widget.onClose,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.all(screenWidth * 0.015),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: screenHeight * 0.14,
+                              height: screenHeight * 0.14,
+                              child: ascImage(
+                                screenHeight * 0.1,
+                                screenHeight * 0.1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.all(screenHeight * 0.015),
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              width: screenWidth * 0.7,
+                              child: AutoSizeText(
+                                widget.ascEvent.eventName,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                minFontSize: 16,
+                                maxLines: 8,
+                              ),
+                            ),
+                            SizedBox(height: screenHeight * .0015),
+                            // Show event time (start - end)
+                            Builder(builder: (context) {
+                              final start = widget.ascEvent.startTime;
+                              final end = widget.ascEvent.endTime;
+                              String formatTime(DateTime d) {
+                                final hour = d.hour % 12 == 0 ? 12 : d.hour % 12;
+                                final minute = d.minute.toString().padLeft(2, '0');
+                                final ampm = d.hour < 12 ? 'AM' : 'PM';
+                                return '$hour:$minute $ampm';
+                              }
+                              String formatDate(DateTime d) => '${d.month}/${d.day}/${d.year}';
+                final when = '${formatDate(start)} • ${formatTime(start)} - ${formatTime(end)}';
+                              return Column(
+                                children: [
+                                  Text(
+                                    when,
+                                    style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                  ),
+                                  SizedBox(height: screenHeight * 0.006),
+                                  if (widget.ascEvent.topic != null && widget.ascEvent.topic!.isNotEmpty)
+                                    Text(
+                                      "Track ${widget.ascEvent.track == null ? '' : widget.ascEvent.track!}: ${widget.ascEvent.topic!}",
+                                      style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    SizedBox(height: screenHeight * 0.006),
+                                  if (widget.ascEvent.eventLocation.isNotEmpty)
+                                    Text(
+                                      "Location: " + widget.ascEvent.eventLocation,
+                                      style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                    ),
+                                  if (widget.ascEvent.eventLocation.isNotEmpty)
+                                    SizedBox(height: screenHeight * 0.006),
+                                ],
+                              );
+                            }),
+                            Padding(
+                              padding: EdgeInsets.only(top: screenHeight * 0.015),
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    if (context.read<AppState>().isCheckedIn(widget.ascEvent)) {
+                                      context.read<AppState>().checkOutOf(widget.ascEvent);
+                                    } else {
+                                      context.read<AppState>().checkInto(widget.ascEvent);
+                                    }
+                                  });
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  fixedSize: Size(
+                                    screenWidth * 0.5,
+                                    screenHeight * 0.05,
+                                  ),
+                                  backgroundColor: context.watch<AppState>().isCheckedIn(widget.ascEvent)
+                                      ? Colors.grey
+                                      : AppColors.calPolyGreen,
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.zero,
+                                  ),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: screenWidth * .03,
+                                    vertical: screenHeight * .008,
+                                  ),
+                                ),
+                                child: context.watch<AppState>().isCheckedIn(widget.ascEvent)
+                                    ? const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.check, color: Colors.black),
+                                          SizedBox(width: 6.5),
+                                          Text(
+                                            'ADDED TO AGENDA',
+                                            style: TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : const Text(
+                                        'ADD TO MY AGENDA',
+                                        style: TextStyle(
+                                          color: AppColors.welcomeLightYellow,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Container(
+            color: AppColors.calPolyGreen,
+            padding: const EdgeInsets.all(16.0),
+            child: 
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if ((widget.ascEvent.presenters ?? '').isNotEmpty) ...[
+                      const Text(
+                        "Presenters",
+                        style: TextStyle(
+                          color: AppColors.lightGold,
+                          fontSize: 22.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        widget.ascEvent.presenters ?? 'No Presenters Info',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.0,
+                        ),
+                        softWrap: true,
+                      ),
+                      const SizedBox(height: 4),
+                      const Divider(),
+                    ],
+                    if ((widget.ascEvent.moderator ?? '').isNotEmpty && widget.ascEvent.moderator != null && widget.ascEvent.moderator != "TBD") ...[
+                      const SizedBox(height: 8),
+                      const Text(
+                        "Moderator",
+                        style: TextStyle(
+                          color: AppColors.lightGold,
+                          fontSize: 22.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        widget.ascEvent.moderator ?? 'No Moderator Info',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.0,
+                        ),
+                        softWrap: true,
+                      ),
+                      const SizedBox(height: 4),
+                      const Divider(),
+                    ],
+                    if ((widget.ascEvent.description ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 5),
+                      const Text(
+                        "Description",
+                        style: TextStyle(
+                          color: AppColors.lightGold,
+                          fontSize: 22.0,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        widget.ascEvent.description ?? 'No Description Info',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.0,
+                        ),
+                        softWrap: true,
+                      ),
+                      const SizedBox(height: 4),
+                      const Divider(),
+                    ]
+                    // Builder(builder: (_) {
+                    //   // final raw = widget.ascEvent.presenters ?? '';
+                    //   // final items = raw.split('|').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+                    //   final presenters = widget.ascEvent.presenters ?? '';
+                    //   if (presenters.isEmpty) {
+                    //     return const Text('No Presenters Info', style: TextStyle(color: Colors.white, fontSize: 14.0));
+                    //   }
+                    //   return Column(
+                    //     crossAxisAlignment: CrossAxisAlignment.start,
+                    //     children: presenters.split('|').map((p) => Padding(
+                    //       padding: const EdgeInsets.only(bottom: 6.0),
+                    //       child: Text(p, style: const TextStyle(color: Colors.white, fontSize: 14.0)),
+                    //     )).toList(),
+                    //   );
+                    // }),
+                  ],
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+  
 }
