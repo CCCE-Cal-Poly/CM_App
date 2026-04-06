@@ -1,3 +1,4 @@
+import 'package:ccce_application/common/features/asc_2026_maps.dart';
 import 'package:ccce_application/common/features/asc_2026_sponsors_directory.dart';
 import 'package:ccce_application/common/features/asc_2026_agenda.dart';
 import 'package:ccce_application/common/theme/theme.dart';
@@ -140,7 +141,11 @@ class Asc2026Screen extends StatelessWidget {
                         body:
                             'Find buildings, rooms, and event locations around campus quickly.',
                         buttonLabel: 'Open Map',
-                        onPressed: () => _showComingSoon(context, 'Map'),
+                        onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const Asc2026Maps(),
+                            ),
+                          ),
                       ),
                       const SizedBox(height: 12),
                       _sectionCard(

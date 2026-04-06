@@ -19,7 +19,7 @@ Widget eventLogoImage(String? url, double width, double height) {
 Widget ascImage(double width, double height) {
   return ResilientCircleImage(
     imageUrl: null,
-    placeholderAsset: 'assets/icons/ASCConferenceLogo.png',
+    placeholderAsset: 'assets/icons/app_icon_asc.png',
     size: width,
   );
 }

@@ -61,7 +61,8 @@ dependencies:
   cached_network_image: ^3.4.1  # Updated for better performance
   image_picker: ^1.1.2  # Updated for compatibility
   flutter_local_notifications: ^19.5.0
-  # For opening files in the device's default applications
+ 
+  flutter_pdfview: 1.4.4
 
 
 dev_dependencies:
