@@ -63,6 +63,7 @@ dependencies:
   flutter_local_notifications: ^19.5.0
  
   flutter_pdfview: 1.4.4
+  pdfx: ^2.9.2
 
 
 dev_dependencies:
