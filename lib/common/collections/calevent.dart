@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/providers/app_state.dart';
@@ -33,20 +34,26 @@ class CalEvent {
   String eventType;
   String? logo;
   String? status;
-  String? companyId; 
+  String? companyId;
   DateTime? updatedAt;
   InfoSessionData? isd;
-  String? seriesId;      // Parent series ID if this is a recurring instance
-  bool isInstance;       // True if this is a generated occurrence instance
+  String? seriesId; // Parent series ID if this is a recurring instance
+  bool isInstance; // True if this is a generated occurrence instance
 
-  String? sessionType;   // For ASC 2026 events, e.g. Pre-conference session(Wed), Poster display*(Thursday), Paper presentation(Thursday/Friday), Keynote address etc.
-  String? presenters;    // For ASC 2026 events, e.g. list of presenter names for poster/paper sessions
-  String? description;   // For ASC 2026 events, the description field provided by the organizers
-  String? topic;         // For ASC 2026 events, the topic field provided by the organizers
-  String? moderator;      // For ASC 2026 events, the moderator field provided by the organizers (if any)
+  String?
+      sessionType; // For ASC 2026 events, e.g. Pre-conference session(Wed), Poster display*(Thursday), Paper presentation(Thursday/Friday), Keynote address etc.
+  String?
+      presenters; // For ASC 2026 events, e.g. list of presenter names for poster/paper sessions
+  String?
+      description; // For ASC 2026 events, the description field provided by the organizers
+  String?
+      topic; // For ASC 2026 events, the topic field provided by the organizers
+  String?
+      moderator; // For ASC 2026 events, the moderator field provided by the organizers (if any)
+  String?
+      presentationLink; // For ASC 2026 events, URL/gs:// link/storage path for the associated presentation
   int? paperNumber;
   int? track;
-
 
   CalEvent({
     required this.id,
@@ -66,6 +73,7 @@ class CalEvent {
     this.description,
     this.topic,
     this.moderator,
+    this.presentationLink,
     this.paperNumber,
     this.track,
     this.isInstance = false,
@@ -83,136 +91,140 @@ class CalEvent {
     }
     final data = dataRaw as Map<String, dynamic>;
 
-  final eventType = data["eventType"] ?? "";
-  
+    final eventType = data["eventType"] ?? "";
+
     if (eventType == "club") {
-    final clubName = data["clubName"] ?? data["company"] ?? "";
-    final eventName = data["eventName"] ?? "";
-    final displayName = clubName.isNotEmpty && eventName.isNotEmpty 
-        ? "$clubName - $eventName" 
-        : (eventName.isNotEmpty ? eventName : clubName);
-    
-    final start = (data["startTime"] is Timestamp)
-        ? data["startTime"].toDate()
-        : DateTime.now();
+      final clubName = data["clubName"] ?? data["company"] ?? "";
+      final eventName = data["eventName"] ?? "";
+      final displayName = clubName.isNotEmpty && eventName.isNotEmpty
+          ? "$clubName - $eventName"
+          : (eventName.isNotEmpty ? eventName : clubName);
 
-    final end = (data["endTime"] is Timestamp)
-        ? data["endTime"].toDate()
-        : start.add(const Duration(hours: 1));
-    
-    final updatedAt = data["updatedAt"] is Timestamp
-        ? data["updatedAt"].toDate()
-        : null;
+      final start = (data["startTime"] is Timestamp)
+          ? data["startTime"].toDate()
+          : DateTime.now();
 
-    // final recurrence = data["recurrence"] ? null
+      final end = (data["endTime"] is Timestamp)
+          ? data["endTime"].toDate()
+          : start.add(const Duration(hours: 1));
 
-    return CalEvent(
-      id: doc.id,
-      eventName: displayName,
-      startTime: start,
-      endTime: end,
-      eventLocation: data["mainLocation"] ?? data["eventLocation"] ?? "",
-      eventType: eventType,
-      logo: data.containsKey("logo") ? data["logo"] : null,
-      status: data["Status"] ?? data["status"] ?? "pending",
-      companyId: null, 
-      updatedAt: updatedAt,
-      isd: null,
-      seriesId: data["seriesId"],
-      isInstance: data["isInstance"] == true,
-    );
-  } else if (eventType == "asc2026") {
+      final updatedAt =
+          data["updatedAt"] is Timestamp ? data["updatedAt"].toDate() : null;
 
-    final eventName = data["eventName"] ?? "";
+      // final recurrence = data["recurrence"] ? null
 
-    final start = (data["startTime"] is Timestamp)
-        ? data["startTime"].toDate()
-        : DateTime.now();
+      return CalEvent(
+        id: doc.id,
+        eventName: displayName,
+        startTime: start,
+        endTime: end,
+        eventLocation: data["mainLocation"] ?? data["eventLocation"] ?? "",
+        eventType: eventType,
+        logo: data.containsKey("logo") ? data["logo"] : null,
+        status: data["Status"] ?? data["status"] ?? "pending",
+        companyId: null,
+        updatedAt: updatedAt,
+        isd: null,
+        seriesId: data["seriesId"],
+        isInstance: data["isInstance"] == true,
+      );
+    } else if (eventType == "asc2026") {
+      final eventName = data["eventName"] ?? "";
 
-    final end = (data["endTime"] is Timestamp)
-        ? data["endTime"].toDate()
-        : start.add(const Duration(hours: 1));
-    
-    final updatedAt = data["updatedAt"] is Timestamp
-        ? data["updatedAt"].toDate()
-        : null;
+      final start = (data["startTime"] is Timestamp)
+          ? data["startTime"].toDate()
+          : DateTime.now();
 
-    final sessionType = data["sessionType"] ?? "";
-    final presenters = data["presenters"] ?? "";
-    final description = data["description"] ?? "";
-    final topic = data["topic"] ?? "";
-    final moderator = data["moderator"] ?? "";
-    final paperNumber = data["paperNumber"] is int ? data["paperNumber"] : null;
-    final track = data["track"] is int ? data["track"] : null;
+      final end = (data["endTime"] is Timestamp)
+          ? data["endTime"].toDate()
+          : start.add(const Duration(hours: 1));
 
-    return CalEvent(
-      id: doc.id,
-      eventName: eventName,
-      startTime: start,
-      endTime: end,
-      eventLocation: data["mainLocation"] ?? data["eventLocation"] ?? "",
-      eventType: eventType,
-      logo: data.containsKey("logo") ? data["logo"] : null,
-      status: data["Status"] ?? data["status"] ?? "pending",
-      companyId: null, 
-      updatedAt: updatedAt,
-      isd: null,
-      seriesId: null,
-      isInstance: data["isInstance"] == true,
-      sessionType: sessionType,
-      presenters: presenters,
-      description: description,
-      topic: topic,
-      paperNumber: paperNumber,
-      track: track,
-      moderator: moderator
-    );
-  }else {
-    // Info session - support both new (companyId) and legacy (company name) approaches
-    String openPositions = data["isHiring"] == "No" ? "" : (data["position"] ?? "");
-    String? theLogo = data.containsKey("logo") && data["logo"] != null && data["logo"].toString().isNotEmpty 
-        ? data["logo"] 
-        : null;
+      final updatedAt =
+          data["updatedAt"] is Timestamp ? data["updatedAt"].toDate() : null;
 
-    final displayName = data["company"] ?? data["eventName"] ?? "";
-    
-    final start = (data["startTime"] is Timestamp)
-        ? data["startTime"].toDate()
-        : DateTime.now();
+      final sessionType = data["sessionType"] ?? "";
+      final presenters = data["presenters"] ?? "";
+      final description = data["description"] ?? "";
+      final topic = data["topic"] ?? "";
+      final moderator = data["moderator"] ?? "";
+      final presentationLink = data["presentationLink"] ??
+          data["presentationUrl"] ??
+          data["presentation"] ??
+          "";
+      final paperNumber =
+          data["paperNumber"] is int ? data["paperNumber"] : null;
+      final track = data["track"] is int ? data["track"] : null;
 
-    final end = (data["endTime"] is Timestamp)
-        ? data["endTime"].toDate()
-        : start.add(const Duration(hours: 1));
+      return CalEvent(
+          id: doc.id,
+          eventName: eventName,
+          startTime: start,
+          endTime: end,
+          eventLocation: data["mainLocation"] ?? data["eventLocation"] ?? "",
+          eventType: eventType,
+          logo: data.containsKey("logo") ? data["logo"] : null,
+          status: data["Status"] ?? data["status"] ?? "pending",
+          companyId: null,
+          updatedAt: updatedAt,
+          isd: null,
+          seriesId: null,
+          isInstance: data["isInstance"] == true,
+          sessionType: sessionType,
+          presenters: presenters,
+          description: description,
+          topic: topic,
+          presentationLink: presentationLink,
+          paperNumber: paperNumber,
+          track: track,
+          moderator: moderator);
+    } else {
+      // Info session - support both new (companyId) and legacy (company name) approaches
+      String openPositions =
+          data["isHiring"] == "No" ? "" : (data["position"] ?? "");
+      String? theLogo = data.containsKey("logo") &&
+              data["logo"] != null &&
+              data["logo"].toString().isNotEmpty
+          ? data["logo"]
+          : null;
 
-    final updatedAt = data["updatedAt"] is Timestamp
-        ? data["updatedAt"].toDate()
-        : null;
+      final displayName = data["company"] ?? data["eventName"] ?? "";
 
-    return CalEvent(
-      id: doc.id,
-      eventName: displayName,
-      startTime: start,
-      endTime: end,
-      eventLocation: data["mainLocation"] ?? data["eventLocation"] ?? "",
-      eventType: eventType,
-      logo: theLogo,
-      status: data["Status"] ?? "pending",
-      companyId: data["companyId"], 
-      updatedAt: updatedAt,
-      isd: InfoSessionData(
-        data["website"],
-        data["interviewLocation"],
-        data["contactName"],
-        data["contactEmail"],
-        openPositions,
-        data["jobLocations"],
-        data["interviewLink"],
-      ),
-      seriesId: data["seriesId"],
-      isInstance: data["isInstance"] == true,
-    );
+      final start = (data["startTime"] is Timestamp)
+          ? data["startTime"].toDate()
+          : DateTime.now();
+
+      final end = (data["endTime"] is Timestamp)
+          ? data["endTime"].toDate()
+          : start.add(const Duration(hours: 1));
+
+      final updatedAt =
+          data["updatedAt"] is Timestamp ? data["updatedAt"].toDate() : null;
+
+      return CalEvent(
+        id: doc.id,
+        eventName: displayName,
+        startTime: start,
+        endTime: end,
+        eventLocation: data["mainLocation"] ?? data["eventLocation"] ?? "",
+        eventType: eventType,
+        logo: theLogo,
+        status: data["Status"] ?? "pending",
+        companyId: data["companyId"],
+        updatedAt: updatedAt,
+        isd: InfoSessionData(
+          data["website"],
+          data["interviewLocation"],
+          data["contactName"],
+          data["contactEmail"],
+          openPositions,
+          data["jobLocations"],
+          data["interviewLink"],
+        ),
+        seriesId: data["seriesId"],
+        isInstance: data["isInstance"] == true,
+      );
+    }
   }
-}
 
   factory CalEvent.clubEventfromMap(Map<String, dynamic> data) {
     return CalEvent(
@@ -238,6 +250,10 @@ class CalEvent {
       status: data['Status'] ?? 'pending',
       sessionType: data['sessionType'] ?? '',
       presenters: data['presenters'] ?? '',
+      presentationLink: data['presentationLink'] ??
+          data['presentationUrl'] ??
+          data['presentation'] ??
+          '',
     );
   }
 
@@ -273,6 +289,7 @@ class CalEvent {
       'eventType': eventType,
       'logo': logo,
       'status': status,
+      'presentationLink': presentationLink,
       'isd': isd != null
           ? {
               'website': isd!.website,
@@ -369,7 +386,7 @@ class InfoSessionItem extends StatelessWidget {
                   screenWidth * .1,
                 ),
                 title: AutoSizeText(
-                              infoSession.eventName + _getQuarterLabel(),
+                  infoSession.eventName + _getQuarterLabel(),
                   style: const TextStyle(
                     color: Colors.black,
                     fontSize: 13.0,
@@ -438,7 +455,8 @@ class AscEventItem extends StatelessWidget {
                   minFontSize: 11,
                   maxLines: 2,
                 ),
-                subtitle: Text("${ascEvent.sessionType ?? ""}\n${_getTimeAsString(ascEvent.startTime)} "),
+                subtitle: Text(
+                    "${ascEvent.sessionType ?? ""}\n${_getTimeAsString(ascEvent.startTime)} "),
               ),
             ],
           ),
@@ -446,6 +464,7 @@ class AscEventItem extends StatelessWidget {
       ),
     );
   }
+
 //${ascEvent.startTime.month}/${ascEvent.startTime.day}/${ascEvent.startTime.year} • ${ascEvent.startTime.hour % 12 == 0 ? 12 : ascEvent.startTime.hour % 12}:${ascEvent.startTime.minute.toString().padLeft(2, '0')} ${ascEvent.startTime.hour < 12 ? 'AM' : 'PM'}
   _getTimeAsString(DateTime time) {
     final month = time.month.toString();
@@ -477,7 +496,6 @@ class AscEventItem extends StatelessWidget {
   }
 }
 
-
 // Builder(builder: (context) {
 //                               final start = widget.infoSession.startTime;
 //                               final end = widget.infoSession.endTime;
@@ -507,24 +525,27 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
     try {
       await Clipboard.setData(ClipboardData(text: value));
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label copied to clipboard')));
-    } catch (e) {
-    }
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('$label copied to clipboard')));
+    } catch (e) {}
   }
 
   Future<void> _launchUriOrCopy(Uri uri, String fallbackLabel) async {
     try {
-      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      final launched =
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!launched) {
         await Clipboard.setData(ClipboardData(text: uri.toString()));
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$fallbackLabel copied to clipboard')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$fallbackLabel copied to clipboard')));
       }
     } catch (e) {
       try {
         await Clipboard.setData(ClipboardData(text: uri.toString()));
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$fallbackLabel copied to clipboard')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$fallbackLabel copied to clipboard')));
       } catch (_) {}
     }
   }
@@ -538,7 +559,8 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
   Widget build(BuildContext context) {
     double screenHeight = MediaQuery.of(context).size.height;
     double screenWidth = MediaQuery.of(context).size.width;
-    final hiring = (widget.infoSession.isd?.openPositions != null && widget.infoSession.isd!.openPositions!.trim().isNotEmpty);
+    final hiring = (widget.infoSession.isd?.openPositions != null &&
+        widget.infoSession.isd!.openPositions!.trim().isNotEmpty);
     return Scaffold(
       backgroundColor: AppColors.calPolyGreen,
       body: ListView(
@@ -617,34 +639,48 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                               final start = widget.infoSession.startTime;
                               final end = widget.infoSession.endTime;
                               String formatTime(DateTime d) {
-                                final hour = d.hour % 12 == 0 ? 12 : d.hour % 12;
-                                final minute = d.minute.toString().padLeft(2, '0');
+                                final hour =
+                                    d.hour % 12 == 0 ? 12 : d.hour % 12;
+                                final minute =
+                                    d.minute.toString().padLeft(2, '0');
                                 final ampm = d.hour < 12 ? 'AM' : 'PM';
                                 return '$hour:$minute $ampm';
                               }
-                              String formatDate(DateTime d) => '${d.month}/${d.day}/${d.year}';
-                final when = '${formatDate(start)} • ${formatTime(start)} - ${formatTime(end)}';
+
+                              String formatDate(DateTime d) =>
+                                  '${d.month}/${d.day}/${d.year}';
+                              final when =
+                                  '${formatDate(start)} • ${formatTime(start)} - ${formatTime(end)}';
                               return Column(
                                 children: [
                                   Text(
                                     when,
-                                    style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                    style: const TextStyle(
+                                        color: Colors.black87, fontSize: 14),
                                   ),
                                   SizedBox(height: screenHeight * 0.006),
-                                  if (widget.infoSession.eventLocation.isNotEmpty)
+                                  if (widget
+                                      .infoSession.eventLocation.isNotEmpty)
                                     Text(
                                       widget.infoSession.eventLocation,
-                                      style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                      style: const TextStyle(
+                                          color: Colors.black87, fontSize: 14),
                                     ),
-                                  if (widget.infoSession.eventLocation.isNotEmpty)
+                                  if (widget
+                                      .infoSession.eventLocation.isNotEmpty)
                                     SizedBox(height: screenHeight * 0.006),
-                                  if ((widget.infoSession.isd?.website ?? '').isNotEmpty)
+                                  if ((widget.infoSession.isd?.website ?? '')
+                                      .isNotEmpty)
                                     InkWell(
                                       onTap: () {
-                                        final uri = Uri.tryParse(widget.infoSession.isd!.website!);
-                                        if (uri != null) _launchUriOrCopy(uri, 'Website');
+                                        final uri = Uri.tryParse(
+                                            widget.infoSession.isd!.website!);
+                                        if (uri != null)
+                                          _launchUriOrCopy(uri, 'Website');
                                       },
-                                      onLongPress: () => _copyToClipboard('Website', widget.infoSession.isd!.website!),
+                                      onLongPress: () => _copyToClipboard(
+                                          'Website',
+                                          widget.infoSession.isd!.website!),
                                       child: Text(
                                         widget.infoSession.isd!.website!,
                                         style: const TextStyle(
@@ -659,14 +695,21 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                               );
                             }),
                             Padding(
-                              padding: EdgeInsets.only(top: screenHeight * 0.015),
+                              padding:
+                                  EdgeInsets.only(top: screenHeight * 0.015),
                               child: ElevatedButton(
                                 onPressed: () {
                                   setState(() {
-                                    if (context.read<AppState>().isCheckedIn(widget.infoSession)) {
-                                      context.read<AppState>().checkOutOf(widget.infoSession);
+                                    if (context
+                                        .read<AppState>()
+                                        .isCheckedIn(widget.infoSession)) {
+                                      context
+                                          .read<AppState>()
+                                          .checkOutOf(widget.infoSession);
                                     } else {
-                                      context.read<AppState>().checkInto(widget.infoSession);
+                                      context
+                                          .read<AppState>()
+                                          .checkInto(widget.infoSession);
                                     }
                                   });
                                 },
@@ -675,7 +718,9 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                                     screenWidth * 0.5,
                                     screenHeight * 0.05,
                                   ),
-                                  backgroundColor: context.watch<AppState>().isCheckedIn(widget.infoSession)
+                                  backgroundColor: context
+                                          .watch<AppState>()
+                                          .isCheckedIn(widget.infoSession)
                                       ? Colors.grey
                                       : AppColors.calPolyGreen,
                                   shape: const RoundedRectangleBorder(
@@ -686,11 +731,14 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                                     vertical: screenHeight * .008,
                                   ),
                                 ),
-                                child: context.watch<AppState>().isCheckedIn(widget.infoSession)
+                                child: context
+                                        .watch<AppState>()
+                                        .isCheckedIn(widget.infoSession)
                                     ? const Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(Icons.check, color: Colors.black),
+                                          Icon(Icons.check,
+                                              color: Colors.black),
                                           SizedBox(width: 6),
                                           Text(
                                             'CHECKED IN',
@@ -713,9 +761,11 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                               ),
                             ),
 
-                            if ((widget.infoSession.isd?.interviewLink ?? '').isNotEmpty)
+                            if ((widget.infoSession.isd?.interviewLink ?? '')
+                                .isNotEmpty)
                               Padding(
-                                padding: EdgeInsets.only(top: screenHeight * 0.01),
+                                padding:
+                                    EdgeInsets.only(top: screenHeight * 0.01),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -723,20 +773,33 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                                       icon: const Icon(Icons.link, size: 18),
                                       label: const Text('Open interview link'),
                                       onPressed: () async {
-                                        final link = widget.infoSession.isd!.interviewLink!;
+                                        final link = widget
+                                            .infoSession.isd!.interviewLink!;
                                         final uri = Uri.tryParse(link);
                                         if (uri != null) {
-                                          await _launchUriOrCopy(uri, 'Interview link');
+                                          await _launchUriOrCopy(
+                                              uri, 'Interview link');
                                         } else {
                                           // fallback: copy to clipboard
-                                          await Clipboard.setData(ClipboardData(text: link));
-                                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Interview link copied to clipboard')));
+                                          await Clipboard.setData(
+                                              ClipboardData(text: link));
+                                          if (mounted)
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                                    content: Text(
+                                                        'Interview link copied to clipboard')));
                                         }
                                       },
                                       onLongPress: () async {
-                                        final link = widget.infoSession.isd!.interviewLink!;
-                                        await Clipboard.setData(ClipboardData(text: link));
-                                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Interview link copied to clipboard')));
+                                        final link = widget
+                                            .infoSession.isd!.interviewLink!;
+                                        await Clipboard.setData(
+                                            ClipboardData(text: link));
+                                        if (mounted)
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                                  content: Text(
+                                                      'Interview link copied to clipboard')));
                                       },
                                     ),
                                   ],
@@ -753,14 +816,18 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                 right: screenWidth * 0.06,
                 top: screenHeight * 0.02,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: hiring ? Colors.green : Colors.grey,
                     borderRadius: BorderRadius.zero,
                   ),
                   child: Text(
                     hiring ? 'HIRING' : 'NOT HIRING',
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -795,7 +862,8 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                             Padding(
                               padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
                               child: Text(
-                                widget.infoSession.isd?.recruiterName ?? 'No Listed Contact Name',
+                                widget.infoSession.isd?.recruiterName ??
+                                    'No Listed Contact Name',
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w600,
@@ -803,34 +871,46 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                                 ),
                               ),
                             ),
-                            if ((widget.infoSession.isd?.recruiterEmail ?? '').isNotEmpty)
+                            if ((widget.infoSession.isd?.recruiterEmail ?? '')
+                                .isNotEmpty)
                               GestureDetector(
-                                onLongPress: () => _copyToClipboard('Email', widget.infoSession.isd!.recruiterEmail!),
+                                onLongPress: () => _copyToClipboard('Email',
+                                    widget.infoSession.isd!.recruiterEmail!),
                                 child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                                  padding:
+                                      const EdgeInsets.fromLTRB(12, 4, 12, 8),
                                   child: Row(
                                     children: [
                                       Expanded(
                                         child: InkWell(
-                                          onTap: () => _openEmailOrCopy(widget.infoSession.isd!.recruiterEmail!),
+                                          onTap: () => _openEmailOrCopy(widget
+                                              .infoSession
+                                              .isd!
+                                              .recruiterEmail!),
                                           child: Text(
-                                            widget.infoSession.isd!.recruiterEmail!,
+                                            widget.infoSession.isd!
+                                                .recruiterEmail!,
                                             style: const TextStyle(
                                               color: AppColors.darkGoldText,
                                               fontWeight: FontWeight.w400,
                                               fontSize: 13,
-                                              decoration: TextDecoration.underline,
+                                              decoration:
+                                                  TextDecoration.underline,
                                             ),
                                           ),
                                         ),
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.email_outlined),
-                                        onPressed: () => _openEmailOrCopy(widget.infoSession.isd!.recruiterEmail!),
+                                        onPressed: () => _openEmailOrCopy(widget
+                                            .infoSession.isd!.recruiterEmail!),
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.copy, size: 18),
-                                        onPressed: () => _copyToClipboard('Email', widget.infoSession.isd!.recruiterEmail!),
+                                        onPressed: () => _copyToClipboard(
+                                            'Email',
+                                            widget.infoSession.isd!
+                                                .recruiterEmail!),
                                       ),
                                     ],
                                   ),
@@ -848,7 +928,7 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                            const Text(
+                    const Text(
                       "Positions Available",
                       style: TextStyle(
                         color: AppColors.lightGold,
@@ -859,16 +939,26 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                     const SizedBox(height: 5),
                     Builder(builder: (_) {
                       final raw = widget.infoSession.isd?.openPositions ?? '';
-                      final items = raw.split('|').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+                      final items = raw
+                          .split('|')
+                          .map((s) => s.trim())
+                          .where((s) => s.isNotEmpty)
+                          .toList();
                       if (items.isEmpty) {
-                        return const Text('No Position Info', style: TextStyle(color: Colors.white, fontSize: 14.0));
+                        return const Text('No Position Info',
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 14.0));
                       }
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: items.map((p) => Padding(
-                          padding: const EdgeInsets.only(bottom: 6.0),
-                          child: Text(p, style: const TextStyle(color: Colors.white, fontSize: 14.0)),
-                        )).toList(),
+                        children: items
+                            .map((p) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 6.0),
+                                  child: Text(p,
+                                      style: const TextStyle(
+                                          color: Colors.white, fontSize: 14.0)),
+                                ))
+                            .toList(),
                       );
                     }),
                     const SizedBox(height: 4),
@@ -876,17 +966,27 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                     const SizedBox(height: 4),
                     Builder(builder: (_) {
                       final rawLoc = widget.infoSession.isd?.jobLocations ?? '';
-                      final locs = rawLoc.split('|').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+                      final locs = rawLoc
+                          .split('|')
+                          .map((s) => s.trim())
+                          .where((s) => s.isNotEmpty)
+                          .toList();
                       if (locs.isEmpty) return const SizedBox.shrink();
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Location(s)', style: TextStyle(color: AppColors.lightGold, fontSize: 18.0, fontWeight: FontWeight.w500)),
+                          const Text('Location(s)',
+                              style: TextStyle(
+                                  color: AppColors.lightGold,
+                                  fontSize: 18.0,
+                                  fontWeight: FontWeight.w500)),
                           const SizedBox(height: 6),
                           ...locs.map((l) => Padding(
-                            padding: const EdgeInsets.only(bottom: 4.0),
-                            child: Text(l, style: const TextStyle(color: Colors.white, fontSize: 14.0)),
-                          )),
+                                padding: const EdgeInsets.only(bottom: 4.0),
+                                child: Text(l,
+                                    style: const TextStyle(
+                                        color: Colors.white, fontSize: 14.0)),
+                              )),
                         ],
                       );
                     }),
@@ -911,12 +1011,71 @@ class ascEventPopUp extends StatefulWidget {
     Key? key,
   }) : super(key: key);
 
-    @override
+  @override
   _AscEventPopUpState createState() => _AscEventPopUpState();
-
 }
 
 class _AscEventPopUpState extends State<ascEventPopUp> {
+  Future<void> _copyToClipboard(String label, String value) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: value));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('$label copied to clipboard')));
+    } catch (_) {}
+  }
+
+  Future<void> _launchUriOrCopy(Uri uri, String fallbackLabel) async {
+    try {
+      final launched =
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await _copyToClipboard(fallbackLabel, uri.toString());
+      }
+    } catch (_) {
+      await _copyToClipboard(fallbackLabel, uri.toString());
+    }
+  }
+
+  Future<Uri?> _resolvePresentationUri(String rawLink) async {
+    final link = rawLink.trim();
+    if (link.isEmpty) return null;
+
+    if (link.startsWith('gs://')) {
+      try {
+        final downloadUrl =
+            await FirebaseStorage.instance.refFromURL(link).getDownloadURL();
+        return Uri.tryParse(downloadUrl);
+      } catch (_) {}
+    }
+
+    final parsed = Uri.tryParse(link);
+    if (parsed != null && parsed.hasScheme) {
+      return parsed;
+    }
+
+    try {
+      final downloadUrl =
+          await FirebaseStorage.instance.ref(link).getDownloadURL();
+      return Uri.tryParse(downloadUrl);
+    } catch (_) {
+      final withScheme = link.startsWith('www.') ? 'https://$link' : link;
+      return Uri.tryParse(withScheme);
+    }
+  }
+
+  Future<void> _openPresentation() async {
+    final raw = widget.ascEvent.presentationLink?.trim() ?? '';
+    if (raw.isEmpty) return;
+
+    final uri = await _resolvePresentationUri(raw);
+    if (uri != null) {
+      await _launchUriOrCopy(uri, 'Presentation link');
+      return;
+    }
+
+    await _copyToClipboard('Presentation link', raw);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -999,31 +1158,41 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                               final start = widget.ascEvent.startTime;
                               final end = widget.ascEvent.endTime;
                               String formatTime(DateTime d) {
-                                final hour = d.hour % 12 == 0 ? 12 : d.hour % 12;
-                                final minute = d.minute.toString().padLeft(2, '0');
+                                final hour =
+                                    d.hour % 12 == 0 ? 12 : d.hour % 12;
+                                final minute =
+                                    d.minute.toString().padLeft(2, '0');
                                 final ampm = d.hour < 12 ? 'AM' : 'PM';
                                 return '$hour:$minute $ampm';
                               }
-                              String formatDate(DateTime d) => '${d.month}/${d.day}/${d.year}';
-                final when = '${formatDate(start)} • ${formatTime(start)} - ${formatTime(end)}';
+
+                              String formatDate(DateTime d) =>
+                                  '${d.month}/${d.day}/${d.year}';
+                              final when =
+                                  '${formatDate(start)} • ${formatTime(start)} - ${formatTime(end)}';
                               return Column(
                                 children: [
                                   Text(
                                     when,
-                                    style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                    style: const TextStyle(
+                                        color: Colors.black87, fontSize: 14),
                                   ),
                                   SizedBox(height: screenHeight * 0.006),
-                                  if (widget.ascEvent.topic != null && widget.ascEvent.topic!.isNotEmpty)
+                                  if (widget.ascEvent.topic != null &&
+                                      widget.ascEvent.topic!.isNotEmpty)
                                     Text(
                                       "Track ${widget.ascEvent.track == null ? '' : widget.ascEvent.track!}: ${widget.ascEvent.topic!}",
-                                      style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                      style: const TextStyle(
+                                          color: Colors.black87, fontSize: 14),
                                       textAlign: TextAlign.center,
                                     ),
-                                    SizedBox(height: screenHeight * 0.006),
+                                  SizedBox(height: screenHeight * 0.006),
                                   if (widget.ascEvent.eventLocation.isNotEmpty)
                                     Text(
-                                      "Location: " + widget.ascEvent.eventLocation,
-                                      style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                      "Location: " +
+                                          widget.ascEvent.eventLocation,
+                                      style: const TextStyle(
+                                          color: Colors.black87, fontSize: 14),
                                     ),
                                   if (widget.ascEvent.eventLocation.isNotEmpty)
                                     SizedBox(height: screenHeight * 0.006),
@@ -1031,14 +1200,21 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                               );
                             }),
                             Padding(
-                              padding: EdgeInsets.only(top: screenHeight * 0.015),
+                              padding:
+                                  EdgeInsets.only(top: screenHeight * 0.015),
                               child: ElevatedButton(
                                 onPressed: () {
                                   setState(() {
-                                    if (context.read<AppState>().isCheckedIn(widget.ascEvent)) {
-                                      context.read<AppState>().checkOutOf(widget.ascEvent);
+                                    if (context
+                                        .read<AppState>()
+                                        .isCheckedIn(widget.ascEvent)) {
+                                      context
+                                          .read<AppState>()
+                                          .checkOutOf(widget.ascEvent);
                                     } else {
-                                      context.read<AppState>().checkInto(widget.ascEvent);
+                                      context
+                                          .read<AppState>()
+                                          .checkInto(widget.ascEvent);
                                     }
                                   });
                                 },
@@ -1047,7 +1223,9 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                     screenWidth * 0.5,
                                     screenHeight * 0.05,
                                   ),
-                                  backgroundColor: context.watch<AppState>().isCheckedIn(widget.ascEvent)
+                                  backgroundColor: context
+                                          .watch<AppState>()
+                                          .isCheckedIn(widget.ascEvent)
                                       ? Colors.grey
                                       : AppColors.calPolyGreen,
                                   shape: const RoundedRectangleBorder(
@@ -1058,24 +1236,35 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                     vertical: screenHeight * .008,
                                   ),
                                 ),
-                                child: context.watch<AppState>().isCheckedIn(widget.ascEvent)
-                                    ? const Row(
+                                child: context
+                                        .watch<AppState>()
+                                        .isCheckedIn(widget.ascEvent)
+                                    ? Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(Icons.check, color: Colors.black),
-                                          SizedBox(width: 6.5),
-                                          Text(
-                                            'ADDED TO AGENDA',
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.bold,
+                                          const Icon(Icons.check,
+                                              color: Colors.black),
+                                          const SizedBox(width: 6.5),
+                                          Flexible(
+                                            child: AutoSizeText(
+                                              'ADDED TO AGENDA',
+                                              textAlign: TextAlign.center,
+                                              maxLines: 1,
+                                              minFontSize: 11,
+                                              style: const TextStyle(
+                                                color: Colors.black,
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ),
                                         ],
                                       )
-                                    : const Text(
+                                    : AutoSizeText(
                                         'ADD TO MY AGENDA',
+                                        textAlign: TextAlign.center,
+                                        maxLines: 1,
+                                        minFontSize: 11,
                                         style: TextStyle(
                                           color: AppColors.welcomeLightYellow,
                                           fontSize: 15,
@@ -1084,6 +1273,22 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                       ),
                               ),
                             ),
+                            if ((widget.ascEvent.presentationLink ?? '')
+                                .trim()
+                                .isNotEmpty)
+                              Padding(
+                                padding:
+                                    EdgeInsets.only(top: screenHeight * 0.01),
+                                child: TextButton.icon(
+                                  icon: const Icon(Icons.picture_as_pdf,
+                                      size: 18),
+                                  label: const Text('Open presentation'),
+                                  onPressed: _openPresentation,
+                                  onLongPress: () => _copyToClipboard(
+                                      'Presentation link',
+                                      widget.ascEvent.presentationLink!.trim()),
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -1096,96 +1301,96 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
           Container(
             color: AppColors.calPolyGreen,
             padding: const EdgeInsets.all(16.0),
-            child: 
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if ((widget.ascEvent.presenters ?? '').isNotEmpty) ...[
-                      const Text(
-                        "Presenters",
-                        style: TextStyle(
-                          color: AppColors.lightGold,
-                          fontSize: 22.0,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        widget.ascEvent.presenters ?? 'No Presenters Info',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14.0,
-                        ),
-                        softWrap: true,
-                      ),
-                      const SizedBox(height: 4),
-                      const Divider(),
-                    ],
-                    if ((widget.ascEvent.moderator ?? '').isNotEmpty && widget.ascEvent.moderator != null && widget.ascEvent.moderator != "TBD") ...[
-                      const SizedBox(height: 8),
-                      const Text(
-                        "Moderator",
-                        style: TextStyle(
-                          color: AppColors.lightGold,
-                          fontSize: 22.0,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        widget.ascEvent.moderator ?? 'No Moderator Info',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14.0,
-                        ),
-                        softWrap: true,
-                      ),
-                      const SizedBox(height: 4),
-                      const Divider(),
-                    ],
-                    if ((widget.ascEvent.description ?? '').isNotEmpty) ...[
-                      const SizedBox(height: 5),
-                      const Text(
-                        "Description",
-                        style: TextStyle(
-                          color: AppColors.lightGold,
-                          fontSize: 22.0,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        widget.ascEvent.description ?? 'No Description Info',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14.0,
-                        ),
-                        softWrap: true,
-                      ),
-                      const SizedBox(height: 4),
-                      const Divider(),
-                    ]
-                    // Builder(builder: (_) {
-                    //   // final raw = widget.ascEvent.presenters ?? '';
-                    //   // final items = raw.split('|').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-                    //   final presenters = widget.ascEvent.presenters ?? '';
-                    //   if (presenters.isEmpty) {
-                    //     return const Text('No Presenters Info', style: TextStyle(color: Colors.white, fontSize: 14.0));
-                    //   }
-                    //   return Column(
-                    //     crossAxisAlignment: CrossAxisAlignment.start,
-                    //     children: presenters.split('|').map((p) => Padding(
-                    //       padding: const EdgeInsets.only(bottom: 6.0),
-                    //       child: Text(p, style: const TextStyle(color: Colors.white, fontSize: 14.0)),
-                    //     )).toList(),
-                    //   );
-                    // }),
-                  ],
-                ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if ((widget.ascEvent.presenters ?? '').isNotEmpty) ...[
+                  const Text(
+                    "Presenters",
+                    style: TextStyle(
+                      color: AppColors.lightGold,
+                      fontSize: 22.0,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    widget.ascEvent.presenters ?? 'No Presenters Info',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14.0,
+                    ),
+                    softWrap: true,
+                  ),
+                  const SizedBox(height: 4),
+                  const Divider(),
+                ],
+                if ((widget.ascEvent.moderator ?? '').isNotEmpty &&
+                    widget.ascEvent.moderator != null &&
+                    widget.ascEvent.moderator != "TBD") ...[
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Moderator",
+                    style: TextStyle(
+                      color: AppColors.lightGold,
+                      fontSize: 22.0,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    widget.ascEvent.moderator ?? 'No Moderator Info',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14.0,
+                    ),
+                    softWrap: true,
+                  ),
+                  const SizedBox(height: 4),
+                  const Divider(),
+                ],
+                if ((widget.ascEvent.description ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 5),
+                  const Text(
+                    "Description",
+                    style: TextStyle(
+                      color: AppColors.lightGold,
+                      fontSize: 22.0,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    widget.ascEvent.description ?? 'No Description Info',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14.0,
+                    ),
+                    softWrap: true,
+                  ),
+                  const SizedBox(height: 4),
+                  const Divider(),
+                ]
+                // Builder(builder: (_) {
+                //   // final raw = widget.ascEvent.presenters ?? '';
+                //   // final items = raw.split('|').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+                //   final presenters = widget.ascEvent.presenters ?? '';
+                //   if (presenters.isEmpty) {
+                //     return const Text('No Presenters Info', style: TextStyle(color: Colors.white, fontSize: 14.0));
+                //   }
+                //   return Column(
+                //     crossAxisAlignment: CrossAxisAlignment.start,
+                //     children: presenters.split('|').map((p) => Padding(
+                //       padding: const EdgeInsets.only(bottom: 6.0),
+                //       child: Text(p, style: const TextStyle(color: Colors.white, fontSize: 14.0)),
+                //     )).toList(),
+                //   );
+                // }),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
-  
 }
