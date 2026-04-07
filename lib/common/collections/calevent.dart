@@ -1064,23 +1064,25 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                         children: [
                                           Icon(Icons.check, color: Colors.black),
                                           SizedBox(width: 6.5),
-                                          Text(
+                                          AutoSizeText(
                                             'ADDED TO AGENDA',
                                             style: TextStyle(
                                               color: Colors.black,
-                                              fontSize: 15,
                                               fontWeight: FontWeight.bold,
                                             ),
+                                            minFontSize: 8,
+                                            maxFontSize: 15,
                                           ),
                                         ],
                                       )
-                                    : const Text(
+                                    : AutoSizeText(
                                         'ADD TO MY AGENDA',
                                         style: TextStyle(
                                           color: AppColors.welcomeLightYellow,
-                                          fontSize: 15,
                                           fontWeight: FontWeight.bold,
                                         ),
+                                        minFontSize: 8,
+                                        maxFontSize: 15,
                                       ),
                               ),
                             ),
