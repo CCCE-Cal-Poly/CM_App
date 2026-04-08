@@ -1260,7 +1260,7 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                               'ADDED TO AGENDA',
                                               textAlign: TextAlign.center,
                                               maxLines: 1,
-                                              minFontSize: 11,
+                                              minFontSize: 8,
                                               style: const TextStyle(
                                                 color: Colors.black,
                                                 fontSize: 15,
@@ -1274,7 +1274,7 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                         'ADD TO MY AGENDA',
                                         textAlign: TextAlign.center,
                                         maxLines: 1,
-                                        minFontSize: 11,
+                                        minFontSize: 8,
                                         style: TextStyle(
                                           color: AppColors.welcomeLightYellow,
                                           fontWeight: FontWeight.bold,
