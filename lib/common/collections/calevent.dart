@@ -52,6 +52,8 @@ class CalEvent {
       moderator; // For ASC 2026 events, the moderator field provided by the organizers (if any)
   String?
       presentationLink; // For ASC 2026 events, URL/gs:// link/storage path for the associated presentation
+  String?
+      paperPDFLink; // For ASC 2026 events, URL/gs:// link/storage path for the associated paper PDF (if any)
   int? paperNumber;
   int? track;
 
@@ -74,6 +76,7 @@ class CalEvent {
     this.topic,
     this.moderator,
     this.presentationLink,
+    this.paperPDFLink,
     this.paperNumber,
     this.track,
     this.isInstance = false,
@@ -151,6 +154,10 @@ class CalEvent {
           data["presentationUrl"] ??
           data["presentation"] ??
           "";
+      final paperPDFLink = data["paperPDFLink"] ??
+          data["paperPdfLink"] ??
+          data["paperLink"] ??
+          "";
       final paperNumber =
           data["paperNumber"] is int ? data["paperNumber"] : null;
       final track = data["track"] is int ? data["track"] : null;
@@ -174,6 +181,7 @@ class CalEvent {
           description: description,
           topic: topic,
           presentationLink: presentationLink,
+          paperPDFLink: paperPDFLink,
           paperNumber: paperNumber,
           track: track,
           moderator: moderator);
@@ -1038,6 +1046,8 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
   }
 
   Future<Uri?> _resolvePresentationUri(String rawLink) async {
+    print('Resolving presentation link: $rawLink');
+
     final link = rawLink.trim();
     if (link.isEmpty) return null;
 
@@ -1267,28 +1277,27 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                         minFontSize: 11,
                                         style: TextStyle(
                                           color: AppColors.welcomeLightYellow,
-                                          fontSize: 15,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                               ),
                             ),
-                            if ((widget.ascEvent.presentationLink ?? '')
-                                .trim()
-                                .isNotEmpty)
-                              Padding(
-                                padding:
-                                    EdgeInsets.only(top: screenHeight * 0.01),
-                                child: TextButton.icon(
-                                  icon: const Icon(Icons.picture_as_pdf,
-                                      size: 18),
-                                  label: const Text('Open presentation'),
-                                  onPressed: _openPresentation,
-                                  onLongPress: () => _copyToClipboard(
-                                      'Presentation link',
-                                      widget.ascEvent.presentationLink!.trim()),
-                                ),
-                              ),
+                            // if ((widget.ascEvent.presentationLink ?? '')
+                            //     .trim()
+                            //     .isNotEmpty)
+                            //   Padding(
+                            //     padding:
+                            //         EdgeInsets.only(top: screenHeight * 0.01),
+                            //     child: TextButton.icon(
+                            //       icon: const Icon(Icons.picture_as_pdf,
+                            //           size: 18),
+                            //       label: const Text('Open presentation'),
+                            //       onPressed: _openPresentation,
+                            //       onLongPress: () => _copyToClipboard(
+                            //           'Presentation link',
+                            //           widget.ascEvent.presentationLink!.trim()),
+                            //     ),
+                            //   ),
                           ],
                         ),
                       ),

@@ -1,6 +1,7 @@
 import 'package:ccce_application/common/features/asc_2026_maps.dart';
 import 'package:ccce_application/common/features/asc_2026_sponsors_directory.dart';
 import 'package:ccce_application/common/features/asc_2026_agenda.dart';
+import 'package:ccce_application/common/features/my_info_sessions.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:flutter/material.dart';
@@ -13,8 +14,8 @@ class Asc2026Screen extends StatelessWidget {
     required BuildContext context,
     required String title,
     required String body,
-    required String buttonLabel,
-    required VoidCallback onPressed,
+    required List<String> buttonLabels,
+    required List<VoidCallback> onPressedFunctions,
   }) {
     final screenWidth = MediaQuery.of(context).size.width;
 
@@ -45,25 +46,33 @@ class Asc2026Screen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onPressed,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.lightGold,
-                elevation: 0,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.zero,
+          ...List.generate(
+            buttonLabels.length,
+            (index) => Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: onPressedFunctions[index],
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.lightGold,
+                      elevation: 0,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero,
+                      ),
+                    ),
+                    child: Text(
+                      buttonLabels[index],
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontFamily: 'SansSerifProSemiBold',
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              child: Text(
-                buttonLabel,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontFamily: 'SansSerifProSemiBold',
-                  fontSize: 15,
-                ),
-              ),
+                if (index < buttonLabels.length - 1) const SizedBox(height: 8),
+              ],
             ),
           ),
         ],
@@ -122,14 +131,32 @@ class Asc2026Screen extends StatelessWidget {
                         title: 'Agenda',
                         body:
                             'View conference sessions, keynotes, and timing updates in one place.',
-                        buttonLabel: 'View Agenda',
-                        onPressed: () => {
-                          Navigator.of(context).push(
+                        buttonLabels: const ['View Agenda', 'My Agenda'],
+                        onPressedFunctions: [
+                          () => Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (context) => const Asc2026Agenda(),
                             ),
                           ),
-                        },
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => Scaffold(
+                                appBar: AppBar(
+                                  title: const Text("My Agenda",
+                                      style: TextStyle(
+                                          fontFamily: AppFonts.sansProSemiBold,
+                                          color: AppColors.welcomeLightYellow,
+                                          fontWeight: FontWeight.w600)),
+                                  backgroundColor: AppColors.calPolyGreen,
+                                  foregroundColor: Colors.white,
+                                ),
+                                backgroundColor: AppColors.calPolyGreen,
+                                body: buildInfoSessionDisplay(context, "asc2026"),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       _sectionCard(
@@ -137,12 +164,14 @@ class Asc2026Screen extends StatelessWidget {
                         title: 'Map',
                         body:
                             'Find buildings, rooms, and event locations around campus quickly.',
-                        buttonLabel: 'Open Map',
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const Asc2026Maps(),
+                        buttonLabels: const ['Open Map'],
+                        onPressedFunctions: [
+                          () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const Asc2026Maps(),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       _sectionCard(
@@ -150,17 +179,17 @@ class Asc2026Screen extends StatelessWidget {
                         title: 'Sponsors',
                         body:
                             'See sponsor companies, booths, and featured opportunities during ASC 2026.',
-                        buttonLabel: 'View Sponsors',
-                        onPressed: () => {
-                          Navigator.of(context).push(
+                        buttonLabels: const ['View Sponsors'],
+                        onPressedFunctions: [
+                          () => Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (context) =>
                                   const Asc2026SponsorsDirectory(),
                             ),
                           ),
-                        },
+                        ],
                       ),
-                    ],
+                      SizedBox(height: screenHeight * 0.05),                    ],
                   ),
                 ),
               ),

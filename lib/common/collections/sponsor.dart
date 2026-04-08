@@ -47,11 +47,13 @@ class Sponsor implements Comparable<Sponsor> {
 }
 
 class SponsorItem extends StatelessWidget {
-  Widget sponsorLogoImage(String? url, double width, double height) {
-    return ResilientCircleImage(
+  Widget sponsorLogoImage(String? url, BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    return ResilientImage(
       imageUrl: url,
-      placeholderAsset: 'assets/icons/default_company.png', //THIS DOESN'T EXIST YET, ADD THIS PATH LATER
-      size: width,
+      placeholderAsset: 'assets/icons/default_company.png',
+      fit: BoxFit.contain,
+      height: screenWidth * .15,
     );
   }
 
@@ -84,22 +86,8 @@ class SponsorItem extends StatelessWidget {
           child: Padding(
             padding: EdgeInsets.symmetric(
                 vertical: screenHeight * .005, horizontal: screenWidth * 0.01),
-            child: Column(
-              children: [
-                ListTile(
-                  leading: sponsorLogoImage(
-                      sponsor.logo, screenWidth * .1, screenWidth * .1),
-                  title: AutoSizeText(
-                    sponsor.name,
-                    style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 13.0,
-                        fontWeight: FontWeight.w600),
-                    minFontSize: 11,
-                    maxLines: 2,
-                  ),
-                ),
-              ],
+            child: Center(
+              child: sponsorLogoImage(sponsor.logo, context),
             ),
           ),
         ),
@@ -135,11 +123,13 @@ class SponsorItem extends StatelessWidget {
 //   _ClubPopUpState createState() => _ClubPopUpState();
 // }
 
-Widget sponsorLogoImage(String? url, double width, double height) {
-  return ResilientCircleImage(
+Widget sponsorLogoImage(String? url, BuildContext context) {
+  double screenWidth = MediaQuery.of(context).size.width;
+  return ResilientImage(
     imageUrl: url,
     placeholderAsset: 'assets/icons/default_company.png',
-    size: width,
+    fit: BoxFit.contain,
+    height: screenWidth * .15,
   );
 }
 
