@@ -1263,7 +1263,6 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                               minFontSize: 8,
                                               style: const TextStyle(
                                                 color: Colors.black,
-                                                fontSize: 15,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
