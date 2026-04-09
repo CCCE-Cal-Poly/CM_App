@@ -1,3 +1,5 @@
+import 'package:ccce_application/common/features/pdf_view.dart';
+import 'package:ccce_application/services/error_logger.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:auto_size_text/auto_size_text.dart';
@@ -1024,6 +1026,7 @@ class ascEventPopUp extends StatefulWidget {
 }
 
 class _AscEventPopUpState extends State<ascEventPopUp> {
+
   Future<void> _copyToClipboard(String label, String value) async {
     try {
       await Clipboard.setData(ClipboardData(text: value));
@@ -1033,59 +1036,165 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
     } catch (_) {}
   }
 
-  Future<void> _launchUriOrCopy(Uri uri, String fallbackLabel) async {
-    try {
-      final launched =
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!launched) {
-        await _copyToClipboard(fallbackLabel, uri.toString());
-      }
-    } catch (_) {
-      await _copyToClipboard(fallbackLabel, uri.toString());
+
+  //   Future<PdfItem> fetchPdf(String folderPath) async {
+  //   try {
+  //     final ref = FirebaseStorage.instance.ref().child(folderPath);
+  //     final result = await ref;
+  //     PdfItem pdfRef = PdfItem(name: result.name, reference: result);
+
+  //     return pdfRef;
+  //   } catch (e) {
+  //     ErrorLogger.logError('PdfViewerPage', 'Error fetching PDFs', error: e);
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(content: Text('Failed to load PDF')),
+  //       );
+  //     }
+  //     throw Exception('Failed to load PDF');
+  //   }
+  // }
+
+
+  PdfItem fetchPdf(String path) {
+  try {
+    // REMOVED 'await' here. The ref is created locally/instantly.
+    final ref = FirebaseStorage.instance.ref().child(path);
+    
+    return PdfItem(
+      name: ref.name, 
+      reference: ref,
+    );
+  } catch (e) {
+    ErrorLogger.logError('PdfViewerPage', 'Error fetching PDFs', error: e);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to load PDF')),
+      );
     }
+    throw Exception('Failed to load PDF');
   }
+}
 
-  Future<Uri?> _resolvePresentationUri(String rawLink) async {
-    print('Resolving presentation link: $rawLink');
+  // Future<void> _launchUriOrCopy(Uri uri, String fallbackLabel) async {
+  //   try {
+  //     final launched =
+  //         await launchUrl(uri, mode: LaunchMode.externalApplication);
+  //     if (!launched) {
+  //       await _copyToClipboard(fallbackLabel, uri.toString());
+  //     }
+  //   } catch (_) {
+  //     await _copyToClipboard(fallbackLabel, uri.toString());
+  //   }
+  // }
 
-    final link = rawLink.trim();
-    if (link.isEmpty) return null;
+//   Future<void> _launchUriOrCopy(Uri uri, String fallbackLabel) async {
+//   // try {
+//   //   final launched = await launchUrl(
+//   //     uri,
+//   //     mode: LaunchMode.externalNonBrowserApplication, // try external app first
+//   //   );
+//     final launched = false;
+//     if (!launched) {
+//       // fall back to browser
+//       await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+//     }
+//   // } catch (_) {
+//   //   try {
+//   //     await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+//   //   } catch (_) {
+//   //     await _copyToClipboard(fallbackLabel, uri.toString());
+//   //   }
+//   // }
+// }
+// Future<Uri?> _resolvePresentationUri(String rawLink) async {
+//   final link = rawLink.trim();
+//   if (link.isEmpty) return null;
 
-    if (link.startsWith('gs://')) {
-      try {
-        final downloadUrl =
-            await FirebaseStorage.instance.refFromURL(link).getDownloadURL();
-        return Uri.tryParse(downloadUrl);
-      } catch (_) {}
-    }
+//   if (link.startsWith('gs://')) {
+//     try {
+//       final downloadUrl =
+//           await FirebaseStorage.instance.refFromURL(link).getDownloadURL();
+//       return Uri.tryParse(downloadUrl);
+//     } catch (e) {
+//       print('gs:// resolution failed: $e');
+//     }
+//   }
 
-    final parsed = Uri.tryParse(link);
-    if (parsed != null && parsed.hasScheme) {
-      return parsed;
-    }
+//   final parsed = Uri.tryParse(link);
+//   if (parsed != null && parsed.hasScheme) {
+//     return parsed;
+//   }
 
-    try {
-      final downloadUrl =
-          await FirebaseStorage.instance.ref(link).getDownloadURL();
-      return Uri.tryParse(downloadUrl);
-    } catch (_) {
-      final withScheme = link.startsWith('www.') ? 'https://$link' : link;
-      return Uri.tryParse(withScheme);
-    }
-  }
+//   // bare path — try Firebase Storage ref
+//   try {
+//     print('Trying Firebase Storage ref: $link');
+//     final downloadUrl =
+//         await FirebaseStorage.instance.ref(link).getDownloadURL();
+//     print('Got download URL: $downloadUrl');
+//     return Uri.tryParse(downloadUrl);
+//   } catch (e) {
+//     print('Firebase Storage ref failed: $e'); // <-- this is probably firing
+//     return null; // return null instead of falling through to a bad URI
+//   }
+// }
 
-  Future<void> _openPresentation() async {
-    final raw = widget.ascEvent.presentationLink?.trim() ?? '';
-    if (raw.isEmpty) return;
+  // Future<void> _openPresentation() async {
+  //   final raw = widget.ascEvent.presentationLink ?? '';
+  //   if (raw.isEmpty) return;
 
-    final uri = await _resolvePresentationUri(raw);
-    if (uri != null) {
-      await _launchUriOrCopy(uri, 'Presentation link');
-      return;
-    }
+  //   final uri = await _resolvePresentationUri(raw);
+  //   if (uri != null) {
+  //     print('Opening presentation URI: $uri');
+  //     await _launchUriOrCopy(uri, 'Presentation link');
+  //     return;
+  //   }
 
-    await _copyToClipboard('Presentation link', raw);
-  }
+  //   await _copyToClipboard('Presentation link', raw);
+  // }
+
+
+//   Future<void> _openPresentation() async {
+//   final raw = widget.ascEvent.presentationLink ?? '';
+//   if (raw.isEmpty) return;
+
+//   final uri = await _resolvePresentationUri(raw);
+//   if (uri == null) {
+//     await _copyToClipboard('Presentation link', raw);
+//     return;
+//   }
+
+//   print('Opening presentation URI: $uri');
+
+//   // Try 1: in-app browser (most reliable, works on emulator too)
+//   try {
+//     if (await canLaunchUrl(uri)) {
+//       final launched = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+//       if (launched) return;
+//     }
+//   } catch (e) {
+//     print('inAppBrowserView failed: $e');
+//   }
+
+//   // Try 2: external app (e.g. Drive, Office, PDF viewer)
+//   try {
+//     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+//     if (launched) return;
+//   } catch (e) {
+//     print('externalApplication failed: $e');
+//   }
+
+//   // Try 3: platform default
+//   try {
+//     final launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+//     if (launched) return;
+//   } catch (e) {
+//     print('platformDefault failed: $e');
+//   }
+
+//   // Final fallback: copy to clipboard
+//   await _copyToClipboard('Presentation link', uri.toString());
+// }
 
   @override
   Widget build(BuildContext context) {
@@ -1281,22 +1390,58 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                       ),
                               ),
                             ),
-                            // if ((widget.ascEvent.presentationLink ?? '')
-                            //     .trim()
-                            //     .isNotEmpty)
-                            //   Padding(
-                            //     padding:
-                            //         EdgeInsets.only(top: screenHeight * 0.01),
-                            //     child: TextButton.icon(
-                            //       icon: const Icon(Icons.picture_as_pdf,
-                            //           size: 18),
-                            //       label: const Text('Open presentation'),
-                            //       onPressed: _openPresentation,
-                            //       onLongPress: () => _copyToClipboard(
-                            //           'Presentation link',
-                            //           widget.ascEvent.presentationLink!.trim()),
-                            //     ),
-                            //   ),
+                            if ((widget.ascEvent.presentationLink ?? '')
+                                .trim()
+                                .isNotEmpty)
+                              Padding(
+                                padding:
+                                    EdgeInsets.only(top: screenHeight * 0.01),
+                                child: TextButton.icon(
+                                  icon: const Icon(Icons.picture_as_pdf,
+                                      size: 18),
+                                  label: const Text('Open presentation'),
+                                  onPressed: () {
+  // Use ! because we know it's not null/empty due to the 'if' check above
+                                    final pdfPath = widget.ascEvent.presentationLink!;      
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => PdfViewPage(
+                                          pdf: fetchPdf(pdfPath),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  onLongPress: () => _copyToClipboard(
+                                      'Presentation link',
+                                      widget.ascEvent.presentationLink!.trim()),
+                                ),
+                              ),
+                              if ((widget.ascEvent.paperPDFLink ?? '')
+                                .trim()
+                                .isNotEmpty)
+                              Padding(
+                                padding:
+                                    EdgeInsets.only(top: screenHeight * 0.01),
+                                child: TextButton.icon(
+                                  icon: const Icon(Icons.picture_as_pdf,
+                                      size: 18),
+                                  label: const Text('Open Paper'),
+                                  onPressed: () {
+  // Use ! because we know it's not null/empty due to the 'if' check above
+                                    final pdfPath = widget.ascEvent.paperPDFLink!;      
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => PdfViewPage(
+                                          pdf: fetchPdf(pdfPath),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  onLongPress: () => _copyToClipboard(
+                                      'Paper link',
+                                      widget.ascEvent.paperPDFLink!.trim()),
+                                ),
+                              ),
                           ],
                         ),
                       ),
