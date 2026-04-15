@@ -4,6 +4,8 @@ import 'package:ccce_application/common/features/asc_2026_agenda.dart';
 import 'package:ccce_application/common/features/my_info_sessions.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
+import 'package:ccce_application/services/error_logger.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 
 class Asc2026Screen extends StatelessWidget {
@@ -87,6 +89,22 @@ class Asc2026Screen extends StatelessWidget {
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+
+  PdfItem fetchPdf(String path) {
+    try {
+      // REMOVED 'await' here. The ref is created locally/instantly.
+      final ref = FirebaseStorage.instance.ref().child(path);
+      
+      return PdfItem(
+        name: ref.name, 
+        reference: ref,
+      );
+    } catch (e) {
+      ErrorLogger.logError('PdfViewerPage', 'Error fetching PDFs', error: e);
+      throw Exception('Failed to load PDF');
+    }
   }
 
   @override
@@ -189,7 +207,25 @@ class Asc2026Screen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      SizedBox(height: screenHeight * 0.05),                    ],
+                      const SizedBox(height: 12),
+                      _sectionCard(
+                        context: context,
+                        title: 'Digital Conference Program',
+                        body:
+                            'Access a pdf with the full conference program details.',
+                        buttonLabels: const ['View Program'],
+                        onPressedFunctions: [
+                          () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => PdfViewPage(
+                                  pdf: fetchPdf("ASC_2026_General_Files/ASC_Conference_2026_Digital_Program.pdf"),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: screenHeight * 0.05),
+                      ],
                   ),
                 ),
               ),
