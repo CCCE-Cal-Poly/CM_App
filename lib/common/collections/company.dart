@@ -328,6 +328,10 @@ class _CompanyPopupState extends State<CompanyPopup> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (widget.company.recruiterName.isNotEmpty
+                    && widget.company.recruiterName != null 
+                    && widget.company.recruiterName != "Placeholder for now"
+                    && widget.company.recruiterEmail.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(
                       bottom: 12.0, top: 8, left: 8, right: 8),
@@ -393,6 +397,9 @@ class _CompanyPopupState extends State<CompanyPopup> {
                     ),
                   ),
                 ),
+                if (widget.company.recruiterEmail.isNotEmpty
+                    && widget.company.recruiterEmail != null
+                    && widget.company.recruiterEmail != "Placeholder for now")
                 Center(
                   child: InkWell(
                     onTap: () async {

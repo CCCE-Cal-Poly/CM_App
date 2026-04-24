@@ -27,7 +27,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
   static const standardGreen = Color(0xFF164734);
   static const tanColor = Color.fromARGB(255, 69, 68, 36);
   static const lighterTanColor = Color(0xFFfffded);
-  int _selectedIndex = 5; // Default to ASC 2026 screen
+  int _selectedIndex = 0; // Default to Home screen
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   late final List<Widget Function()> _pageBuilders;
