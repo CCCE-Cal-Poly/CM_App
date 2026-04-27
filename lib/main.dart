@@ -113,8 +113,8 @@ class MyApp extends StatelessWidget {
       navigatorObservers: [_observer],
       home: UpgradeAlert(
         dialogStyle: UpgradeDialogStyle.material,
-        showIgnore: false,
-        showLater: false,
+        showIgnore: true,
+        showLater: true,
         child: const AppEntryGate(),
       ),
     );
