@@ -225,13 +225,17 @@ class _CompanyPopupState extends State<CompanyPopup> {
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
                           children: [
-                            Text(
+                            AutoSizeText(
                               widget.company.name,
                               style: const TextStyle(
                                 fontSize: 24.0,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black,
                               ),
+                              textAlign: TextAlign.center,
+                              minFontSize: 12,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             AutoSizeText(
                               widget.company.location,
