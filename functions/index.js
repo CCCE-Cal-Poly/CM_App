@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const cheerio = require("cheerio");
 
 admin.initializeApp();
 
@@ -42,6 +43,7 @@ const RATE_LIMIT_BYPASS_FUNCTIONS = new Set(
     .map((v) => v.trim())
     .filter((v) => v.length > 0),
 );
+const PEOPLE_BASE_URL = "https://construction.calpoly.edu/content/people/index";
 
 function getRateLimitConfig(functionName) {
   return Object.assign({}, RATE_LIMIT_DEFAULT, RATE_LIMIT_OVERRIDES[functionName] || {});
@@ -111,6 +113,55 @@ async function enforceRateLimit(request, functionName) {
       max: max,
     });
   });
+}
+
+function normalizePeopleSlug(value) {
+  if (!value) return "";
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/['".,]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
+}
+
+function cleanTableText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function extractFacultyOfficeInfo(html) {
+  const $ = cheerio.load(html);
+  const info = {};
+
+  $("table").each((_, table) => {
+    $(table).find("tr").each((__, row) => {
+      const labelRaw =
+        cleanTableText($(row).find("th").first().text()) ||
+        cleanTableText($(row).children().first().text());
+      const valueRaw = cleanTableText($(row).find("td").last().text());
+      if (!labelRaw) return;
+
+      const label = labelRaw.toLowerCase().replace(/:$/, "");
+      if (label === "office") info.office = valueRaw;
+      if (label === "office hours") info.hours = valueRaw;
+    });
+  });
+
+  return info;
+}
+
+async function fetchFacultyPage(url) {
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": "ccce-faculty-sync/1.0",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}`);
+  }
+
+  return response.text();
 }
 
 // Clean up all user data when their account is deleted
@@ -905,6 +956,55 @@ exports.cleanupOldNotifications = onSchedule("every 24 hours", async () => {
     console.error("Error cleaning up old notifications:", err);
   }
 });
+
+exports.syncFacultyOfficeInfo = onSchedule(
+  {schedule: "every 14 days", timeZone: "America/Los_Angeles"},
+  async () => {
+    console.log("Scheduled run: syncing faculty office info");
+    const db = admin.firestore();
+    const snapshot = await db.collection("faculty").get();
+    let updated = 0;
+    let skipped = 0;
+
+    for (const doc of snapshot.docs) {
+      const data = doc.data() || {};
+      const slugSource =
+        data.peoplePageSlug || data.lastname || data.lastName || data.lname;
+      const slug = normalizePeopleSlug(slugSource);
+      if (!slug) {
+        skipped++;
+        continue;
+      }
+
+      const url = `${PEOPLE_BASE_URL}/${encodeURIComponent(slug)}`;
+      try {
+        const html = await fetchFacultyPage(url);
+        const info = extractFacultyOfficeInfo(html);
+        const updates = {};
+        if (info.office) updates.office = info.office;
+        if (info.hours) updates.hours = info.hours;
+
+        if (Object.keys(updates).length === 0) {
+          skipped++;
+          continue;
+        }
+
+        await doc.ref.set(updates, {merge: true});
+        updated++;
+      } catch (err) {
+        console.error(
+          `syncFacultyOfficeInfo: failed for ${slug}`,
+          err && err.stack ? err.stack : err,
+        );
+        skipped++;
+      }
+    }
+
+    console.log(
+      `syncFacultyOfficeInfo complete: updated=${updated} skipped=${skipped}`,
+    );
+  },
+);
 
 exports.processPendingNotifications = onSchedule("every 5 minutes", async (event) => {
   console.log("Scheduled run: processing pending notifications");
