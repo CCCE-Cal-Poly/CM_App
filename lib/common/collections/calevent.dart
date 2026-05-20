@@ -781,7 +781,7 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                                   children: [
                                     TextButton.icon(
                                       icon: const Icon(Icons.link, size: 18),
-                                      label: const Text('Open interview link'),
+                                      label: const Text('Schedule an interview'),
                                       onPressed: () async {
                                         final link = widget
                                             .infoSession.isd!.interviewLink!;

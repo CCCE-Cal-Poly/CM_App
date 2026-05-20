@@ -177,39 +177,39 @@ class _SignInState extends State<SignIn> {
                   SizedBox(height: screenHeight * 0.015),
 
                   // Sign In with Cal Poly (Microsoft SSO)
-                  SizedBox(
-                    width: screenWidth * 0.75,
-                    height: screenHeight * 0.065,
-                    child: ElevatedButton(
-                      onPressed:
-                          _isMicrosoftSignInLoading ? null : _signInWithCalPoly,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        disabledBackgroundColor: Colors.white70,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
-                        ),
-                        elevation: 0,
-                      ),
-                      child: _isMicrosoftSignInLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.black,
-                              ),
-                            )
-                          : const Text(
-                              'SIGN IN WITH CAL POLY',
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: AppColors.calPolyGreen,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                    ),
-                  ),
+                  // SizedBox(
+                  //   width: screenWidth * 0.75,
+                  //   height: screenHeight * 0.065,
+                  //   child: ElevatedButton(
+                  //     onPressed:
+                  //         _isMicrosoftSignInLoading ? null : _signInWithCalPoly,
+                  //     style: ElevatedButton.styleFrom(
+                  //       backgroundColor: Colors.white,
+                  //       disabledBackgroundColor: Colors.white70,
+                  //       shape: const RoundedRectangleBorder(
+                  //         borderRadius: BorderRadius.zero,
+                  //       ),
+                  //       elevation: 0,
+                  //     ),
+                  //     child: _isMicrosoftSignInLoading
+                  //         ? const SizedBox(
+                  //             width: 20,
+                  //             height: 20,
+                  //             child: CircularProgressIndicator(
+                  //               strokeWidth: 2,
+                  //               color: Colors.black,
+                  //             ),
+                  //           )
+                  //         : const Text(
+                  //             'SIGN IN WITH CAL POLY',
+                  //             style: TextStyle(
+                  //               fontSize: 15,
+                  //               color: AppColors.calPolyGreen,
+                  //               fontWeight: FontWeight.bold,
+                  //             ),
+                  //           ),
+                  //   ),
+                  // ),
 
                   SizedBox(height: screenHeight * 0.02),
 

@@ -291,39 +291,39 @@ class _SignUpState extends State<SignUp> {
                   ),
                   SizedBox(height: screenHeight * 0.020),
 
-                  SizedBox(
-                    width: screenWidth * 0.75,
-                    height: screenHeight * 0.065,
-                    child: ElevatedButton(
-                      onPressed:
-                          _isMicrosoftLoading ? null : _signUpWithCalPoly,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        disabledBackgroundColor: Colors.white70,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
-                        ),
-                        elevation: 0,
-                      ),
-                      child: _isMicrosoftLoading
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: AppColors.calPolyGreen,
-                              ),
-                            )
-                          : const Text(
-                              'SIGN UP WITH CAL POLY',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: AppColors.calPolyGreen,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                    ),
-                  ),
+                  // SizedBox(
+                  //   width: screenWidth * 0.75,
+                  //   height: screenHeight * 0.065,
+                  //   child: ElevatedButton(
+                  //     onPressed:
+                  //         _isMicrosoftLoading ? null : _signUpWithCalPoly,
+                  //     style: ElevatedButton.styleFrom(
+                  //       backgroundColor: Colors.white,
+                  //       disabledBackgroundColor: Colors.white70,
+                  //       shape: const RoundedRectangleBorder(
+                  //         borderRadius: BorderRadius.zero,
+                  //       ),
+                  //       elevation: 0,
+                  //     ),
+                  //     child: _isMicrosoftLoading
+                  //         ? const SizedBox(
+                  //             height: 22,
+                  //             width: 22,
+                  //             child: CircularProgressIndicator(
+                  //               strokeWidth: 2.5,
+                  //               color: AppColors.calPolyGreen,
+                  //             ),
+                  //           )
+                  //         : const Text(
+                  //             'SIGN UP WITH CAL POLY',
+                  //             style: TextStyle(
+                  //               fontSize: 18,
+                  //               color: AppColors.calPolyGreen,
+                  //               fontWeight: FontWeight.w600,
+                  //             ),
+                  //           ),
+                  //   ),
+                  // ),
 
                   SizedBox(height: screenHeight * 0.020),
 
