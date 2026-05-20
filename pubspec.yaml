@@ -59,12 +59,13 @@ dependencies:
   #Image handling and caching
   http: ^1.2.2  # Updated for compatibility
   cached_network_image: ^3.4.1  # Updated for better performance
-  image_picker: ^1.1.2  # Updated for compatibility
+  image_picker: ^1.2.2  # Updated for compatibility
   flutter_local_notifications: ^19.5.0
  
   flutter_pdfview: 1.4.4
   pdfx: ^2.9.2
   upgrader: ^13.1.0
+  file_picker: ^11.0.2
 
   
 
