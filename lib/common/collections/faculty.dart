@@ -111,6 +111,53 @@ class _FacultyPopUpState extends State<FacultyPopUp> {
     return result;
   }
 
+  Widget _buildContactItem({
+    required IconData icon,
+    required String text,
+    required Future<void> Function() onTap,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          decoration: const BoxDecoration(
+            color: AppColors.calPolyGreen,
+            shape: BoxShape.circle,
+          ),
+          height: 24,
+          width: 24,
+          alignment: Alignment.center,
+          child: IconButton(
+              icon: Icon(
+                icon,
+                size: 13,
+              ),
+              padding: EdgeInsets.zero,
+              color: AppColors.lightGold,
+              onPressed: () {}),
+        ),
+        const SizedBox(width: 5),
+        Expanded(
+          child: InkWell(
+            onTap: () {
+              onTap();
+            },
+            child: AutoSizeText(
+              text,
+              style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.darkGoldText,
+                  decoration: TextDecoration.underline),
+              minFontSize: 8,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -231,114 +278,53 @@ class _FacultyPopUpState extends State<FacultyPopUp> {
             Padding(
               padding:
                   const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 8.0),
-              child: Wrap(
-                  spacing: 16.0,
-                  runSpacing: 8.0,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          decoration: const BoxDecoration(
-                            color: AppColors.calPolyGreen,
-                            shape: BoxShape.circle,
-                          ),
-                          height: 24,
-                          width: 24,
-                          alignment: Alignment.center,
-                          child: IconButton(
-                              icon: const Icon(
-                                Icons.mail,
-                                size: 13,
-                              ),
-                              padding: EdgeInsets.zero,
-                              color: AppColors.lightGold,
-                              onPressed: () {}),
-                        ),
-                        const SizedBox(width: 5),
-                        Flexible(
-                          child: InkWell(
-                            onTap: () async {
-                              final email = widget.faculty.email;
-                              if (email != null && email.isNotEmpty) {
-                                final uri = Uri(scheme: 'mailto', path: email);
-                                try {
-                                  await launchUrl(uri);
-                                } catch (e) {
-                                  await Clipboard.setData(ClipboardData(text: email));
-                                  if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Email copied to clipboard')),
-                                  );
-                                }
-                              }
-                            },
-                            child: AutoSizeText(
-                              widget.faculty.email ?? '',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.darkGoldText,
-                                  decoration: TextDecoration.underline),
-                              minFontSize: 9,
-                              maxLines: 1,
-                            ),
-                          ),
-                        ),
-                      ],
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildContactItem(
+                      icon: Icons.mail,
+                      text: widget.faculty.email ?? '',
+                      onTap: () async {
+                        final email = widget.faculty.email;
+                        if (email != null && email.isNotEmpty) {
+                          final uri = Uri(scheme: 'mailto', path: email);
+                          try {
+                            await launchUrl(uri);
+                          } catch (e) {
+                            await Clipboard.setData(ClipboardData(text: email));
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Email copied to clipboard')),
+                            );
+                          }
+                        }
+                      },
                     ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          decoration: const BoxDecoration(
-                            color: AppColors.calPolyGreen,
-                            shape: BoxShape.circle,
-                          ),
-                          height: 24,
-                          width: 24,
-                          alignment: Alignment.center,
-                          child: IconButton(
-                              icon: const Icon(
-                                Icons.phone,
-                                size: 13,
-                              ),
-                              padding: EdgeInsets.zero,
-                              color: AppColors.lightGold,
-                              onPressed: () {}),
-                        ),
-                        const SizedBox(width: 5),
-                        Flexible(
-                          child: InkWell(
-                            onTap: () async {
-                              final phone = widget.faculty.phone;
-                              if (phone != null && phone.isNotEmpty) {
-                                final uri = Uri(scheme: 'tel', path: phone);
-                                try {
-                                  await launchUrl(uri);
-                                } catch (e) {
-                                  await Clipboard.setData(ClipboardData(text: phone));
-                                  if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Phone number copied to clipboard')),
-                                  );
-                                }
-                              }
-                            },
-                            child: AutoSizeText(
-                              widget.faculty.phone ?? '',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.darkGoldText,
-                                  decoration: TextDecoration.underline),
-                              minFontSize: 9,
-                              maxLines: 1,
-                            ),
-                          ),
-                        ),
-                      ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildContactItem(
+                      icon: Icons.phone,
+                      text: widget.faculty.phone ?? '',
+                      onTap: () async {
+                        final phone = widget.faculty.phone;
+                        if (phone != null && phone.isNotEmpty) {
+                          final uri = Uri(scheme: 'tel', path: phone);
+                          try {
+                            await launchUrl(uri);
+                          } catch (e) {
+                            await Clipboard.setData(ClipboardData(text: phone));
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Phone number copied to clipboard')),
+                            );
+                          }
+                        }
+                      },
                     ),
-                  ]),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

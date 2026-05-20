@@ -781,7 +781,8 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                                   children: [
                                     TextButton.icon(
                                       icon: const Icon(Icons.link, size: 18),
-                                      label: const Text('Open interview link'),
+                                      label:
+                                          const Text('Schedule an Interview'),
                                       onPressed: () async {
                                         final link = widget
                                             .infoSession.isd!.interviewLink!;
@@ -1026,7 +1027,6 @@ class ascEventPopUp extends StatefulWidget {
 }
 
 class _AscEventPopUpState extends State<ascEventPopUp> {
-
   Future<void> _copyToClipboard(String label, String value) async {
     try {
       await Clipboard.setData(ClipboardData(text: value));
@@ -1036,28 +1036,25 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
     } catch (_) {}
   }
 
-
-
-
   PdfItem fetchPdf(String path) {
-  try {
-    // REMOVED 'await' here. The ref is created locally/instantly.
-    final ref = FirebaseStorage.instance.ref().child(path);
-    
-    return PdfItem(
-      name: ref.name, 
-      reference: ref,
-    );
-  } catch (e) {
-    ErrorLogger.logError('PdfViewerPage', 'Error fetching PDFs', error: e);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load PDF')),
+    try {
+      // REMOVED 'await' here. The ref is created locally/instantly.
+      final ref = FirebaseStorage.instance.ref().child(path);
+
+      return PdfItem(
+        name: ref.name,
+        reference: ref,
       );
+    } catch (e) {
+      ErrorLogger.logError('PdfViewerPage', 'Error fetching PDFs', error: e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load PDF')),
+        );
+      }
+      throw Exception('Failed to load PDF');
     }
-    throw Exception('Failed to load PDF');
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -1264,8 +1261,9 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                       size: 18),
                                   label: const Text('Open presentation'),
                                   onPressed: () {
-  // Use ! because we know it's not null/empty due to the 'if' check above
-                                    final pdfPath = widget.ascEvent.presentationLink!;      
+                                    // Use ! because we know it's not null/empty due to the 'if' check above
+                                    final pdfPath =
+                                        widget.ascEvent.presentationLink!;
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
                                         builder: (context) => PdfViewPage(
@@ -1279,7 +1277,7 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                       widget.ascEvent.presentationLink!.trim()),
                                 ),
                               ),
-                              if ((widget.ascEvent.paperPDFLink ?? '')
+                            if ((widget.ascEvent.paperPDFLink ?? '')
                                 .trim()
                                 .isNotEmpty)
                               Padding(
@@ -1290,8 +1288,9 @@ class _AscEventPopUpState extends State<ascEventPopUp> {
                                       size: 18),
                                   label: const Text('Open Paper'),
                                   onPressed: () {
-  // Use ! because we know it's not null/empty due to the 'if' check above
-                                    final pdfPath = widget.ascEvent.paperPDFLink!;      
+                                    // Use ! because we know it's not null/empty due to the 'if' check above
+                                    final pdfPath =
+                                        widget.ascEvent.paperPDFLink!;
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
                                         builder: (context) => PdfViewPage(
