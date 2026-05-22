@@ -160,7 +160,10 @@ class _FacultyDirectoryState extends State<FacultyDirectory> {
                           if (_isTextEntered) {
                             for (Faculty faculty in facultyList) {
                               // Check if the company name starts with the entered text substring
-                              String name = faculty.fname + " " + faculty.lname;
+                              String name = [
+                                if (faculty.fname?.isNotEmpty == true) faculty.fname,
+                                if (faculty.lname?.isNotEmpty == true) faculty.lname,
+                              ].join(' ');
                               if (name
                                   .toLowerCase()
                                   .startsWith(text.toLowerCase())) {
