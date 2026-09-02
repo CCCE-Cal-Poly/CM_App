@@ -159,3 +159,14 @@ service cloud.firestore {
     }
   }
 }
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /ASC_2026_Papers/{allPaths=**} {
+      allow read: if true;
+    }
+    match /ASC_2026_Presentations/{allPaths=**} {
+      allow read: if true;
+    }
+  }
+}

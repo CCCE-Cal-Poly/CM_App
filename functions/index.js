@@ -1,10 +1,20 @@
 const admin = require("firebase-admin");
 const cheerio = require("cheerio");
+const {google} = require("googleapis");
+require("dotenv").config();
+
+const auth = new google.auth.GoogleAuth({
+  scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+});
+
+const sheets = google.sheets({version: "v4", auth});
+
 
 admin.initializeApp();
 
 // Debug: environment and admin SDK info
 try {
+  console.log("entry 1");
   const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT ||
     (admin.app && admin.app().options && admin.app().options.projectId);
   console.log("Admin SDK initialized for project:", projectId);
@@ -12,10 +22,12 @@ try {
   console.log("Admin SDK initialized (project id unknown)", e && e.message ? e.message : e);
 }
 
+console.log("entry 2");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentCreated, onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {user} = require("firebase-functions/v1/auth");
+console.log("entry 3");
 
 const ALLOWED_ROLES = new Set(["student", "faculty", "club admin", "admin", "recruiter"]);
 
@@ -44,6 +56,11 @@ const RATE_LIMIT_BYPASS_FUNCTIONS = new Set(
     .filter((v) => v.length > 0),
 );
 const PEOPLE_BASE_URL = "https://construction.calpoly.edu/content/people/index";
+
+
+const SPREADSHEET_ID = process.env.EVENT_ATTENDENCE_SHEET_URL;
+
+console.log("entry 4");
 
 function getRateLimitConfig(functionName) {
   return Object.assign({}, RATE_LIMIT_DEFAULT, RATE_LIMIT_OVERRIDES[functionName] || {});
@@ -164,6 +181,8 @@ async function fetchFacultyPage(url) {
   return response.text();
 }
 
+console.log("entry 5");
+
 // Clean up all user data when their account is deleted
 exports.onUserDeleted = user().onDelete(async (userRecord) => {
   console.log("onUserDeleted fired; raw userRecord keys:", userRecord ? Object.keys(userRecord).slice(0, 10) : userRecord);
@@ -277,6 +296,8 @@ exports.onUserDeleted = user().onDelete(async (userRecord) => {
   }
 });
 
+console.log("entry 6");
+
 
 exports.setUserRole = onCall(async (request) => {
   if (!request.auth) {
@@ -389,6 +410,8 @@ exports.setUserRole = onCall(async (request) => {
     throw new HttpsError("internal", error.message || "Internal server error");
   }
 });
+
+console.log("entry 7");
 
 exports.approveClubEvent = onCall(async (request) => {
   if (!request.auth) {
@@ -539,6 +562,9 @@ function normalizeRecurrenceEndDate(endDate) {
 //   return {start: nextStart, end: nextEnd};
 // }
 
+
+console.log("entry 8");
+
 exports.denyClubEvent = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError(
@@ -615,6 +641,10 @@ exports.sendNotificationOnCreate = onDocumentCreated("notifications/{notificatio
         return;
       }
       targetUids = [targetId];
+    } else if (targetType === "admins") {
+      const adminsSnap = await admin.firestore().collection("users").where("role", "==", "admin").get();
+      const adminUids = adminsSnap.docs.map((d) => d.id).filter(Boolean);
+      targetUids = adminUids;
     } else if (targetType === "club") {
       if (!targetId) {
         console.error("No targetId/clubId for club-targeted notification");
@@ -709,7 +739,7 @@ exports.notifyOnClubJoin = onDocumentCreated("clubs/{clubId}/members/{uid}", asy
     const clubName = clubData.Acronym;
 
     await admin.firestore().collection("notifications").add({
-      targetType: "user",
+      targetType: "admins",
       targetId: uid,
       title: "Joined club",
       message: `You joined ${clubName}.`,
@@ -723,6 +753,7 @@ exports.notifyOnClubJoin = onDocumentCreated("clubs/{clubId}/members/{uid}", asy
 
 exports.notifyOnEventCheckIn = onDocumentCreated("events/{eventId}/attending/{uid}", async (event) => {
   const {eventId, uid} = event.params || {};
+
   if (!eventId || !uid) return;
   try {
     const eventSnap = await admin.firestore().collection("events").doc(eventId).get();
@@ -739,6 +770,28 @@ exports.notifyOnEventCheckIn = onDocumentCreated("events/{eventId}/attending/{ui
     });
   } catch (err) {
     console.error("notifyOnEventCheckIn error", err);
+  }
+});
+
+exports.notifyOnClubEventRequest = onDocumentCreated("clubEventRequests/{requestId}", async (event) => {
+  const {requestId} = event.params || {};
+
+
+  if (!requestId) return;
+    try {
+    const requestSnap = await admin.firestore().collection("clubEventRequests").doc(requestId).get();
+    const requestData = requestSnap.exists ? (requestSnap.data() || {}) : {};
+    const clubName = requestData.clubName || "a club";
+
+    await admin.firestore().collection("notifications").add({
+      targetType: "admins",
+      title: `Event Request From ${clubName}`,
+      message: "A new event request is awaiting approval from an Admin.",
+      createdBy: "system",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (err) {
+    console.error("notifyOnClubEventRequest error", err);
   }
 });
 
@@ -957,9 +1010,7 @@ exports.cleanupOldNotifications = onSchedule("every 24 hours", async () => {
   }
 });
 
-exports.syncFacultyOfficeInfo = onSchedule(
-  {schedule: "every 14 days", timeZone: "America/Los_Angeles"},
-  async () => {
+exports.syncFacultyOfficeInfo = onSchedule("every 7 days", async () => {
     console.log("Scheduled run: syncing faculty office info");
     const db = admin.firestore();
     const snapshot = await db.collection("faculty").get();
@@ -1118,6 +1169,7 @@ exports.scheduleEventReminder = onDocumentCreated("events/{eventId}", async (eve
     console.error(`Error scheduling reminder for event ${eventId}:`, err);
   }
 });
+
 
 async function sendNotificationDocNow(docSnapshot) {
   const notification = docSnapshot.data();
@@ -2049,3 +2101,263 @@ exports.autoDeleteOldClubEvents = onSchedule("every day 02:00", async () => {
     console.error("Error in auto-delete old club events:", err);
   }
 });
+
+
+// ********************************** GOOGLE SHEETS LOGIC ******************************************** */
+
+async function getSheetRows(sheetName) {
+  let res;
+  try {
+    res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${sheetName}!A:D`,
+    });
+  } catch (err) {
+    if (err.status === 400 || err.status === 404) {
+      // Sheet doesn't exist yet, create it first
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: {
+          requests: [{
+            addSheet: {
+              properties: {title: sheetName}}}]}});
+
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${sheetName}!A:D`,
+        valueInputOption: "RAW",
+        requestBody: {
+          values: [["Infosession ID", "Title", "Date of Session", "Attendee Count", "Attendees"]],
+        },
+      });
+      // Now proceed with an empty rows result
+      res = {data: {values: []}};
+    } else {
+      throw err; // re-throw unexpected errors
+    }
+  }
+  return res.data.values || []; // [[eventId, eventName, date, attendeeCount], ...]
+}
+
+function formatDateForSheet(date) {
+  if (!(date instanceof Date) || isNaN(date)) return "";
+
+  const month = date.getMonth() + 1; // getMonth() is zero-indexed
+  const day = date.getDate();
+  const year = date.getFullYear();
+
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+
+  return `${month}/${day}/${year} ${hours}:${minutes}:${seconds}`;
+}
+
+async function assignTerm(date) {
+  if (!(date instanceof Date) || isNaN(date)) {
+    return null;
+  }
+
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+  const isPreTransition = year < 2026 || (year === 2026 && month < 8);
+
+  if (isPreTransition) {
+    if (month >= 9) return `Fall Quarter ${year}`;
+    if (month <= 3) return `Winter Quarter ${year}`;
+    if (month <= 6) return `Spring Quarter ${year}`;
+    return `Summer Quarter ${year}`;
+  }
+
+  if (month >= 8) return `Fall Semester ${year}`;
+  if (month <= 5) return `Spring Semester ${year}`;
+  return `Summer Term ${year}`;
+}
+
+async function sheetExists(sheets, spreadsheetId, sheetName) {
+  const res = await sheets.spreadsheets.get({
+    spreadsheetId,
+    fields: "sheets.properties",
+  });
+
+  return res.data.sheets.some((sheet) => sheet.properties.title === sheetName);
+}
+
+async function createEventSheetRow(eventId, eventName, date) {
+  let parsedDate;
+
+  if (date?.toDate && typeof date.toDate === "function") {
+    console.log("Date has a toDate() function");
+    parsedDate = date.toDate(); // Native Firebase Timestamp conversion
+  } else {
+    console.log("No toDate() found");
+    parsedDate = new Date(date);
+  }
+
+  const sheetName = await assignTerm(parsedDate);
+
+  if (sheetName === null) {
+    console.error(`Invalid date provided for event ${eventId}: ${date}`);
+    return;
+  }
+
+
+  const exists = await sheetExists(sheets, SPREADSHEET_ID, sheetName);
+  if (!exists) {
+      await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        requests: [{
+          addSheet: {
+            properties: {title: sheetName},
+          },
+        }],
+      },
+    });
+  }
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${sheetName}!A:E`,
+    valueInputOption: "RAW",
+    requestBody: {
+      values: [[eventId, eventName, formatDateForSheet(parsedDate), 0, ""]],
+    },
+  });
+
+  const rows = await getSheetRows(sheetName);
+  const sheetRow = rows.length + 2;
+
+  await admin.firestore()
+    .collection("events")
+    .doc(eventId)
+    .update(
+      {
+        sheetRow: sheetRow,
+        attendeesProcessed: false,
+      });
+
+    console.log(`Added event ${eventId} to sheet ${sheetName} at row ${sheetRow}`);
+}
+
+async function updateEventRowInSheet({row, sheetName, eventId, eventName, eventDate, attendeeCount, attendees}) {
+  // Convert list into a single cell string
+  const attendeeString = attendees.join(", ");
+  const values = [
+    [
+      eventId,
+      eventName,
+      eventDate,
+      attendeeCount,
+      attendeeString,
+    ],
+  ];
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${sheetName}!A${row}:E${row}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values,
+    },
+  });
+}
+
+  exports.addEventToSheet = onDocumentCreated("events/{eventId}", async (event) => {
+    const eventId = event.params.eventId;
+    const eventData = event.data.data();
+
+    if (eventData?.eventType && eventData.eventType !== "infoSession") {
+      console.log("Event is not info session, skipping adding to sheet");
+      return;
+    }
+
+    // to add an event to the sheet, we need the sheet name and the row number.
+
+    await createEventSheetRow(
+      eventId,
+      eventData?.title || "Unnamed Event",
+      eventData?.startTime || "Unknown Date");
+  });
+
+  exports.markForUpdateInSheet = onDocumentWritten("events/{eventId}/attending/{userId}",
+    async (event) => {
+      const db = admin.firestore();
+      const eventId = event.params.eventId;
+      const eventSnap = await db.collection("events").doc(eventId).get();
+      const eventData = eventSnap.data();
+
+      if (!eventSnap.exists) {
+        console.log("Parent event document does not exist, skipping.");
+        return;
+      }
+
+      if (eventData?.eventType && eventData.eventType !== "infoSession") {
+        console.log("Event is not info session, skipping marking for update in sheet");
+        return;
+      }
+
+      if (eventData.attendeesProcessed !== false) {
+        await db.collection("events").doc(eventId).update({
+          attendeesProcessed: false,
+        });
+      }
+    });
+
+
+  exports.updateEventInSheet = onSchedule("every 24 hours", async () => {
+    const db = admin.firestore();
+    const upcomingEventsSnapshot =
+      await db.collection("events")
+      .where("eventType", "==", "infoSession")
+      .where("attendeesProcessed", "==", false)
+      .get();
+
+    for (const eventDoc of upcomingEventsSnapshot.docs) {
+      const eventId = eventDoc.id;
+      const eventData = eventDoc.data();
+
+    const attendeesSnap = await db.collection(`events/${eventId}/attending`).get();
+
+    const attendees = [];
+    if (!attendeesSnap.empty) {
+      const userRefs = attendeesSnap.docs.map((doc) => db.collection("users").doc(doc.id));
+
+      // Break userRefs into chunks of 100 to avoid exceeding Firestore's getAll() limit
+      // its unlikely that an event will have more than 100 attendees, but just in case, we will chunk it
+      const chunks = [];
+      for (let i = 0; i < userRefs.length; i += 100) {
+        chunks.push(userRefs.slice(i, i + 100));
+      }
+
+      for (const chunk of chunks) {
+        const userDocs = await db.getAll(...chunk);
+        userDocs.forEach((doc) => {
+          if (doc.exists) {
+            const data = doc.data();
+            const name = (data.firstName && data.lastName) ? `${data.firstName} ${data.lastName}` : data.name || "Unknown";
+            attendees.push(name);
+          }
+        });
+      }
+    }
+
+    const attendeeCount = attendees.length;
+    const startTime = eventData?.startTime ? eventData.startTime.toDate() : "Unknown Date";
+
+    await updateEventRowInSheet({
+        row: eventData.sheetRow,
+        sheetName: startTime !== "Unknown Date" ? await assignTerm(startTime) : "Unknown Term",
+        eventId,
+        eventName: eventData.name,
+        eventDate: startTime !== "Unknown Date" ? formatDateForSheet(startTime) : "Unknown Date",
+        attendeeCount,
+        attendees,
+      });
+    await db.collection("events").doc(eventId).update({
+      attendeesProcessed: true,
+    });
+    }
+  });
+
+
