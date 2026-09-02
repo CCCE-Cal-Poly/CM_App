@@ -10,31 +10,31 @@ import 'package:flutter/services.dart';
 
 
 
-class Asc2026SponsorsDirectory extends StatefulWidget {
+class CMACMembersDirectory extends StatefulWidget {
   // final GlobalKey<ScaffoldState> scaffoldKey;
-  const Asc2026SponsorsDirectory({super.key});
+  // const CMACMembersDirectory({super.key});
+  final GlobalKey<ScaffoldState> scaffoldKey;
 
-  final String title = "Directory";
+	const CMACMembersDirectory({super.key, required this.scaffoldKey});
+
+  final String title = "CMAC Members";
   @override
-  State<Asc2026SponsorsDirectory> createState() => _Asc2026SponsorsDirectoryState();
+  State<CMACMembersDirectory> createState() => _CMACMembersDirectoryState();
 }
 
-class _Asc2026SponsorsDirectoryState extends State<Asc2026SponsorsDirectory> {
+class _CMACMembersDirectoryState extends State<CMACMembersDirectory> {
 
-  // final String sloName = "SLO";
-  // final String greenName = "Green";
-  // final String goldName = "Gold";
-  // final String mustangName = "Mustang";
+
   Future<List<Member>> fetchDataFromFirestore() async {
-    List<Member> sponsorList = [];
+    List<Member> memberList = [];
 
     try {
       // Get a reference to the Firestore database
       FirebaseFirestore firestore = FirebaseFirestore.instance;
 
       ErrorLogger.logInfo('SponsorsDirectory', 'Fetching sponsors from Firestore');
-      
-      QuerySnapshot querySnapshot = await firestore.collection('sponsors').get();
+      // Query the "companies" collection
+      QuerySnapshot querySnapshot = await firestore.collection('cmacMembers').get();
       ErrorLogger.logInfo('SponsorsDirectory', 'Fetched ${querySnapshot.size} sponsors from Firestore');
       print('Docs count: ${querySnapshot.docs.length}');
       print('Size: ${querySnapshot.size}');
@@ -44,29 +44,29 @@ class _Asc2026SponsorsDirectoryState extends State<Asc2026SponsorsDirectory> {
       querySnapshot.docs.forEach((doc) {
         // Convert each document to a Map and add it to the list
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        Map<String, String> sponsorData = {};
+        Map<String, String> memberData = {};
         data.forEach((key, value) {
-          sponsorData['id'] = doc.id;
-          sponsorData['name'] = data['name'] ?? '';
-          sponsorData['logo'] = data['logo'] ?? '';
-          sponsorData['website'] = data['website'] ?? '';
-          sponsorData['sponsorLevel'] = data['sponsorLevel'] ?? '';
-          // Convert each value to String and add it to sponsorData
-          sponsorData[key] = value.toString();
+          memberData['id'] = doc.id;
+          memberData['name'] = data['name'] ?? '';
+          memberData['logo'] = data['logo'] ?? '';
+          memberData['website'] = data['website'] ?? '';
+          memberData['level'] = data['sponsorLevel'] ?? '';
+          // Convert each value to String and add it to memberData
+          memberData[key] = value.toString();
         });
         // bool administration = false;
-        // if (sponsorData['administration'] != null) {
+        // if (memberData['administration'] != null) {
         //   administration =
-        //       sponsorData['administration']!.toLowerCase().contains("true");
+        //       memberData['administration']!.toLowerCase().contains("true");
         // }
-        Member newSponsor = Member(
-            id: sponsorData['id']!,
-            name: sponsorData['name']!,
-            logo: sponsorData['logo']!,
-            website: sponsorData['website']!,
-            level: sponsorData['sponsorLevel']!,
+        Member newMember = Member(
+            id: memberData['id']!,
+            name: memberData['name']!,
+            logo: memberData['logo']!,
+            website: memberData['website']!,
+            level: memberData['level']!,
             );
-        sponsorList.add(newSponsor);
+        sponsorList.add(newMember);
       });
     } catch (e) {
       // Handle any errors that occur
@@ -97,10 +97,11 @@ class _Asc2026SponsorsDirectoryState extends State<Asc2026SponsorsDirectory> {
 
 
   Map<String, bool> buttonStates = {
-  'SLO': false,
   'Green': false,
   'Gold': false,
   'Mustang': false,
+  'Legacy': false,
+  'Founder': false,
   };
 
   @override
@@ -160,7 +161,7 @@ class _Asc2026SponsorsDirectoryState extends State<Asc2026SponsorsDirectory> {
                 ),
                 const SizedBox(width: 6),
                 const Text(
-                  "ASC Sponsor Directory",
+                  "CMAC Members Directory",
                   style: TextStyle(
                     fontFamily: AppFonts.sansProSemiBold,
                     fontSize: 21,
@@ -185,14 +186,14 @@ class _Asc2026SponsorsDirectoryState extends State<Asc2026SponsorsDirectory> {
 
                           // Iterate through the original list of companies if text is entered
                           if (_isTextEntered) {
-                            for (Member sponsor in sponsorList) {
+                            for (Member member in sponsorList) {
                               // Check if the company name starts with the entered text substring
-                              String name = sponsor.name;
+                              String name = member.name;
                               if (name
                                   .toLowerCase()
                                   .startsWith(text.toLowerCase())) {
                                 // If it does, add the company to the filtered list
-                                filteredSponsors.add(sponsor);
+                                filteredSponsors.add(member);
                               }
                             }
                           }
@@ -220,7 +221,7 @@ class _Asc2026SponsorsDirectoryState extends State<Asc2026SponsorsDirectory> {
                             color: Colors.black,
                           ),
                         ),
-                        hintText: 'ASC Sponsor Directory',
+                        hintText: 'CMAC Member Directory',
                         // border: OutlineInputBorder(
                         //   borderRadius: BorderRadius.circular(10.0),
                         // ),
@@ -239,13 +240,16 @@ class _Asc2026SponsorsDirectoryState extends State<Asc2026SponsorsDirectory> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
+                    createButtonSorter('Founder', () => {}),
+                    const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
+                    createButtonSorter('Legacy', () => {}),
+                    const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
                     createButtonSorter('Mustang', () => {}),
                     const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
                     createButtonSorter('Gold', () => {}),
                     const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
                     createButtonSorter('Green', () => {}),
                     const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
-                    createButtonSorter('SLO', () => {}),
                   ],
                 ),
               ),
@@ -257,8 +261,10 @@ class _Asc2026SponsorsDirectoryState extends State<Asc2026SponsorsDirectory> {
                       _isTextEntered ? filteredSponsors : sponsorList;
 
                   // Split into admin and faculty
-                  final List<Member> sloList =
-                      displayList.where((f) => f.level == 'SLO').toList();
+                  final List<Member> founderList =
+                      displayList.where((f) => f.level == 'Founder').toList();
+                  final List<Member> legacyList =
+                      displayList.where((f) => f.level == 'Legacy').toList();
                   final List<Member> greenList =
                       displayList.where((f) => f.level == 'Green').toList();
                   final List<Member> goldList =
@@ -269,12 +275,11 @@ class _Asc2026SponsorsDirectoryState extends State<Asc2026SponsorsDirectory> {
                   // Combine with section headers
                   final List<Widget> sectionedList = [];
 
-
-
-          _addSponsorSection("Mustang", mustangList, context, sectionedList);
-          _addSponsorSection("Gold", goldList, context, sectionedList);
-          _addSponsorSection("Green", greenList, context, sectionedList);
-          _addSponsorSection("SLO", sloList, context, sectionedList);
+          _addMemberSection("Founder", founderList, context, sectionedList);
+          _addMemberSection("Legacy", legacyList, context, sectionedList);
+          _addMemberSection("Mustang", mustangList, context, sectionedList);
+          _addMemberSection("Gold", goldList, context, sectionedList);
+          _addMemberSection("Green", greenList, context, sectionedList);
 
 
                   return ListView(
@@ -289,19 +294,19 @@ class _Asc2026SponsorsDirectoryState extends State<Asc2026SponsorsDirectory> {
     );
   }
 
-  _addSponsorSection(
-    String sponsorType,
-    List<Member> sponsorList,
+  _addMemberSection(
+    String memberType,
+    List<Member> memberList,
     BuildContext context,
     List<Widget> sectionedList
   ){
-    final bool shouldShow = ((buttonStates[sponsorType]!) || buttonStates.values.every((value) => !value));
+    final bool shouldShow = ((buttonStates[memberType]!) || buttonStates.values.every((value) => !value));
     if (shouldShow){
         sectionedList.add(
         Padding(
           padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
           child: Text(
-            "$sponsorType Sponsor",
+            "$memberType Members",
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w400,
