@@ -1,3 +1,4 @@
+import 'package:ccce_application/services/error_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/user_data.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -11,8 +12,31 @@ class UserProvider with ChangeNotifier {
   List<String> get clubsAdminOf => _user?.clubsAdminOf ?? [];
 
   Future<void> loadUserProfile(String uid) async {
-    final doc =
-      await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+    ErrorLogger.logInfo(
+      'UserProvider',
+      'Loading user profile for $uid',
+      sendToCrashlytics: true,
+    );
+
+    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+    ErrorLogger.logInfo(
+      'UserProvider',
+      'users/$uid exists: ${doc.exists}',
+      sendToCrashlytics: true,
+    );
+
+
+    if (!doc.exists) {
+      ErrorLogger.logError(
+        'UserProvider',
+        'USER PROFILE DOES NOT EXIST for $uid',
+        sendToCrashlytics: true,
+      );
+      return;
+    }
+
     if (doc.exists) {
       final previousRole = _user?.role;
       _user = UserData.fromMap(uid, doc.data()!);

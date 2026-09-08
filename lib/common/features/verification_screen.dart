@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'package:ccce_application/common/features/app_entry_gate.dart';
 import 'package:ccce_application/common/theme/theme.dart';
+import 'package:ccce_application/services/error_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -162,6 +163,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('TOS', true);
 
+    ErrorLogger.logInfo('Auth', 'User email verified: ${FirebaseAuth.instance.currentUser?.uid}', sendToCrashlytics: true);
     // Route back through the shared app entry gate so all bootstrap logic
     // (auth/TOS checks, provider loading, app shell routing) runs in one place.
     if (!mounted) return;
@@ -246,6 +248,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   await FirebaseAuth.instance.signOut();
 
                   if (!context.mounted) return;
+                  
                   Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(
                       builder: (_) => const AppEntryGate(),

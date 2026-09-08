@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 /// Central error logging and handling service for the app
 class ErrorLogger {
@@ -9,6 +10,7 @@ class ErrorLogger {
     String message, {
     Object? error,
     StackTrace? stackTrace,
+    bool sendToCrashlytics = false,
   }) {
     if (kDebugMode) {
       print('❌ ERROR [$context]: $message');
@@ -19,21 +21,32 @@ class ErrorLogger {
         print('Stack trace: $stackTrace');
       }
     }
-    // TODO: In production, send to Firebase Crashlytics or Sentry
-    // FirebaseCrashlytics.instance.recordError(error, stackTrace, reason: context);
+    if (sendToCrashlytics) {
+      FirebaseCrashlytics.instance.recordError(
+        error ?? message,
+        stackTrace,
+        reason: context,
+      );
+    }
   }
 
   /// Log a warning
-  static void logWarning(String context, String message) {
+  static void logWarning(String context, String message, {bool sendToCrashlytics = false}) {
     if (kDebugMode) {
       print('⚠️ WARNING [$context]: $message');
+    }
+    if (sendToCrashlytics) {
+      FirebaseCrashlytics.instance.log('WARNING [$context]: $message');
     }
   }
 
   /// Log info message
-  static void logInfo(String context, String message) {
+  static void logInfo(String context, String message, {bool sendToCrashlytics = false}) {
     if (kDebugMode) {
       print('ℹ️ INFO [$context]: $message');
+    }
+    if (sendToCrashlytics) {
+      FirebaseCrashlytics.instance.log('INFO [$context]: $message');
     }
   }
 
@@ -71,7 +84,7 @@ class ErrorLogger {
     if (error is FirebaseAuthException) {
       return getAuthErrorMessage(error);
     }
-    
+
     final errorString = error.toString();
     if (errorString.contains('network')) {
       return 'Network error. Check your internet connection.';
@@ -79,7 +92,7 @@ class ErrorLogger {
     if (errorString.contains('permission')) {
       return 'Permission denied. Please contact support.';
     }
-    
+
     return 'An unexpected error occurred. Please try again.';
   }
 }

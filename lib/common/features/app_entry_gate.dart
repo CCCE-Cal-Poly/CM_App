@@ -16,6 +16,7 @@ import 'package:ccce_application/services/error_logger.dart';
 import 'package:ccce_application/services/notification_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +24,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AppEntryGate extends StatefulWidget {
   const AppEntryGate({super.key});
   
+
 
   @override
   State<AppEntryGate> createState() => _AppEntryGateState();
@@ -45,7 +47,7 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
   @override
   void initState() {
     super.initState();
-    ErrorLogger.logInfo('Auth', 'initState called in AppEntryGate');
+    ErrorLogger.logInfo('Auth', 'initState called in AppEntryGate', sendToCrashlytics: true);
     validateUser();
     WidgetsBinding.instance.addObserver(this);
   }
@@ -67,16 +69,23 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
   
 
     Future<void> validateUser() async {
+      ErrorLogger.logInfo("App Entry", "Validating User", sendToCrashlytics: true);
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+      if (user == null) {
+        await FirebaseCrashlytics.instance.setUserIdentifier('');
+        ErrorLogger.logWarning("App Entry", "User was found to be null", sendToCrashlytics: true);
+        return;
+      }
 
-      
+      await FirebaseCrashlytics.instance.setUserIdentifier(user.uid);
+
       try {
         await user.reload();
       } catch (error) {
         print("Error reloading user: $error");
-        ErrorLogger.logError('Auth', 'Error reloading user: $error');
+        ErrorLogger.logError('Auth', 'Error reloading user: $error', sendToCrashlytics: true);
         await FirebaseAuth.instance.signOut();
+        await FirebaseCrashlytics.instance.setUserIdentifier('');
       }
     }
 
@@ -160,17 +169,19 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
             }
  
             final user = snapshot.data!;
+            FirebaseCrashlytics.instance.setUserIdentifier(user.uid);
 
             final requiresEmailVerification =
                 user.providerData.any((p) => p.providerId == 'password');
  
             if (requiresEmailVerification && !user.emailVerified) {
-              ErrorLogger.logInfo('Auth', 'User email not verified: ${user.uid}');
+              ErrorLogger.logInfo('Auth', 'User email not verified: ${user.uid}', sendToCrashlytics: true);
               return const EmailVerificationScreen();
             }
 
-            ErrorLogger.logInfo('Auth', 'User authenticated and email verified: ${user.uid}');
+            ErrorLogger.logInfo('Auth', 'User authenticated and email verified: ${user.uid}', sendToCrashlytics: true);
             if (_initializedUserUid != user.uid) {
+              ErrorLogger.logInfo("App Entry", 'Initialized uid $_initializedUserUid did not equal user.uid ${user.uid}', sendToCrashlytics: true);
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) {
                   return;
@@ -188,6 +199,7 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
             return Consumer2<EventProvider, CompanyProvider>(
               builder: (context, eventProvider, companyProvider, child) {
                 if (!eventProvider.isLoaded) {
+                  ErrorLogger.logInfo("App Entry", "Event provider is not loaded", sendToCrashlytics: true);
                   return const Scaffold(
                     backgroundColor: AppColors.calPolyGreen,
                     body: Center(
@@ -201,7 +213,8 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
                     eventProvider.linkCompanyLogos(companyProvider.allCompanies);
                   });
                 }
- 
+
+                ErrorLogger.logInfo("App Entry", "Returning rendered page", sendToCrashlytics: true);
                 return const Scaffold(
                   appBar: GoldAppBar(),
                   body: RenderedPage(),
