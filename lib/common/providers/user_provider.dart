@@ -13,7 +13,7 @@ class UserProvider with ChangeNotifier {
 
   Future<void> loadUserProfile(String uid) async {
 
-    ErrorLogger.logInfo(
+    ErrorLogger.logError(
       'UserProvider',
       'Loading user profile for $uid',
       sendToCrashlytics: true,
@@ -21,7 +21,7 @@ class UserProvider with ChangeNotifier {
 
     final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
-    ErrorLogger.logInfo(
+    ErrorLogger.logError(
       'UserProvider',
       'users/$uid exists: ${doc.exists}',
       sendToCrashlytics: true,
