@@ -442,8 +442,12 @@ class _SignUpState extends State<SignUp> {
       // 3. Get FCM Token and add to user document in Firestore
       String? fcmToken = await FirebaseMessaging.instance.getToken();
 
+       ErrorLogger.logInfo('SignUp',
+          'Retrieved FCM token during signup: $fcmToken for user: $userID', sendToCrashlytics: true);
+      ErrorLogger.logError('SignUp',
+          'Retrieved FCM token during signup: $fcmToken for user: $userID', sendToCrashlytics: true);     
       ErrorLogger.logInfo('SignUp',
-          'Retrieved FCM token during signup: $fcmToken for user: $userID');
+          'Retrieved FCM token during signup: $fcmToken for user: $userID', sendToCrashlytics: true);
 
       ErrorLogger.logInfo('SignUp', 'FCM Token on signup: $fcmToken');
       // Prepare user data map
@@ -468,16 +472,31 @@ class _SignUpState extends State<SignUp> {
 
       ErrorLogger.logInfo('SignUp',
           'Storing user data in Firestore for user: $userID with data: $userData');
+      ErrorLogger.logError('SignUp',
+          'Storing user data in Firestore for user: $userID with data: $userData');
+      ErrorLogger.logInfo('SignUp',
+          'Storing user data in Firestore for user: $userID with data: $userData');
       // Store user data in Firestore
       try {
         await FirebaseFirestore.instance
             .collection('users')
             .doc(userID)
             .set(userData);
-      } catch (e) {
+      } catch (e, stackTrace) {
+        ErrorLogger.logInfo(
+          'SignUp', 'Error storing user data in Firestore for user: $userID with error $e', sendToCrashlytics: true
+        )
         ErrorLogger.logError(
             'SignUp', 'Error storing user data in Firestore for user: $userID',
-            error: e);
+            error: e,
+            stackTrace: stackTrace
+            sendToCrashlytics: true);
+        ErrorLogger.logInfo(
+          'SignUp', 'Error storing user data in Firestore for user: $userID with error $e', sendToCrashlytics: true
+        )
+        setState(() {
+          errorMsg = ErrorLogger.getGenericErrorMessage(e);
+        })
         // You might want to decide how to handle this case. For example, you could choose to continue with the signup process even if Firestore storage fails, or you could set an error message and return.
       }
 
