@@ -485,18 +485,18 @@ class _SignUpState extends State<SignUp> {
       } catch (e, stackTrace) {
         ErrorLogger.logInfo(
           'SignUp', 'Error storing user data in Firestore for user: $userID with error $e', sendToCrashlytics: true
-        )
+        );
         ErrorLogger.logError(
             'SignUp', 'Error storing user data in Firestore for user: $userID',
             error: e,
-            stackTrace: stackTrace
+            stackTrace: stackTrace,
             sendToCrashlytics: true);
         ErrorLogger.logInfo(
           'SignUp', 'Error storing user data in Firestore for user: $userID with error $e', sendToCrashlytics: true
-        )
+        );
         setState(() {
           errorMsg = ErrorLogger.getGenericErrorMessage(e);
-        })
+        });
         // You might want to decide how to handle this case. For example, you could choose to continue with the signup process even if Firestore storage fails, or you could set an error message and return.
       }
 
