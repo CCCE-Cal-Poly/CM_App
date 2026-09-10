@@ -23,7 +23,7 @@ class UserProvider with ChangeNotifier {
       'UserProvider',
       'Loading user profile for $uid',
       sendToCrashlytics: true,
-    )
+    );
 
     final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
