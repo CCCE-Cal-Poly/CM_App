@@ -89,9 +89,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
     final isClubAdmin = user?.role == UserRole.clubAdmin;
 
     if (user == null) {
-      ErrorLogger.logInfo("Rendered Page", "User is null (This is the most likely point of error)", sendToCrashlytics: true);
-      ErrorLogger.logError("Rendered Page", "User is null (This is the most likely point of error)", sendToCrashlytics: true);
-      ErrorLogger.logInfo("Rendered Page", "User is null (This is the most likely point of error)", sendToCrashlytics: true);
+      ErrorLogger.logError("Rendered Page", "User is null", sendToCrashlytics: true);
       return Scaffold(
         key: _scaffoldKey,
         body: const Center(child: CircularProgressIndicator()),
@@ -99,10 +97,6 @@ class _MyRenderedPageState extends State<RenderedPage> {
       );
     }
     
-    ErrorLogger.logInfo("Rendered Page", "Broke past null user check", sendToCrashlytics: true);
-    ErrorLogger.logError("Rendered Page", "Broke past null user check", sendToCrashlytics: true);
-    ErrorLogger.logInfo("Rendered Page", "Broke past null user check", sendToCrashlytics: true);
-
     if (_pages[_selectedIndex] == null) {
       _pages[_selectedIndex] = _pageBuilders[_selectedIndex]();
     }

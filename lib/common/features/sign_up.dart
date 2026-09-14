@@ -439,15 +439,6 @@ class _SignUpState extends State<SignUp> {
         });
         return;
       }
-      // 3. Get FCM Token and add to user document in Firestore
-      String? fcmToken = await FirebaseMessaging.instance.getToken();
-
-       ErrorLogger.logInfo('SignUp',
-          'Retrieved FCM token during signup: $fcmToken for user: $userID', sendToCrashlytics: true);
-      ErrorLogger.logError('SignUp',
-          'Retrieved FCM token during signup: $fcmToken for user: $userID', sendToCrashlytics: true);     
-      ErrorLogger.logInfo('SignUp',
-          'Retrieved FCM token during signup: $fcmToken for user: $userID', sendToCrashlytics: true);
 
       ErrorLogger.logInfo('SignUp', 'FCM Token on signup: $fcmToken');
       // Prepare user data map
@@ -460,20 +451,7 @@ class _SignUpState extends State<SignUp> {
         'role': "",
         'admin': false
       };
-      // Add FCM token if available
-      if (fcmToken != null) {
-        userData['fcmToken'] = fcmToken;
-      } else {
-        ErrorLogger.logWarning(
-            'SignUp', 'FCM token was null during signup for user: $userID');
-        // Consider if you want to handle this more robustly, e.g.,
-        // retrying token retrieval later or logging to an error reporting service.
-      }
 
-      ErrorLogger.logInfo('SignUp',
-          'Storing user data in Firestore for user: $userID with data: $userData');
-      ErrorLogger.logError('SignUp',
-          'Storing user data in Firestore for user: $userID with data: $userData');
       ErrorLogger.logInfo('SignUp',
           'Storing user data in Firestore for user: $userID with data: $userData');
       // Store user data in Firestore
@@ -483,21 +461,11 @@ class _SignUpState extends State<SignUp> {
             .doc(userID)
             .set(userData);
       } catch (e, stackTrace) {
-        ErrorLogger.logInfo(
-          'SignUp', 'Error storing user data in Firestore for user: $userID with error $e', sendToCrashlytics: true
-        );
         ErrorLogger.logError(
-            'SignUp', 'Error storing user data in Firestore for user: $userID',
+            'SignUp', 'Error storing user data in Firestore for user: $userID.',
             error: e,
             stackTrace: stackTrace,
             sendToCrashlytics: true);
-        ErrorLogger.logInfo(
-          'SignUp', 'Error storing user data in Firestore for user: $userID with error $e', sendToCrashlytics: true
-        );
-        setState(() {
-          errorMsg = ErrorLogger.getGenericErrorMessage(e);
-        });
-        // You might want to decide how to handle this case. For example, you could choose to continue with the signup process even if Firestore storage fails, or you could set an error message and return.
       }
 
       ErrorLogger.logInfo(
@@ -542,6 +510,8 @@ class _SignUpState extends State<SignUp> {
       }
     }
   }
+
+
 
   Future<void> _signUpWithCalPoly() async {
     if (_isMicrosoftLoading) return;
