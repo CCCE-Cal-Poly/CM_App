@@ -491,12 +491,12 @@ class _SignUpState extends State<SignUp> {
           MaterialPageRoute(builder: (_) => const EmailVerificationScreen()),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       String errorMessage = AppConstants.errorUnexpected;
       if (e is FirebaseAuthException) {
         errorMessage = ErrorLogger.getAuthErrorMessage(e);
       } else {
-        ErrorLogger.logError('SignUp', 'Unexpected signup error', error: e);
+        ErrorLogger.logError('SignUp', 'Unexpected signup error', error: e, stackTrace: stackTrace, sendToCrashlytics: true);
       }
       setState(() {
         errorMsg = errorMessage;
