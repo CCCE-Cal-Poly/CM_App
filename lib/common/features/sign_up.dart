@@ -440,7 +440,6 @@ class _SignUpState extends State<SignUp> {
         return;
       }
 
-      ErrorLogger.logInfo('SignUp', 'FCM Token on signup: $fcmToken');
       // Prepare user data map
       Map<String, dynamic> userData = {
         'email': email,
