@@ -495,6 +495,7 @@ class _SignUpState extends State<SignUp> {
       String errorMessage = AppConstants.errorUnexpected;
       if (e is FirebaseAuthException) {
         errorMessage = ErrorLogger.getAuthErrorMessage(e);
+        ErrorLogger.logError('SignUp', 'Unexpected signup error', error: e, stackTrace: stackTrace, sendToCrashlytics: true);
       } else {
         ErrorLogger.logError('SignUp', 'Unexpected signup error', error: e, stackTrace: stackTrace, sendToCrashlytics: true);
       }
