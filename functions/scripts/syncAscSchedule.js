@@ -1,55 +1,55 @@
 /* eslint-disable no-console */
-const admin = require('firebase-admin');
+const admin = require("firebase-admin");
 
-const serviceAccount = require('../serviceAccountKey.json');
+const serviceAccount = require("../serviceAccountKey.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
 const db = admin.firestore();
-const conferenceId = 'asc_2026';
-const sessionsRef = db.collection('conferences').doc(conferenceId).collection('sessions');
+const conferenceId = "asc_2026";
+const sessionsRef = db.collection("conferences").doc(conferenceId).collection("sessions");
 
 const missingPresentationSessionUpdates = [
   {
     sessionNumber: 14,
     update: {
-      presentationStatus: 'missing',
-      notes: 'Presentation not yet received.',
+      presentationStatus: "missing",
+      notes: "Presentation not yet received.",
     },
   },
   {
     sessionNumber: 21,
     update: {
-      presentationStatus: 'missing',
-      notes: 'Presentation not yet received.',
+      presentationStatus: "missing",
+      notes: "Presentation not yet received.",
     },
   },
   {
     sessionNumber: 97,
     update: {
-      presentationStatus: 'pending_author',
-      notes: 'Author travel visa pending; attendance not confirmed.',
+      presentationStatus: "pending_author",
+      notes: "Author travel visa pending; attendance not confirmed.",
     },
   },
   {
     sessionNumber: 99,
     update: {
-      presentationStatus: 'missing',
-      notes: 'Missing presentation from Scott Kelting and Andrew Kline.',
+      presentationStatus: "missing",
+      notes: "Missing presentation from Scott Kelting and Andrew Kline.",
     },
   },
 ];
 
 async function upsertBySessionNumber(sessionNumber, update) {
-  const query = await sessionsRef.where('sessionNumber', '==', sessionNumber).limit(1).get();
+  const query = await sessionsRef.where("sessionNumber", "==", sessionNumber).limit(1).get();
 
   const payload = {
     sessionNumber,
-    paperStatus: update.paperStatus || 'missing',
-    presentationStatus: update.presentationStatus || 'missing',
-    notes: update.notes || '',
+    paperStatus: update.paperStatus || "missing",
+    presentationStatus: update.presentationStatus || "missing",
+    notes: update.notes || "",
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
@@ -64,7 +64,7 @@ async function upsertBySessionNumber(sessionNumber, update) {
     {
       ...payload,
       title: `Session ${sessionNumber}`,
-      location: 'TBD',
+      location: "TBD",
       moderators: [],
       startTime: admin.firestore.Timestamp.fromDate(new Date()),
       endTime: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 60 * 60 * 1000)),
@@ -77,19 +77,19 @@ async function upsertBySessionNumber(sessionNumber, update) {
 async function updateHousingPanelToTent() {
   const allSessions = await sessionsRef.get();
   const housingPanel = allSessions.docs.find((doc) => {
-    const title = (doc.data().title || '').toString().toLowerCase();
-    return title.includes('housing panel');
+    const title = (doc.data().title || "").toString().toLowerCase();
+    return title.includes("housing panel");
   });
 
   if (!housingPanel) {
-    console.log('No housing panel session found by title search. Skipping location move.');
+    console.log("No housing panel session found by title search. Skipping location move.");
     return;
   }
 
   await housingPanel.ref.set(
     {
-      location: 'Tent',
-      notes: 'Updated per Joe Cleary: Cal Poly Housing Panel Friday moved to Tent (2-3pm).',
+      location: "Tent",
+      notes: "Updated per Joe Cleary: Cal Poly Housing Panel Friday moved to Tent (2-3pm).",
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     },
     {merge: true},
@@ -107,12 +107,12 @@ async function run() {
 
   await updateHousingPanelToTent();
 
-  console.log('ASC schedule sync completed.');
+  console.log("ASC schedule sync completed.");
 }
 
 run()
   .then(() => process.exit(0))
   .catch((err) => {
-    console.error('ASC schedule sync failed:', err);
+    console.error("ASC schedule sync failed:", err);
     process.exit(1);
   });

@@ -101,11 +101,11 @@ async function getNewUsers(startTs) {
     if (ts) addToMap(byDay, dayKey(ts));
   });
 
-  return { count: snap.size, ids, byDay };
+  return {count: snap.size, ids, byDay};
 }
 
 async function queryActivitySource(startTs, config) {
-  const { name, collectionGroup, timeField } = config;
+  const {name, collectionGroup, timeField} = config;
   try {
     const snap = await db
       .collectionGroup(collectionGroup)
@@ -136,7 +136,7 @@ async function queryActivitySource(startTs, config) {
       byDayUsers,
     };
   } catch (error) {
-    return { name, error };
+    return {name, error};
   }
 }
 
@@ -153,9 +153,9 @@ async function getNotifications(startTs) {
       addToMap(byType, type);
     });
 
-    return { total: snap.size, byType };
+    return {total: snap.size, byType};
   } catch (error) {
-    return { error };
+    return {error};
   }
 }
 
@@ -172,9 +172,9 @@ async function getEventsCreated(startTs) {
       addToMap(byType, type);
     });
 
-    return { total: snap.size, byType };
+    return {total: snap.size, byType};
   } catch (error) {
-    return { error };
+    return {error};
   }
 }
 
@@ -192,9 +192,9 @@ async function getEventsByStart(startTs, endTs) {
       addToMap(byType, type);
     });
 
-    return { total: snap.size, byType };
+    return {total: snap.size, byType};
   } catch (error) {
-    return { error };
+    return {error};
   }
 }
 

@@ -439,13 +439,7 @@ class _SignUpState extends State<SignUp> {
         });
         return;
       }
-      // 3. Get FCM Token and add to user document in Firestore
-      String? fcmToken = await FirebaseMessaging.instance.getToken();
 
-      ErrorLogger.logInfo('SignUp',
-          'Retrieved FCM token during signup: $fcmToken for user: $userID');
-
-      ErrorLogger.logInfo('SignUp', 'FCM Token on signup: $fcmToken');
       // Prepare user data map
       Map<String, dynamic> userData = {
         'email': email,
@@ -456,15 +450,6 @@ class _SignUpState extends State<SignUp> {
         'role': "",
         'admin': false
       };
-      // Add FCM token if available
-      if (fcmToken != null) {
-        userData['fcmToken'] = fcmToken;
-      } else {
-        ErrorLogger.logWarning(
-            'SignUp', 'FCM token was null during signup for user: $userID');
-        // Consider if you want to handle this more robustly, e.g.,
-        // retrying token retrieval later or logging to an error reporting service.
-      }
 
       ErrorLogger.logInfo('SignUp',
           'Storing user data in Firestore for user: $userID with data: $userData');
@@ -474,11 +459,12 @@ class _SignUpState extends State<SignUp> {
             .collection('users')
             .doc(userID)
             .set(userData);
-      } catch (e) {
+      } catch (e, stackTrace) {
         ErrorLogger.logError(
-            'SignUp', 'Error storing user data in Firestore for user: $userID',
-            error: e);
-        // You might want to decide how to handle this case. For example, you could choose to continue with the signup process even if Firestore storage fails, or you could set an error message and return.
+            'SignUp', 'Error storing user data in Firestore for user: $userID.',
+            error: e,
+            stackTrace: stackTrace,
+            sendToCrashlytics: true);
       }
 
       ErrorLogger.logInfo(
@@ -505,12 +491,13 @@ class _SignUpState extends State<SignUp> {
           MaterialPageRoute(builder: (_) => const EmailVerificationScreen()),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       String errorMessage = AppConstants.errorUnexpected;
       if (e is FirebaseAuthException) {
         errorMessage = ErrorLogger.getAuthErrorMessage(e);
+        ErrorLogger.logError('SignUp', 'Unexpected signup error', error: e, stackTrace: stackTrace, sendToCrashlytics: true);
       } else {
-        ErrorLogger.logError('SignUp', 'Unexpected signup error', error: e);
+        ErrorLogger.logError('SignUp', 'Unexpected signup error', error: e, stackTrace: stackTrace, sendToCrashlytics: true);
       }
       setState(() {
         errorMsg = errorMessage;
@@ -523,6 +510,8 @@ class _SignUpState extends State<SignUp> {
       }
     }
   }
+
+
 
   Future<void> _signUpWithCalPoly() async {
     if (_isMicrosoftLoading) return;
