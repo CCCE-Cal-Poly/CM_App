@@ -200,6 +200,7 @@ exports.onUserDeleted = user().onDelete(async (userRecord) => {
 
 
   console.log(`onUserDeleted: Cleaning up data for deleted user: ${uid}`);
+  const db = admin.firestore();
 
   try {
     // 1. Delete user document and subcollections
