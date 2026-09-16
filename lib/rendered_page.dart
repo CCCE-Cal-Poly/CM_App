@@ -34,6 +34,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
   late final List<Widget Function()> _pageBuilders;
   late final List<Widget?> _pages;
 
+
   @override
   void initState() {
     print("Initializing RenderedPage");
@@ -44,7 +45,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
       () => ClubDirectory(scaffoldKey: _scaffoldKey),
       () => FacultyDirectory(scaffoldKey: _scaffoldKey),
       () => InfoSessionsScreen(scaffoldKey: _scaffoldKey),
-      () => Asc2026Screen(scaffoldKey: _scaffoldKey),
+      // () => Asc2026Screen(scaffoldKey: _scaffoldKey),
       
       // () => JobBoard(scaffoldKey: _scaffoldKey),
       () => ProfileScreen(scaffoldKey: _scaffoldKey),
@@ -149,13 +150,13 @@ class _MyRenderedPageState extends State<RenderedPage> {
                 createListItem("Club Directory", 2),
                 createListItem("Faculty Directory", 3),
                 createListItem("Info Sessions", 4),
-                createListItem("ASC 2026", 5),
+                // createListItem("ASC 2026", 5),
                 // createListItem("Job Board", 5),
-                createListItem("Profile", 6),
-                if (isAdmin) createListItem("Admin Control Panel", 7),
+                createListItem("Profile", 5),
+                if (isAdmin) createListItem("Admin Control Panel", 6),
                 if (isClubAdmin || isAdmin)
-                  createListItem("Request Club Event", 8),
-                if (isClubAdmin || isAdmin) createListItem("My Club Events", 9),
+                  createListItem("Request Club Event", 7),
+                if (isClubAdmin || isAdmin) createListItem("My Club Events", 8),
               ],
             ),
           ),
