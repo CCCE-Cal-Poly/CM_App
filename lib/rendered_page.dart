@@ -16,6 +16,7 @@ import 'package:ccce_application/common/features/club_directory.dart';
 import 'package:ccce_application/common/features/home_screen.dart';
 import 'package:ccce_application/common/features/asc_2026_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:ccce_application/common/features/cmac_members_directory.dart';
 
 class RenderedPage extends StatefulWidget {
   const RenderedPage({Key? key}) : super(key: key);
@@ -52,6 +53,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
       () => AdminPanelScreen(scaffoldKey: _scaffoldKey),
       () => ClubEventRequestScreen(scaffoldKey: _scaffoldKey),
       () => MyClubEventsScreen(scaffoldKey: _scaffoldKey),
+      () => CMACMembersDirectory(scaffoldKey: _scaffoldKey),
     ];
     _pages = List<Widget?>.filled(_pageBuilders.length, null);
   }
@@ -157,6 +159,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
                 if (isClubAdmin || isAdmin)
                   createListItem("Request Club Event", 7),
                 if (isClubAdmin || isAdmin) createListItem("My Club Events", 8),
+                createListItem("CMAC Member Directory", 9),
               ],
             ),
           ),
