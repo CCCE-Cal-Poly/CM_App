@@ -54,6 +54,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
       () => ClubEventRequestScreen(scaffoldKey: _scaffoldKey),
       () => MyClubEventsScreen(scaffoldKey: _scaffoldKey),
       () => CareerFairDirectory(scaffoldKey: _scaffoldKey),
+      () => CMACMemberDirectory(scaffoldKey: _scaffoldKey),
     ];
     _pages = List<Widget?>.filled(_pageBuilders.length, null);
   }
@@ -160,6 +161,7 @@ class _MyRenderedPageState extends State<RenderedPage> {
                   createListItem("Request Club Event", 7),
                 if (isClubAdmin || isAdmin) createListItem("My Club Events", 8),
                 createListItem("Career Fair Directory", 9),
+                createListItem("CMAC Members", 10),
               ],
             ),
           ),

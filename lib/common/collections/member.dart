@@ -14,15 +14,15 @@ import 'package:ccce_application/services/error_logger.dart';
 
 class Member implements Comparable<Member> {
   dynamic id;
-  dynamic name;
-  dynamic website;
-  dynamic level;
+  String name;
+  String? website;
+  String? level;
   String? logo;
   String? indivualName;
   // List<CalEvent> events;
   
   Member({this.id,
-    this.name, 
+    required this.name, 
     this.website, 
     this.level,
     this.logo,
@@ -34,11 +34,11 @@ class Member implements Comparable<Member> {
 
     return Member(
       id: doc.id,
-      name: data['Name'] ?? 'No Name',
-      website: data['Website'] ?? 'No Website',
-      level: data['Level'] ?? 'No Level',
-      logo: (data['Logo'] ?? data['logo']) as String?, // Support both 'Logo' and 'logo' field names
-      indivualName: data['IndividualName'] as String?,
+      name: data['name'] ?? 'No Name',
+      website: data['website'] ?? 'No Website',
+      level: data['level'] ?? 'No Level',
+      logo: (data['logo'] ?? data['logo']) as String?, // Support both 'Logo' and 'logo' field names
+      indivualName: data['individualName'] as String?,
     );
   }
 
