@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:ccce_application/services/error_logger.dart';
+import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 
 // Fixed display order for member levels, top to bottom.
 const List<String> kMemberLevelOrder = [
@@ -49,7 +50,7 @@ class _CMACMemberDirectoryState extends State<CMACMemberDirectory> {
       final QuerySnapshot querySnapshot =
           await firestore.collection('allCompanies').where('cmacData', isNull: false).get();
       ErrorLogger.logInfo(
-          'CMAC Directory', 'Fetched ${querySnapshot.size} members from Firestore');
+          'CMAC Directory', 'Fetched ${querySnapshot.size} cmac members from Firestore');
       for (final doc in querySnapshot.docs) {
         members.add(Member.fromDocument(doc));
       }
@@ -127,6 +128,10 @@ class _CMACMemberDirectoryState extends State<CMACMemberDirectory> {
         child: Column(
           children: [
             const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20.0),
+              child: CalPolyMenuBar(scaffoldKey: widget.scaffoldKey),
+            ),
             Row(
               children: [
                 Image.asset(

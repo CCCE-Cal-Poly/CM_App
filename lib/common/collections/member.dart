@@ -36,9 +36,9 @@ class Member implements Comparable<Member> {
       id: doc.id,
       name: data['name'] ?? 'No Name',
       website: data['website'] ?? 'No Website',
-      level: data['level'] ?? 'No Level',
-      logo: (data['logo'] ?? data['logo']) as String?, // Support both 'Logo' and 'logo' field names
-      indivualName: data['individualName'] as String?,
+      level: data['cmacData']['level'] ?? 'No Level',
+      logo: (data['logo'] ?? data['Logo']) as String?, // Support both 'Logo' and 'logo' field names
+      indivualName: data['cmacData']['founder'] as String?,
     );
   }
 
