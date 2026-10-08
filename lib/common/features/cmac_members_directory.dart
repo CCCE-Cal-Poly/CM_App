@@ -47,7 +47,7 @@ class _CMACMemberDirectoryState extends State<CMACMemberDirectory> {
       ErrorLogger.logInfo('CMAC Directory', 'Fetching members from Firestore');
 
       final QuerySnapshot querySnapshot =
-          await firestore.collection('cmacMembers').get();
+          await firestore.collection('allCompanies').where('cmacData', isNull: false).get();
       ErrorLogger.logInfo(
           'CMAC Directory', 'Fetched ${querySnapshot.size} members from Firestore');
       for (final doc in querySnapshot.docs) {

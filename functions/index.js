@@ -14,7 +14,6 @@ admin.initializeApp();
 
 // Debug: environment and admin SDK info
 try {
-  console.log("entry 1");
   const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT ||
     (admin.app && admin.app().options && admin.app().options.projectId);
   console.log("Admin SDK initialized for project:", projectId);
@@ -22,12 +21,10 @@ try {
   console.log("Admin SDK initialized (project id unknown)", e && e.message ? e.message : e);
 }
 
-console.log("entry 2");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentCreated, onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {user} = require("firebase-functions/v1/auth");
-console.log("entry 3");
 
 const ALLOWED_ROLES = new Set(["student", "faculty", "club admin", "admin", "recruiter"]);
 
@@ -59,8 +56,6 @@ const PEOPLE_BASE_URL = "https://construction.calpoly.edu/content/people/index";
 
 
 const SPREADSHEET_ID = process.env.EVENT_ATTENDENCE_SHEET_URL;
-
-console.log("entry 4");
 
 function getRateLimitConfig(functionName) {
   return Object.assign({}, RATE_LIMIT_DEFAULT, RATE_LIMIT_OVERRIDES[functionName] || {});
@@ -181,7 +176,6 @@ async function fetchFacultyPage(url) {
   return response.text();
 }
 
-console.log("entry 5");
 
 // Clean up all user data when their account is deleted
 exports.onUserDeleted = user().onDelete(async (userRecord) => {
@@ -296,8 +290,6 @@ exports.onUserDeleted = user().onDelete(async (userRecord) => {
   }
 });
 
-console.log("entry 6");
-
 
 exports.setUserRole = onCall(async (request) => {
   if (!request.auth) {
@@ -410,8 +402,6 @@ exports.setUserRole = onCall(async (request) => {
     throw new HttpsError("internal", error.message || "Internal server error");
   }
 });
-
-console.log("entry 7");
 
 exports.approveClubEvent = onCall(async (request) => {
   if (!request.auth) {
@@ -562,8 +552,6 @@ function normalizeRecurrenceEndDate(endDate) {
 //   return {start: nextStart, end: nextEnd};
 // }
 
-
-console.log("entry 8");
 
 exports.denyClubEvent = onCall(async (request) => {
   if (!request.auth) {
@@ -2241,81 +2229,86 @@ async function createEventSheetRow(eventId, eventName, date) {
 }
 
 async function updateEventRowInSheet({row, sheetName, eventId, eventName, eventDate, attendeeCount, attendees}) {
-  // Convert list into a single cell string
-  const attendeeString = attendees.join(", ");
-  const values = [
-    [
-      eventId,
-      eventName,
-      eventDate,
-      attendeeCount,
-      attendeeString,
-    ],
-  ];
+  try {
+    const attendeeString = attendees.join(", ");
+    const values = [
+      [
+        eventId,
+        eventName,
+        eventDate,
+        attendeeCount,
+        attendeeString,
+      ],
+    ];
 
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${sheetName}!A${row}:E${row}`,
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values,
-    },
-  });
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${sheetName}!A${row}:E${row}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {values},
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Failed to update Google Sheet row:", error.message);
+    throw error;
+  }
 }
 
-  exports.addEventToSheet = onDocumentCreated("events/{eventId}", async (event) => {
-    const eventId = event.params.eventId;
-    const eventData = event.data.data();
+exports.addEventToSheet = onDocumentCreated("events/{eventId}", async (event) => {
+  const eventId = event.params.eventId;
+  const eventData = event.data.data();
 
-    if (eventData?.eventType && eventData.eventType !== "infoSession") {
-      console.log("Event is not info session, skipping adding to sheet");
+  if (eventData?.eventType && eventData.eventType !== "infoSession") {
+    console.log("Event is not info session, skipping adding to sheet");
+    return;
+  }
+
+  // to add an event to the sheet, we need the sheet name and the row number.
+
+  await createEventSheetRow(
+    eventId,
+    eventData?.title || "Unnamed Event",
+    eventData?.startTime || "Unknown Date");
+});
+
+exports.markForUpdateInSheet = onDocumentWritten("events/{eventId}/attending/{userId}",
+  async (event) => {
+    const db = admin.firestore();
+    const eventId = event.params.eventId;
+    const eventSnap = await db.collection("events").doc(eventId).get();
+    const eventData = eventSnap.data();
+
+    if (!eventSnap.exists) {
+      console.log("Parent event document does not exist, skipping.");
       return;
     }
 
-    // to add an event to the sheet, we need the sheet name and the row number.
+    if (eventData?.eventType && eventData.eventType !== "infoSession") {
+      console.log("Event is not info session, skipping marking for update in sheet");
+      return;
+    }
 
-    await createEventSheetRow(
-      eventId,
-      eventData?.title || "Unnamed Event",
-      eventData?.startTime || "Unknown Date");
+    if (eventData.attendeesProcessed !== false) {
+      await db.collection("events").doc(eventId).update({
+        attendeesProcessed: false,
+      });
+    }
   });
 
-  exports.markForUpdateInSheet = onDocumentWritten("events/{eventId}/attending/{userId}",
-    async (event) => {
-      const db = admin.firestore();
-      const eventId = event.params.eventId;
-      const eventSnap = await db.collection("events").doc(eventId).get();
-      const eventData = eventSnap.data();
 
-      if (!eventSnap.exists) {
-        console.log("Parent event document does not exist, skipping.");
-        return;
-      }
+exports.updateEventInSheet = onSchedule("every 24 hours", async () => {
+  console.log("Executing event update");
+  const db = admin.firestore();
+  const upcomingEventsSnapshot =
+    await db.collection("events")
+    .where("eventType", "==", "infoSession")
+    .where("attendeesProcessed", "==", false)
+    .get();
 
-      if (eventData?.eventType && eventData.eventType !== "infoSession") {
-        console.log("Event is not info session, skipping marking for update in sheet");
-        return;
-      }
-
-      if (eventData.attendeesProcessed !== false) {
-        await db.collection("events").doc(eventId).update({
-          attendeesProcessed: false,
-        });
-      }
-    });
-
-
-  exports.updateEventInSheet = onSchedule("every 24 hours", async () => {
-    const db = admin.firestore();
-    const upcomingEventsSnapshot =
-      await db.collection("events")
-      .where("eventType", "==", "infoSession")
-      .where("attendeesProcessed", "==", false)
-      .get();
-
-    for (const eventDoc of upcomingEventsSnapshot.docs) {
-      const eventId = eventDoc.id;
-      const eventData = eventDoc.data();
+  for (const eventDoc of upcomingEventsSnapshot.docs) {
+    const eventId = eventDoc.id;
+    const eventData = eventDoc.data();
 
     const attendeesSnap = await db.collection(`events/${eventId}/attending`).get();
 
@@ -2345,19 +2338,24 @@ async function updateEventRowInSheet({row, sheetName, eventId, eventName, eventD
     const attendeeCount = attendees.length;
     const startTime = eventData?.startTime ? eventData.startTime.toDate() : "Unknown Date";
 
-    await updateEventRowInSheet({
-        row: eventData.sheetRow,
-        sheetName: startTime !== "Unknown Date" ? await assignTerm(startTime) : "Unknown Term",
-        eventId,
-        eventName: eventData.name,
-        eventDate: startTime !== "Unknown Date" ? formatDateForSheet(startTime) : "Unknown Date",
-        attendeeCount,
-        attendees,
+    try {
+      await updateEventRowInSheet({
+          row: eventData.sheetRow,
+          sheetName: startTime !== "Unknown Date" ? await assignTerm(startTime) : "Unknown Term",
+          eventId,
+          eventName: eventData.name,
+          eventDate: startTime !== "Unknown Date" ? formatDateForSheet(startTime) : "Unknown Date",
+          attendeeCount,
+          attendees,
+        });
+      await db.collection("events").doc(eventId).update({
+        attendeesProcessed: true,
       });
-    await db.collection("events").doc(eventId).update({
-      attendeesProcessed: true,
-    });
+      console.log(`Successfully updated event ${eventId} in the sheet`);
+    } catch (error) {
+        console.log(`Caught update failure for event ${eventId}. Will try again on the next scheduled update.`);
     }
-  });
+  }
+});
 
 
