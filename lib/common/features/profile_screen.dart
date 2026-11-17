@@ -1,5 +1,6 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:ccce_application/common/features/my_info_sessions.dart';
+import 'package:ccce_application/common/features/my_interviews.dart';
 import 'package:ccce_application/common/features/my_clubs.dart';
 import 'package:ccce_application/common/features/my_favorite_companies.dart';
 import 'package:ccce_application/common/theme/theme.dart';
@@ -423,6 +424,30 @@ class ProfileScreenState extends State<ProfileScreen> {
                         mainAxisSize: MainAxisSize.max,
                         children: [
                           Text("My Info Sessions",
+                              style: TextStyle(color: Colors.black)),
+                          Icon(Icons.arrow_forward, color: Colors.black),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: screenHeight * 0.01),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.yellowButton,
+                        shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero),
+                        minimumSize:
+                            const Size(double.infinity, 48), // Forces full width
+                      ),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const MyInterviewsScreen()),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Text("My Interviews",
                               style: TextStyle(color: Colors.black)),
                           Icon(Icons.arrow_forward, color: Colors.black),
                         ],

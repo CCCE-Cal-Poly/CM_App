@@ -1,4 +1,7 @@
+import 'package:ccce_application/common/collections/interview.dart';
+import 'package:ccce_application/common/features/interview_signup_screen.dart';
 import 'package:ccce_application/common/features/pdf_view.dart';
+import 'package:ccce_application/common/providers/event_provider.dart';
 import 'package:ccce_application/services/error_logger.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -8,6 +11,7 @@ import 'package:ccce_application/common/providers/app_state.dart';
 import 'package:ccce_application/common/widgets/resilient_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -39,6 +43,8 @@ class CalEvent {
   String? companyId;
   DateTime? updatedAt;
   InfoSessionData? isd;
+  InterviewBlockData? ibd; // Set when eventType == kInterviewBlockEventType
+  String? companyName; // Company display name for interview blocks
   String? seriesId; // Parent series ID if this is a recurring instance
   bool isInstance; // True if this is a generated occurrence instance
 
@@ -71,6 +77,8 @@ class CalEvent {
     this.companyId,
     this.updatedAt,
     this.isd,
+    this.ibd,
+    this.companyName,
     this.seriesId,
     this.sessionType,
     this.presenters,
@@ -187,6 +195,38 @@ class CalEvent {
           paperNumber: paperNumber,
           track: track,
           moderator: moderator);
+    } else if (eventType == kInterviewBlockEventType) {
+      final start = (data["startTime"] is Timestamp)
+          ? data["startTime"].toDate()
+          : DateTime.now();
+
+      final end = (data["endTime"] is Timestamp)
+          ? data["endTime"].toDate()
+          : start.add(const Duration(hours: 1));
+
+      final updatedAt =
+          data["updatedAt"] is Timestamp ? data["updatedAt"].toDate() : null;
+
+      final company = (data["company"] ?? "").toString();
+      final logo = data["logo"];
+
+      return CalEvent(
+        id: doc.id,
+        eventName: (data["eventName"] ??
+                (company.isNotEmpty ? "$company Interviews" : "Interviews"))
+            .toString(),
+        startTime: start,
+        endTime: end,
+        eventLocation: (data["mainLocation"] ?? data["eventLocation"] ?? "")
+            .toString(),
+        eventType: eventType,
+        logo: logo is String && logo.isNotEmpty ? logo : null,
+        status: data["Status"] ?? data["status"] ?? "approved",
+        companyId: data["companyId"],
+        companyName: company,
+        updatedAt: updatedAt,
+        ibd: InterviewBlockData.fromMap(data),
+      );
     } else {
       // Info session - support both new (companyId) and legacy (company name) approaches
       String openPositions =
@@ -571,6 +611,8 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
     double screenWidth = MediaQuery.of(context).size.width;
     final hiring = (widget.infoSession.isd?.openPositions != null &&
         widget.infoSession.isd!.openPositions!.trim().isNotEmpty);
+    final interviewBlocks = upcomingInterviewBlocksFor(widget.infoSession,
+        context.watch<EventProvider>().allEvents, DateTime.now());
     return Scaffold(
       backgroundColor: AppColors.calPolyGreen,
       body: ListView(
@@ -771,8 +813,28 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                               ),
                             ),
 
-                            if ((widget.infoSession.isd?.interviewLink ?? '')
-                                .isNotEmpty)
+                            // In-app interview sign-up (replaces Microsoft Bookings)
+                            ...interviewBlocks.map((block) => Padding(
+                                  padding:
+                                      EdgeInsets.only(top: screenHeight * 0.01),
+                                  child: TextButton.icon(
+                                    icon: const Icon(Icons.event_available,
+                                        size: 18),
+                                    label: Text(interviewBlocks.length == 1
+                                        ? 'Sign up for an interview'
+                                        : 'Sign up for an interview (${DateFormat('EEE, MMM d').format(block.startTime)})'),
+                                    onPressed: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            InterviewSignUpScreen(block: block),
+                                      ),
+                                    ),
+                                  ),
+                                )),
+                            // Legacy Bookings link, only when no in-app block exists
+                            if (interviewBlocks.isEmpty &&
+                                (widget.infoSession.isd?.interviewLink ?? '')
+                                    .isNotEmpty)
                               Padding(
                                 padding:
                                     EdgeInsets.only(top: screenHeight * 0.01),

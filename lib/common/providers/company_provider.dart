@@ -3,11 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ccce_application/services/error_logger.dart';
 
+/// Source of truth for companies (superset of the legacy `companies` collection).
+const String kCompaniesCollection = 'allCompanies';
+
 class CompanyProvider extends ChangeNotifier {
   List<Company> _allCompanies = [];
   bool _isLoaded = false;
 
+  /// Every company, including auto-created placeholders (used by admin pickers).
   List<Company> get allCompanies => _allCompanies;
+
+  /// Companies to show students: excludes mostly-empty placeholders.
+  List<Company> get directoryCompanies =>
+      _allCompanies.where((c) => !c.isStub).toList();
   bool get isLoaded => _isLoaded;
 
   CompanyProvider() {
@@ -26,7 +34,7 @@ class CompanyProvider extends ChangeNotifier {
       
       try {
         final cacheSnapshot = await FirebaseFirestore.instance
-            .collection('companies')
+            .collection(kCompaniesCollection)
             .get(const GetOptions(source: Source.cache));
         
         if (cacheSnapshot.docs.isNotEmpty) {
@@ -50,7 +58,7 @@ class CompanyProvider extends ChangeNotifier {
       }
       
       final snapshot = await FirebaseFirestore.instance
-          .collection('companies')
+          .collection(kCompaniesCollection)
           .get(const GetOptions(source: Source.server));
       ErrorLogger.logInfo('CompanyProvider', '${loadedFromCache ? 'Refreshed' : 'Fetched'} ${snapshot.docs.length} companies from server');
       _allCompanies.clear();

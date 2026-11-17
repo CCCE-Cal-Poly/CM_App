@@ -3,61 +3,83 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Admin is granted via the `role` custom claim set by the setUserRole function.
+    function isAdmin() {
+      return request.auth != null && request.auth.token.role == "admin";
+    }
+
     // Allow users to read and write their own user document
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
       allow read, write: if request.auth.token.role == "admin";
-    
-      
+
+
       // Allow users to manage their own checked-in events
       match /checkedInEvents/{eventId} {
         allow read, write, get: if request.auth != null && request.auth.uid == userId;
       }
-      
+
       // Allow users to manage their own FCM tokens
       match /fcmTokens/{tokenId} {
         allow read, write, get: if request.auth != null && request.auth.uid == userId;
       }
-      
+
       // Allow users to manage their own favorite companies
       match /favoriteCompanies/{companyId} {
         allow read, write, get: if request.auth != null && request.auth.uid == userId;
       }
-      
+
       // Allow users to manage their own joined clubs
       match /joinedClubs/{clubId} {
         allow read, write, get: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // A student's copy of their interview sign-ups. Written only by the
+      // signUpForInterview / cancelInterviewSignup Cloud Functions.
+      match /interviewSignups/{blockId} {
+        allow read: if (request.auth != null && request.auth.uid == userId) || isAdmin();
       }
     }
 
     // Allow authenticated users to read from the 'clubs' collection
     match /clubs/{clubId} {
       allow read: if request.auth != null;
-      
+
       // Allow users to manage their own membership in club members collection
       match /members/{userId} {
         allow read: if request.auth != null;
         allow write, delete: if request.auth != null && request.auth.uid == userId;
       }
     }
-    
+
     match /{path=**}/members/{memberDocId} {
-      allow read, delete: if request.auth != null && 
+      allow read, delete: if request.auth != null &&
         (resource.data.uid == request.auth.uid || memberDocId == request.auth.uid);
     }
-    
+
     match /{path=**}/attending/{attendanceDocId} {
-      allow read, delete: if request.auth != null && 
+      allow read, delete: if request.auth != null &&
         (resource.data.uid == request.auth.uid || attendanceDocId == request.auth.uid);
     }
-    
+
+    // Notifications are created and updated by Cloud Functions (the Admin SDK
+    // bypasses these rules). Clients only read them. User-targeted
+    // notifications are readable only by that user.
     match /notifications/{notificationId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.token.role == "admin";
-      allow delete: if request.auth != null && resource.data.targetId == request.auth.uid;
+      allow read: if request.auth != null
+        && (resource.data.get('targetType', '') != 'user'
+            || resource.data.get('targetId', '') == request.auth.uid);
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin()
+        || (request.auth != null && resource.data.get('targetId', '') == request.auth.uid);
     }
-	
-		
+
+    match /announcements/{announcementId} {
+    	allow read: if request.auth != null;
+ 			allow write: if request.auth != null && request.auth.token.role == "admin";
+    }
+
+
 //     // Path for recursive removal
 //     match /{path=**}/members/{userId} {
 //       allow read, write: if request.auth != null && request.auth.uid == userId;
@@ -66,34 +88,54 @@ service cloud.firestore {
 //     match /{path=**}/attending/{userId} {
 //       allow read, write: if request.auth != null && request.auth.uid == userId;
 //     }
-    
+
     // Allow authenticated users to read from the 'companies' collection
     match /companies/{companyId} {
       allow read: if request.auth != null;
     }
-    
-    
+
+
     match /sponsors/{sponsorId}{
     	allow read: if request.auth != null;
     }
-    
-    
-    
-		
+
+    match /careerFairCompanies/{companyId}{
+    	allow read: if request.auth != null;
+    }
+
+    // Placeholder entries for info-session companies are created by the
+    // ensureCompanyForInfoSession Cloud Function, not by clients.
+    match /allCompanies/{allCompanyId}{
+    	allow read: if request.auth != null;
+    }
+
+    match /clubEventTests/{clubEventTestsId}{
+    	allow read, write: if request.auth != null;
+    }
+
+
+
     // Allow authenticated users to read from the 'events' collection
     match /events/{eventId} {
       allow read: if request.auth != null;
-      allow delete, write: if request.auth != null 
+      allow delete, write: if request.auth != null
     		&& get(/databases/$(database)/documents/events/$(eventId)).eventType == 'club'
     		&& get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'club admin'
     		&& exists(/databases/$(database)/documents/clubs/$(get(/databases/$(database)/documents/events/$(eventId)).clubId)/members/$(request.auth.uid))
-			
+
+      // Admins manage interview blocks (replacement for Microsoft Bookings)
+      allow create: if isAdmin() && request.resource.data.eventType == 'interviewBlock';
+      allow update: if isAdmin()
+        && resource.data.eventType == 'interviewBlock'
+        && request.resource.data.eventType == 'interviewBlock';
+      allow delete: if isAdmin() && resource.data.eventType == 'interviewBlock';
+
       // Allow users to manage their own check-in status in event attending collection
       match /attending/{userId} {
         allow read: if request.auth != null;
         allow write: if request.auth != null && request.auth.uid == userId;
       }
-      
+
       // Allow users to create exceptions to recurring events
 			match /exceptions/{exceptionId} {
 			allow read: if request.auth != null;
@@ -102,12 +144,24 @@ service cloud.firestore {
     		&& get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'club admin'
     		&& exists(/databases/$(database)/documents/clubs/$(get(/databases/$(database)/documents/events/$(eventId)).clubId)/members/$(request.auth.uid))
 			}
+
+      // Per-slot booking counts for interview blocks (no personal info).
+      // Written only by the signUpForInterview / cancelInterviewSignup functions.
+      match /interviewSlots/{slotId} {
+        allow read: if request.auth != null;
+      }
+
+      // Interview sign-ups, keyed by student uid. Contains phone/email, so only
+      // the student and admins can read. Written only by Cloud Functions.
+      match /interviewSignups/{signupUid} {
+        allow read: if (request.auth != null && request.auth.uid == signupUid) || isAdmin();
+      }
     }
 
 // 		match /events/{eventId} {
 //       allow read: if request.auth != null;
 
-//       allow delete: if request.auth != null 
+//       allow delete: if request.auth != null
 //         // 1. Use resource.data to check the event being deleted
 //         && resource.data.eventType == 'club'
 
@@ -116,12 +170,12 @@ service cloud.firestore {
 
 //         // 3. Check if user is a member of the specific club
 //         && exists(/databases/$(database)/documents/clubs/$(resource.data.clubId)/members/$(request.auth.uid));
-        
+
 //       match /attending/{userId} {
 //           allow read: if request.auth != null;
 //           allow write: if request.auth != null && request.auth.uid == userId;
 //         }
-      
+
 //     }
 
     // Allow authenticated users to read from the 'faculty' collection
@@ -135,7 +189,7 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
       allow read: if request.auth != null && resource.data.uid == request.auth.uid;
     }
-    
+
     // Club event requests - admins can do everything, club admins can create, users can read their own
     match /clubEventRequests/{docId} {
       allow read, write, update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
@@ -147,11 +201,11 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if false;
     }
-    
+
     match /facultyRequests/{docID} {
 			allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
       allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
-      allow read: if request.auth != null && resource.data.uid == request.auth.uid;	
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
     }
   }
 }

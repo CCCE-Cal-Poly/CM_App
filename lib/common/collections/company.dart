@@ -21,18 +21,24 @@ class Company extends Favoritable implements Comparable<Company> {
   dynamic recruiterTitle;
   dynamic recruiterEmail;
   String? logo;
+  String website;
+  // Placeholder created automatically for an info-session company that had no
+  // allCompanies entry yet (see ensureCompanyForInfoSession Cloud Function).
+  bool isStub;
   Set<Job> offeredJobs;
 
   Company({
       this.id,
-      this.name, 
-      this.location, 
-      this.aboutMsg, 
-      this.msg, 
+      this.name,
+      this.location,
+      this.aboutMsg,
+      this.msg,
       this.recruiterName,
-      this.recruiterTitle, 
-      this.recruiterEmail, 
-      this.logo, 
+      this.recruiterTitle,
+      this.recruiterEmail,
+      this.logo,
+      this.website = '',
+      this.isStub = false,
       required this.offeredJobs});
 
   @override
@@ -53,6 +59,8 @@ class Company extends Favoritable implements Comparable<Company> {
       recruiterTitle: data['recruiterTitle'] ?? '',
       recruiterEmail: data['recruiterEmail'] ?? '',
       logo: data['logo'] ?? '',
+      website: (data['website'] ?? data['wesbite'] ?? '').toString(),
+      isStub: data['isStub'] == true,
       offeredJobs: {}
     );
   }

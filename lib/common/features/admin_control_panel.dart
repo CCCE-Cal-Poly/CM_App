@@ -1,3 +1,4 @@
+import 'package:ccce_application/common/features/admin_interview_blocks_screen.dart';
 import 'package:ccce_application/common/theme/theme.dart';
 import 'package:ccce_application/common/widgets/cal_poly_menu_bar.dart';
 import 'package:ccce_application/common/providers/event_provider.dart';
@@ -955,6 +956,19 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                 ),
               ),
               child: const Text("Pending Faculty Role Requests"),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const AdminInterviewBlocksScreen())),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.darkGold,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
+                ),
+              ),
+              child: const Text("Manage Interview Blocks"),
             ),
             const SizedBox(height: 20),
             ElevatedButton(

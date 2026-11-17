@@ -1,5 +1,7 @@
 import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:ccce_application/common/collections/club.dart';
+import 'package:ccce_application/common/collections/interview.dart';
+import 'package:ccce_application/common/features/interview_signup_screen.dart';
 import 'package:ccce_application/common/providers/event_provider.dart';
 import 'package:ccce_application/common/providers/app_state.dart';
 import 'package:ccce_application/common/theme/theme.dart';
@@ -123,6 +125,12 @@ class CalendarScreenState extends State<HomeScreen> {
           const SnackBar(content: Text('Error loading club details')),
         );
       }
+    } else if (event.eventType == kInterviewBlockEventType) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => InterviewSignUpScreen(block: event),
+        ),
+      );
     } else if (event.eventType.toLowerCase() == "asc2026") {
       Navigator.of(context).push(
         MaterialPageRoute(

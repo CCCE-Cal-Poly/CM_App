@@ -281,6 +281,13 @@ class EventProvider extends ChangeNotifier {
     }
   }
 
+  /// Drop a deleted event from the local list (incremental sync can't see deletes).
+  void removeEventById(String eventId) {
+    final before = _allEvents.length;
+    _allEvents.removeWhere((e) => e.id == eventId);
+    if (_allEvents.length != before) notifyListeners();
+  }
+
   /// Start real-time listening to events collection for instant updates
   /// Call this after initial fetchAllEvents() to enable live event updates
   void startRealtimeListening() {
