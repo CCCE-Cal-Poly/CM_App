@@ -1,0 +1,21 @@
+{
+  "aliases": {
+    "Beachcraft Builders": "qgGTnMzYpEVpCGzFPM2n",
+    "Bernards Construction": "TLRFDg8aT2hpHIacb5If",
+    "Build Group / Pacific Structures": "e2RKOW0zjfb5YwO7NCd5",
+    "Clark Construction Group": "t2PkKuC1zCwj9UpDXIOE",
+    "FLINT": "eY2Cwvzp5O6SGMD4ceZo",
+    "Level 10 Construction": "oYW8MyxImntsj93GIcRb",
+    "Performance Contracting, Inc. (PCI)": "cpsiCgI5eGEpvkRrlVj6",
+    "Sundt": "dv16KvN2K4e6CGz4TULG",
+    "Webcor": "hP8Va5mUuBqK4iHJ2umo",
+    "Vance Brown": "Vance Brown Builders"
+  },
+  "skip": [
+    "ASCM BBQ",
+    "Heavy Civil BBQ",
+    "Carpenters Apprenticeship Info Session",
+    "WIC Resume Workshop / Specialty Contractor Career Panel",
+    "CA"
+  ]
+}

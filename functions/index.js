@@ -24,9 +24,12 @@ try {
 
 console.log("entry 2");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
-const {onDocumentCreated, onDocumentWritten} = require("firebase-functions/v2/firestore");
+const {onDocumentCreated, onDocumentWritten, onDocumentDeleted} = require("firebase-functions/v2/firestore");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {user} = require("firebase-functions/v1/auth");
+const {companyNameKey, stubCompanyData, stubCompanyDocId} = require("./companyKey");
+const interviews = require("./interviews");
+const {INTERVIEW_EVENT_TYPE} = interviews;
 console.log("entry 3");
 
 const ALLOWED_ROLES = new Set(["student", "faculty", "club admin", "admin", "recruiter"]);
@@ -42,6 +45,8 @@ const RATE_LIMIT_OVERRIDES = {
   rebuildEventNotifications: {max: 1, windowMs: 60 * 60 * 1000},
   analyzeEvents: {max: 10, windowMs: 60 * 1000},
   deleteClubEvent: {max: 120, windowMs: 60 * 1000},
+  signUpForInterview: {max: 10, windowMs: 60 * 1000},
+  cancelInterviewSignup: {max: 10, windowMs: 60 * 1000},
 };
 const RATE_LIMIT_BYPASS_UIDS = new Set(
   (process.env.RATE_LIMIT_BYPASS_UIDS || "")
@@ -1101,7 +1106,13 @@ exports.scheduleEventReminder = onDocumentCreated("events/{eventId}", async (eve
   const eventId = event.params.eventId;
   const startTime = eventData.startTime;
 
-  if (!startTime || !startTime.toMillis() || typeof startTime.toMillis !== "function") {
+  // Interview blocks get per-student reminders from signUpForInterview instead.
+  if (eventData.eventType === INTERVIEW_EVENT_TYPE) {
+    console.log(`Event ${eventId} is an interview block, skipping reminder`);
+    return;
+  }
+
+  if (!startTime || typeof startTime.toMillis !== "function" || !startTime.toMillis()) {
     console.log(`Event ${eventId} has invalid startTime, skipping reminder`);
     return;
   }
@@ -1567,6 +1578,11 @@ exports.rebuildEventNotifications = onCall(async (request) => {
       const eventData = eventDoc.data() || {};
       const eventId = eventDoc.id;
       const startTime = eventData.startTime;
+
+      if (eventData.eventType === INTERVIEW_EVENT_TYPE) {
+        skippedCount++;
+        continue;
+      }
 
       if (!startTime || !startTime.toMillis || typeof startTime.toMillis !== "function") {
         console.log(`Event ${eventId} has invalid startTime, skipping`);
@@ -2361,3 +2377,309 @@ async function updateEventRowInSheet({row, sheetName, eventId, eventName, eventD
   });
 
 
+// ********************************** COMPANY SYNC ******************************************** */
+// Guarantees every info session's company has an `allCompanies` doc (a mostly-empty
+// placeholder if needed) and links the session to it via `companyId`.
+
+async function findOrCreateCompanyForName(db, name, extras) {
+  const key = companyNameKey(name);
+  if (!key) return null;
+  const col = db.collection("allCompanies");
+
+  const byKey = await col.where("nameKey", "==", key).limit(1).get();
+  if (!byKey.empty) return byKey.docs[0].id;
+
+  const byAlias = await col.where("aliases", "array-contains", key).limit(1).get();
+  if (!byAlias.empty) return byAlias.docs[0].id;
+
+  // Fallback for docs that predate the nameKey backfill.
+  const all = await col.get();
+  const match = all.docs.find((d) => companyNameKey(d.data().name) === key);
+  if (match) {
+    if (!match.data().nameKey) await match.ref.set({nameKey: key}, {merge: true});
+    return match.id;
+  }
+
+  const stubRef = col.doc(stubCompanyDocId(key));
+  try {
+    await stubRef.create(stubCompanyData(name, extras, admin.firestore.FieldValue.serverTimestamp()));
+    console.log(`Created placeholder allCompanies/${stubRef.id} for "${name}"`);
+  } catch (err) {
+    if (err.code !== 6) throw err; // 6 = ALREADY_EXISTS: a concurrent run created it first
+  }
+  return stubRef.id;
+}
+
+exports.ensureCompanyForInfoSession = onDocumentWritten("events/{eventId}", async (event) => {
+  const after = event.data && event.data.after;
+  if (!after || !after.exists) return;
+
+  const data = after.data() || {};
+  if (data.eventType !== "infoSession" || data.skipCompanySync === true) return;
+
+  const name = typeof data.company === "string" ? data.company.trim() : "";
+  const key = companyNameKey(name);
+  if (!key) return;
+  if (data.companyId && data.companyNameKey === key) return; // already linked for this name
+
+  const db = admin.firestore();
+  try {
+    // Keep a companyId that was set by hand (e.g. by the backfill script) if it still exists.
+    if (data.companyId && data.companyNameKey === undefined) {
+      const existing = await db.collection("allCompanies").doc(data.companyId).get();
+      if (existing.exists) {
+        await after.ref.update({companyNameKey: key});
+        return;
+      }
+    }
+
+    const companyId = await findOrCreateCompanyForName(db, name, {
+      website: data.website,
+      sourceEventId: event.params.eventId,
+    });
+    if (companyId) {
+      await after.ref.update({companyId, companyNameKey: key});
+      console.log(`Linked info session ${event.params.eventId} to allCompanies/${companyId}`);
+    }
+  } catch (err) {
+    console.error(`Error linking company for info session ${event.params.eventId}:`, err);
+  }
+});
+
+
+// ********************************** INTERVIEW SIGN-UPS ******************************************** */
+// Replaces Microsoft Bookings. Blocks are events with eventType "interviewBlock".
+//   events/{blockId}/interviewSlots/{slotStartMs}  {startTime, booked, capacity}   (readable by all users)
+//   events/{blockId}/interviewSignups/{uid}        student details                (student + admins)
+//   users/{uid}/interviewSignups/{blockId}         the student's copy             (student + admins)
+
+const INTERVIEW_NOTIFICATION_SOURCE = "interviewSignup"; // not "system", so rebuildEventNotifications leaves these alone
+
+function tsToMillis(ts) {
+  return ts && typeof ts.toMillis === "function" ? ts.toMillis() : null;
+}
+
+function blockForValidation(data) {
+  return Object.assign({}, data, {
+    startMs: tsToMillis(data.startTime),
+    endMs: tsToMillis(data.endTime),
+    signupDeadlineMs: tsToMillis(data.signupDeadline),
+  });
+}
+
+function isValidDocId(id) {
+  return typeof id === "string" && id.length > 0 && id.length <= 200 && !id.includes("/");
+}
+
+async function deletePendingNotification(db, notificationId) {
+  if (!isValidDocId(notificationId)) return;
+  const ref = db.collection("notifications").doc(notificationId);
+  const snap = await ref.get();
+  if (snap.exists && snap.data().status === "pending") await ref.delete();
+}
+
+async function notifyUser(db, uid, title, message, extra) {
+  await db.collection("notifications").add(Object.assign({
+    targetType: "user",
+    targetId: uid,
+    title,
+    message,
+    createdBy: INTERVIEW_NOTIFICATION_SOURCE,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, extra || {}));
+}
+
+exports.signUpForInterview = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+  await enforceRateLimit(request, "signUpForInterview");
+
+  const uid = request.auth.uid;
+  const nowMs = Date.now();
+  let input;
+  try {
+    input = interviews.validateSignupPayload(request.data, nowMs);
+  } catch (err) {
+    if (err instanceof interviews.ValidationError) throw new HttpsError("invalid-argument", err.message);
+    throw err;
+  }
+
+  const db = admin.firestore();
+  const {Timestamp, FieldValue} = admin.firestore;
+  const blockRef = db.collection("events").doc(input.blockId);
+  const signupRef = blockRef.collection("interviewSignups").doc(uid);
+  const slotRef = blockRef.collection("interviewSlots").doc(String(input.slotStartMs));
+  const mirrorRef = db.collection("users").doc(uid).collection("interviewSignups").doc(input.blockId);
+  const reminderRef = db.collection("notifications").doc();
+  const reminderAtMs = input.slotStartMs - interviews.REMINDER_LEAD_MS;
+  const willRemind = reminderAtMs > nowMs + 5 * 60 * 1000;
+
+  let block;
+  await db.runTransaction(async (tx) => {
+    const [blockSnap, signupSnap, slotSnap] = await tx.getAll(blockRef, signupRef, slotRef);
+    block = blockSnap.exists ? blockForValidation(blockSnap.data()) : null;
+
+    const problem = interviews.slotProblem(block, input.slotStartMs, nowMs);
+    if (problem) throw new HttpsError("failed-precondition", problem);
+
+    if (signupSnap.exists) {
+      throw new HttpsError("already-exists",
+        "You're already signed up for this interview block. Cancel your current time to pick a new one.");
+    }
+
+    const capacity = interviews.slotCapacity(block);
+    const booked = slotSnap.exists ? (Number(slotSnap.data().booked) || 0) : 0;
+    if (booked >= capacity) {
+      throw new HttpsError("resource-exhausted", "That time slot just filled up. Please pick another time.");
+    }
+
+    const slotStart = Timestamp.fromMillis(input.slotStartMs);
+    const slotEnd = Timestamp.fromMillis(input.slotStartMs + interviews.slotLengthMs(block));
+
+    tx.set(slotRef, {startTime: slotStart, booked: booked + 1, capacity}, {merge: true});
+    tx.set(signupRef, {
+      uid,
+      fullName: input.fullName,
+      major: input.major,
+      minor: input.minor,
+      gradTerm: input.gradTerm,
+      gradYear: input.gradYear,
+      localPhone: input.localPhone,
+      email: input.email,
+      slotStart,
+      slotEnd,
+      reminderNotificationId: willRemind ? reminderRef.id : null,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    tx.set(mirrorRef, {
+      blockId: input.blockId,
+      companyId: block.companyId || null,
+      company: block.company || "",
+      location: block.mainLocation || "",
+      slotStart,
+      slotEnd,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  });
+
+  // The booking is committed; notification failures shouldn't fail the call.
+  const company = block.company || "Company";
+  const when = interviews.formatSlotTime(input.slotStartMs);
+  const where = block.mainLocation ? ` at ${block.mainLocation}` : "";
+  try {
+    await notifyUser(db, uid, `Interview booked: ${company}`, `${when}${where}.`, {interviewBlockId: input.blockId});
+    if (willRemind) {
+      await reminderRef.set({
+        targetType: "user",
+        targetId: uid,
+        title: `${company} interview in 1 hour`,
+        message: `${when}${where}.`,
+        sendAt: Timestamp.fromMillis(reminderAtMs),
+        status: "pending",
+        createdBy: INTERVIEW_NOTIFICATION_SOURCE,
+        createdAt: FieldValue.serverTimestamp(),
+        interviewBlockId: input.blockId,
+      });
+    }
+  } catch (err) {
+    console.error(`Interview booked for ${uid} on ${input.blockId} but notifications failed:`, err);
+  }
+
+  return {success: true, slotStartMs: input.slotStartMs};
+});
+
+exports.cancelInterviewSignup = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+  await enforceRateLimit(request, "cancelInterviewSignup");
+
+  const callerUid = request.auth.uid;
+  const callerIsAdmin = getCallerRole(request) === "admin";
+  const data = request.data || {};
+  const blockId = typeof data.blockId === "string" ? data.blockId.trim() : "";
+  const targetUid = (typeof data.uid === "string" && data.uid.trim()) ? data.uid.trim() : callerUid;
+
+  if (!isValidDocId(blockId) || !isValidDocId(targetUid)) {
+    throw new HttpsError("invalid-argument", "Invalid interview block or user");
+  }
+  if (targetUid !== callerUid && !callerIsAdmin) {
+    throw new HttpsError("permission-denied", "Only admins can cancel another student's interview");
+  }
+
+  const db = admin.firestore();
+  const blockRef = db.collection("events").doc(blockId);
+  const signupRef = blockRef.collection("interviewSignups").doc(targetUid);
+  const mirrorRef = db.collection("users").doc(targetUid).collection("interviewSignups").doc(blockId);
+
+  let removed;
+  await db.runTransaction(async (tx) => {
+    const [blockSnap, signupSnap] = await tx.getAll(blockRef, signupRef);
+    if (!signupSnap.exists) throw new HttpsError("not-found", "No interview sign-up found");
+
+    const signup = signupSnap.data();
+    const slotStartMs = tsToMillis(signup.slotStart);
+    if (!callerIsAdmin && slotStartMs && slotStartMs - Date.now() < interviews.STUDENT_CANCEL_CUTOFF_MS) {
+      throw new HttpsError("failed-precondition",
+        "Interviews can't be cancelled within 2 hours of the start time. Please contact the CM department.");
+    }
+
+    const slotRef = slotStartMs ? blockRef.collection("interviewSlots").doc(String(slotStartMs)) : null;
+    const slotSnap = slotRef ? await tx.get(slotRef) : null;
+
+    if (slotSnap && slotSnap.exists) {
+      tx.update(slotRef, {booked: Math.max(0, (Number(slotSnap.data().booked) || 0) - 1)});
+    }
+    tx.delete(signupRef);
+    tx.delete(mirrorRef);
+    removed = {signup, slotStartMs, block: blockSnap.exists ? blockSnap.data() : {}};
+  });
+
+  try {
+    await deletePendingNotification(db, removed.signup.reminderNotificationId);
+    if (targetUid !== callerUid) {
+      const company = removed.block.company || "Company";
+      const when = removed.slotStartMs ? interviews.formatSlotTime(removed.slotStartMs) : "your scheduled time";
+      await notifyUser(db, targetUid, `${company} interview cancelled`,
+        `Your ${when} interview was cancelled by the CM department. You can pick a new time in the app.`,
+        {interviewBlockId: blockId});
+    }
+  } catch (err) {
+    console.error(`Interview cancelled for ${targetUid} on ${blockId} but cleanup failed:`, err);
+  }
+
+  return {success: true};
+});
+
+exports.onInterviewBlockDeleted = onDocumentDeleted("events/{eventId}", async (event) => {
+  const data = event.data ? event.data.data() : null;
+  if (!data || data.eventType !== INTERVIEW_EVENT_TYPE) return;
+
+  const db = admin.firestore();
+  const blockId = event.params.eventId;
+  const blockRef = db.collection("events").doc(blockId);
+  const company = data.company || "Company";
+  const nowMs = Date.now();
+
+  const signups = await blockRef.collection("interviewSignups").get();
+  for (const doc of signups.docs) {
+    const s = doc.data();
+    try {
+      await db.collection("users").doc(doc.id).collection("interviewSignups").doc(blockId).delete();
+      await deletePendingNotification(db, s.reminderNotificationId);
+      const slotStartMs = tsToMillis(s.slotStart);
+      if (slotStartMs && slotStartMs > nowMs) {
+        await notifyUser(db, doc.id, `${company} interview cancelled`,
+          `Your ${interviews.formatSlotTime(slotStartMs)} interview was cancelled because the interview block was removed.`,
+          {interviewBlockId: blockId});
+      }
+    } catch (err) {
+      console.error(`Error cleaning up interview sign-up ${doc.id} for deleted block ${blockId}:`, err);
+    }
+  }
+
+  await db.recursiveDelete(blockRef.collection("interviewSignups"));
+  await db.recursiveDelete(blockRef.collection("interviewSlots"));
+  console.log(`Cleaned up deleted interview block ${blockId} (${signups.size} sign-ups)`);
+});

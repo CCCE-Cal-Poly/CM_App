@@ -3,6 +3,8 @@
   "description": "Cloud Functions for Firebase",
   "scripts": {
     "lint": "eslint .",
+    "test": "node --test test/companyKey.test.js test/interviews.test.js",
+    "backfill:companies": "node scripts/backfillInfoSessionCompanies.js",
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",

@@ -143,7 +143,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
                             // Iterate through the original list of companies if text is entered
                             if (_isTextEntered) {
                               for (Company company
-                                  in companyProvider.allCompanies) {
+                                  in companyProvider.directoryCompanies) {
                                 // Check if the company name starts with the entered text substring
                                 String name = company.name;
                                 if (name
@@ -211,11 +211,11 @@ class _MemberDirectoryState extends State<MemberDirectory> {
                   scrollDirection: Axis.vertical,
                   itemCount: _isTextEntered
                       ? filteredCompanies.length
-                      : companyProvider.allCompanies.length,
+                      : companyProvider.directoryCompanies.length,
                   itemBuilder: (context, index) {
                     final List<Company> displayList = _isTextEntered
                         ? filteredCompanies
-                        : companyProvider.allCompanies;
+                        : companyProvider.directoryCompanies;
                     return GestureDetector(
                       onTap: () {
                         Company companyData = displayList[index];
