@@ -4,3 +4,4 @@ venv/*
 serviceAccountKey.json
 local_scripts
 .env
+service_keys

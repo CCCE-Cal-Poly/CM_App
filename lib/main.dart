@@ -3,6 +3,9 @@
 import 'package:ccce_application/common/features/app_entry_gate.dart';
 import 'package:ccce_application/common/providers/company_provider.dart';
 import 'package:ccce_application/services/error_logger.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -55,6 +58,21 @@ Future<void> main() async {
   } on FirebaseException catch (e) {
     if (e.code != 'duplicate-app') {
       rethrow;
+    }
+  }
+
+  // this block is to connect firebase emulators to the front end code. 
+  const useFirebaseEmulators = bool.fromEnvironment('USE_FIREBASE_EMULATORS');
+  if (kDebugMode && useFirebaseEmulators) {
+    const host = '10.0.2.2';
+    try { // Android emulator reaching services on computer
+      await FirebaseAuth.instance.useAuthEmulator(host, 9099);
+      FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
+      FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
+      FirebaseStorage.instance.useStorageEmulator(host, 9199);
+      FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: false);
+    } catch (e) {
+      ErrorLogger.logError("Main", "An error was encountered while attempting to connect emulators: $e");
     }
   }
 

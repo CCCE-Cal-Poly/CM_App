@@ -18,7 +18,7 @@ class Member implements Comparable<Member> {
   String? website;
   String? level;
   String? logo;
-  String? indivualName;
+  String? individualName;
   // List<CalEvent> events;
   
   Member({this.id,
@@ -26,7 +26,7 @@ class Member implements Comparable<Member> {
     this.website, 
     this.level,
     this.logo,
-    this.indivualName, 
+    this.individualName, 
   }); 
 
   factory Member.fromDocument(DocumentSnapshot doc) {
@@ -38,7 +38,7 @@ class Member implements Comparable<Member> {
       website: data['website'] ?? 'No Website',
       level: data['cmacData']['level'] ?? 'No Level',
       logo: (data['logo'] ?? data['Logo']) as String?, // Support both 'Logo' and 'logo' field names
-      indivualName: data['cmacData']['founder'] as String?,
+      individualName: data['cmacData']['founder'] as String?,
     );
   }
 

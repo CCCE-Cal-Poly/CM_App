@@ -7,11 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:provider/provider.dart';
+import 'package:rrule/rrule.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   const AdminPanelScreen({super.key, required this.scaffoldKey});
-  
 
   @override
   AdminPanelScreenState createState() => AdminPanelScreenState();
@@ -380,10 +380,37 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                     final endTime = request['endTime'] is Timestamp
                         ? (request['endTime'] as Timestamp).toDate()
                         : null;
-                    final recurrenceEndDate = request['recurrenceEndDate']
-                            is Timestamp
-                        ? (request['recurrenceEndDate'] as Timestamp).toDate()
-                        : null;
+                    DateTime? recurrenceUntil;
+                    final rawRecurrence = request['recurrence'];
+                    String? recurrenceText;
+                    if (rawRecurrence is Map) {
+                      final rawRule = rawRecurrence['rrule'];
+                      if (rawRule is String && rawRule.trim().isNotEmpty) {
+                        try {
+                          final rule = RecurrenceRule.fromString(
+                            rawRule.trimLeft().toUpperCase().startsWith('RRULE:')
+                                ? rawRule
+                                : 'RRULE:$rawRule',
+                          );
+                          final unit = switch (rule.frequency) {
+                            Frequency.daily => 'days',
+                            Frequency.weekly => 'weeks',
+                            Frequency.monthly => 'months',
+                            Frequency.yearly => 'years',
+                            _ => 'intervals',
+                          };
+                          recurrenceText =
+                              'Every ${rule.actualInterval} $unit';
+                          recurrenceUntil = rule.until?.toLocal();
+                        } on FormatException {
+                          recurrenceText = rawRule;
+                        }
+                      } else {
+                        recurrenceText = rawRule?.toString();
+                      }
+                    } else {
+                      recurrenceText = request['recurrenceType']?.toString();
+                    }
 
                     return Card(
                       margin: const EdgeInsets.symmetric(
@@ -415,12 +442,12 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                                   'End: ${endTime.toString().substring(0, 16)}'),
                             if (request['eventLocation'] != null)
                               Text('Location: ${request['eventLocation']}'),
-                            if (request['recurrenceType'] != null &&
-                                request['recurrenceType'].toString().isNotEmpty)
-                              Text('Recurrence: ${request['recurrenceType']}'),
-                            if (recurrenceEndDate != null)
+                            if (recurrenceText != null &&
+                                recurrenceText.isNotEmpty)
+                              Text('Recurrence: $recurrenceText'),
+                            if (recurrenceUntil != null)
                               Text(
-                                  'Recurs until: ${recurrenceEndDate.toString().substring(0, 16)}'),
+                                  'Recurs until: ${recurrenceUntil.toString().substring(0, 16)}'),
                             if (request['description'] != null &&
                                 request['description']
                                     .toString()
@@ -437,136 +464,154 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 ElevatedButton(
-                                  onPressed: _isClubApproveLoading ? null : () async {
-                                    if (mounted) {
-                                      setState(() {
-                                        print("Setting loading state to true for denying club event request ${doc.id}");
-                                        _isClubApproveLoading = true;
-                                      });
-                                    }
-                                    try {
-                                      print('Attempting to approve club event request ${doc.id}');
-                                      // Check if user is authenticated
-                                      final currentUser =
-                                          FirebaseAuth.instance.currentUser;
-                                      if (currentUser == null) {
-                                        if (!mounted) return;
-                                        ScaffoldMessenger.of(outerContext)
-                                            .showSnackBar(const SnackBar(
-                                                content: Text(
-                                                    'Not authenticated. Please log in again.')));
-                                        return;
-                                      }
+                                  onPressed: _isClubApproveLoading
+                                      ? null
+                                      : () async {
+                                          if (mounted) {
+                                            setState(() {
+                                              print(
+                                                  "Setting loading state to true for denying club event request ${doc.id}");
+                                              _isClubApproveLoading = true;
+                                            });
+                                          }
+                                          try {
+                                            print(
+                                                'Attempting to approve club event request ${doc.id}');
+                                            // Check if user is authenticated
+                                            final currentUser = FirebaseAuth
+                                                .instance.currentUser;
+                                            if (currentUser == null) {
+                                              if (!mounted) return;
+                                              ScaffoldMessenger.of(outerContext)
+                                                  .showSnackBar(const SnackBar(
+                                                      content: Text(
+                                                          'Not authenticated. Please log in again.')));
+                                              return;
+                                            }
 
-                                      // Get fresh token
-                                      await currentUser.getIdToken(true);
+                                            // Get fresh token
+                                            await currentUser.getIdToken(true);
 
-                                      final result = await FirebaseFunctions
-                                          .instance
-                                          .httpsCallable('approveClubEvent')
-                                          .call(<String, dynamic>{
-                                        'requestId': doc.id,
-                                      });
+                                            final result =
+                                                await FirebaseFunctions.instance
+                                                    .httpsCallable(
+                                                        'approveClubEvent')
+                                                    .call(<String, dynamic>{
+                                              'requestId': doc.id,
+                                            });
 
-                                      // Add just the new event (cost-efficient)
-                                      if (mounted &&
-                                          result.data['eventId'] != null) {
-                                        final eventProvider =
-                                            Provider.of<EventProvider>(
-                                                outerContext,
-                                                listen: false);
-                                        await eventProvider.addEventById(
-                                            result.data['eventId']);
-                                      }
+                                            // Add just the new event (cost-efficient)
+                                            if (mounted &&
+                                                result.data['eventId'] !=
+                                                    null) {
+                                              final eventProvider =
+                                                  Provider.of<EventProvider>(
+                                                      outerContext,
+                                                      listen: false);
+                                              await eventProvider.addEventById(
+                                                  result.data['eventId']);
+                                            }
 
-                                      if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext)
-                                          .showSnackBar(const SnackBar(
-                                              content: Text(
-                                                  'Event approved and added to calendar')));
-                                    } catch (e) {
-                                      if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext)
-                                          .showSnackBar(SnackBar(
-                                              content:
-                                                  Text('Approve failed: $e')));
-                                    } finally {
-                                      if (mounted) {
-                                        setState(() {
-                                          print("Setting loading state to false for denying club event request ${doc.id}");
-                                          _isClubApproveLoading = false;
-                                        });
-                                      }
-                                    }
-                                  },
-                                  child: _isClubApproveLoading ? const SizedBox(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          color: Colors.black,
-                                        ),
-                                      ) : const Text('Approve'),
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(outerContext)
+                                                .showSnackBar(const SnackBar(
+                                                    content: Text(
+                                                        'Event approved and added to calendar')));
+                                          } catch (e) {
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(outerContext)
+                                                .showSnackBar(SnackBar(
+                                                    content: Text(
+                                                        'Approve failed: $e')));
+                                          } finally {
+                                            if (mounted) {
+                                              setState(() {
+                                                print(
+                                                    "Setting loading state to false for denying club event request ${doc.id}");
+                                                _isClubApproveLoading = false;
+                                              });
+                                            }
+                                          }
+                                        },
+                                  child: _isClubApproveLoading
+                                      ? const SizedBox(
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            color: Colors.black,
+                                          ),
+                                        )
+                                      : const Text('Approve'),
                                 ),
                                 const SizedBox(width: 8),
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red,
                                   ),
-                                  onPressed: _isClubApproveLoading ? null : () async {
-                                    if (mounted) {
-                                      setState(() {
-                                        print("Setting loading state to true for denying club event request ${doc.id}");
-                                        _isClubApproveLoading = true;
-                                      });
-                                    }
-                                    try {
-                                      // Check if user is authenticated
-                                      print('Attempting to deny club event request ${doc.id}');
-                                      final currentUser =
-                                          FirebaseAuth.instance.currentUser;
-                                      if (currentUser == null) {
-                                        if (!mounted) return;
-                                        ScaffoldMessenger.of(outerContext)
-                                            .showSnackBar(const SnackBar(
-                                                content: Text(
-                                                    'Not authenticated. Please log in again.')));
-                                        return;
-                                      }
+                                  onPressed: _isClubApproveLoading
+                                      ? null
+                                      : () async {
+                                          if (mounted) {
+                                            setState(() {
+                                              print(
+                                                  "Setting loading state to true for denying club event request ${doc.id}");
+                                              _isClubApproveLoading = true;
+                                            });
+                                          }
+                                          try {
+                                            // Check if user is authenticated
+                                            print(
+                                                'Attempting to deny club event request ${doc.id}');
+                                            final currentUser = FirebaseAuth
+                                                .instance.currentUser;
+                                            if (currentUser == null) {
+                                              if (!mounted) return;
+                                              ScaffoldMessenger.of(outerContext)
+                                                  .showSnackBar(const SnackBar(
+                                                      content: Text(
+                                                          'Not authenticated. Please log in again.')));
+                                              return;
+                                            }
 
-                                      // Get fresh token
-                                      await currentUser.getIdToken(true);
+                                            // Get fresh token
+                                            await currentUser.getIdToken(true);
 
-                                      await FirebaseFunctions.instance
-                                          .httpsCallable('denyClubEvent')
-                                          .call(<String, dynamic>{
-                                        'requestId': doc.id,
-                                      });
-                                      if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext)
-                                          .showSnackBar(const SnackBar(
-                                              content: Text(
-                                                  'Event request denied')));
-                                    } catch (e) {
-                                      if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext)
-                                          .showSnackBar(SnackBar(
-                                              content:
-                                                  Text('Deny failed: $e')));
-                                    } finally {
-                                      if (mounted) {
-                                        setState(() {
-                                          print("Setting loading state to false for denying club event request ${doc.id}");
-                                          _isClubApproveLoading = false;
-                                        });
-                                      }
-                                    }
-                                  },
-                                  child: _isClubApproveLoading ? const SizedBox(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          color: Colors.black,
+                                            await FirebaseFunctions.instance
+                                                .httpsCallable('denyClubEvent')
+                                                .call(<String, dynamic>{
+                                              'requestId': doc.id,
+                                            });
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(outerContext)
+                                                .showSnackBar(const SnackBar(
+                                                    content: Text(
+                                                        'Event request denied')));
+                                          } catch (e) {
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(outerContext)
+                                                .showSnackBar(SnackBar(
+                                                    content: Text(
+                                                        'Deny failed: $e')));
+                                          } finally {
+                                            if (mounted) {
+                                              setState(() {
+                                                print(
+                                                    "Setting loading state to false for denying club event request ${doc.id}");
+                                                _isClubApproveLoading = false;
+                                              });
+                                            }
+                                          }
+                                        },
+                                  child: _isClubApproveLoading
+                                      ? const SizedBox(
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            color: Colors.black,
+                                          ),
+                                        )
+                                      : Text(
+                                          'Deny',
+                                          style: TextStyle(color: Colors.white),
                                         ),
-                                      ) : Text('Deny', style: TextStyle(color: Colors.white),
-                                  ),
                                 ),
                               ],
                             ),
@@ -761,120 +806,127 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 ElevatedButton(
-                                  onPressed: _isFacultyApproveLoading ? null : 
-                                  () async {
-                                    if (mounted) {
-                                      setState(() {
-                                        _isFacultyApproveLoading = true;
-                                      });
-                                    }
-                                    try {
-                                      // Call Cloud Function to set user role to faculty
-                                      await FirebaseFunctions.instance
-                                          .httpsCallable('setUserRole')
-                                          .call(<String, dynamic>{
-                                        'uid': uid,
-                                        'role': 'faculty',
-                                      });
+                                  onPressed: _isFacultyApproveLoading
+                                      ? null
+                                      : () async {
+                                          if (mounted) {
+                                            setState(() {
+                                              _isFacultyApproveLoading = true;
+                                            });
+                                          }
+                                          try {
+                                            // Call Cloud Function to set user role to faculty
+                                            await FirebaseFunctions.instance
+                                                .httpsCallable('setUserRole')
+                                                .call(<String, dynamic>{
+                                              'uid': uid,
+                                              'role': 'faculty',
+                                            });
 
-                                      // Update the request status to approved
-                                      await FirebaseFirestore.instance
-                                          .collection('facultyRequests')
-                                          .doc(doc.id)
-                                          .update({
-                                        'status': 'approved',
-                                        'reviewedBy': FirebaseAuth
-                                            .instance.currentUser?.uid,
-                                        'reviewedAt':
-                                            FieldValue.serverTimestamp(),
-                                        'approvedAt':
-                                            FieldValue.serverTimestamp(),
-                                      });
+                                            // Update the request status to approved
+                                            await FirebaseFirestore.instance
+                                                .collection('facultyRequests')
+                                                .doc(doc.id)
+                                                .update({
+                                              'status': 'approved',
+                                              'reviewedBy': FirebaseAuth
+                                                  .instance.currentUser?.uid,
+                                              'reviewedAt':
+                                                  FieldValue.serverTimestamp(),
+                                              'approvedAt':
+                                                  FieldValue.serverTimestamp(),
+                                            });
 
-                                      if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext)
-                                          .showSnackBar(const SnackBar(
-                                              content: Text(
-                                                  'Faculty role approved')));
-                                    } catch (e) {
-                                      if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext)
-                                          .showSnackBar(SnackBar(
-                                              content:
-                                                  Text('Approve failed: $e')));
-                                    } finally {
-                                      if (mounted) {
-                                        setState(() {
-                                          _isFacultyApproveLoading = false;
-                                        });
-                                      }
-                                    }
-                                  },
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(outerContext)
+                                                .showSnackBar(const SnackBar(
+                                                    content: Text(
+                                                        'Faculty role approved')));
+                                          } catch (e) {
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(outerContext)
+                                                .showSnackBar(SnackBar(
+                                                    content: Text(
+                                                        'Approve failed: $e')));
+                                          } finally {
+                                            if (mounted) {
+                                              setState(() {
+                                                _isFacultyApproveLoading =
+                                                    false;
+                                              });
+                                            }
+                                          }
+                                        },
                                   // child: const Text('Approve'),
                                   child: _isFacultyApproveLoading
-                                    ? const SizedBox(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          color: Colors.black,
-                                        ),
-                                      )
-                                    : const Text('Approve'),
+                                      ? const SizedBox(
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            color: Colors.black,
+                                          ),
+                                        )
+                                      : const Text('Approve'),
                                 ),
                                 const SizedBox(width: 8),
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red,
                                   ),
-                                  onPressed: _isFacultyApproveLoading ? null : () async {
-                                    if (mounted) {
-                                      setState(() {
-                                        _isFacultyApproveLoading = true;
-                                      });
-                                    }
-                                    try {
-                                      // Update the request status to denied
-                                      await FirebaseFirestore.instance
-                                          .collection('facultyRequests')
-                                          .doc(doc.id)
-                                          .update({
-                                        'status': 'denied',
-                                        'reviewedBy': FirebaseAuth
-                                            .instance.currentUser?.uid,
-                                        'reviewedAt':
-                                            FieldValue.serverTimestamp(),
-                                      });
+                                  onPressed: _isFacultyApproveLoading
+                                      ? null
+                                      : () async {
+                                          if (mounted) {
+                                            setState(() {
+                                              _isFacultyApproveLoading = true;
+                                            });
+                                          }
+                                          try {
+                                            // Update the request status to denied
+                                            await FirebaseFirestore.instance
+                                                .collection('facultyRequests')
+                                                .doc(doc.id)
+                                                .update({
+                                              'status': 'denied',
+                                              'reviewedBy': FirebaseAuth
+                                                  .instance.currentUser?.uid,
+                                              'reviewedAt':
+                                                  FieldValue.serverTimestamp(),
+                                            });
 
-                                      if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext)
-                                          .showSnackBar(const SnackBar(
-                                              content: Text(
-                                                  'Faculty role request denied')));
-                                    } catch (e) {
-                                      if (!mounted) return;
-                                      ScaffoldMessenger.of(outerContext)
-                                          .showSnackBar(SnackBar(
-                                              content:
-                                                  Text('Deny failed: $e')));
-                                    } finally {
-                                      if (mounted) {
-                                        setState(() {
-                                          _isFacultyApproveLoading = false;
-                                        });
-                                      }
-                                    }
-                                  },
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(outerContext)
+                                                .showSnackBar(const SnackBar(
+                                                    content: Text(
+                                                        'Faculty role request denied')));
+                                          } catch (e) {
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(outerContext)
+                                                .showSnackBar(SnackBar(
+                                                    content: Text(
+                                                        'Deny failed: $e')));
+                                          } finally {
+                                            if (mounted) {
+                                              setState(() {
+                                                _isFacultyApproveLoading =
+                                                    false;
+                                              });
+                                            }
+                                          }
+                                        },
                                   // child: const Text(
                                   //   'Deny',
                                   //   style: TextStyle(color: Colors.white),
                                   // ),
-                                child: _isFacultyApproveLoading
-                                    ? const SizedBox(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          color: Colors.black,
-                                        ),
-                                      )
-                                    : const Text('Deny', style: TextStyle(color: Colors.white)),
+                                  child: _isFacultyApproveLoading
+                                      ? const SizedBox(
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            color: Colors.black,
+                                          ),
+                                        )
+                                      : const Text('Deny',
+                                          style:
+                                              TextStyle(color: Colors.white)),
                                 ),
                               ],
                             ),
@@ -1061,4 +1113,3 @@ class AdminControlPanelRequests extends StatelessWidget {
     );
   }
 }
-

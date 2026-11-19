@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:ccce_application/common/features/onboarding/onboarding_screen.dart';
 import 'package:ccce_application/common/features/sign_in.dart';
 import 'package:ccce_application/common/features/verification_screen.dart';
+import 'package:ccce_application/common/providers/app_state.dart';
 import 'package:ccce_application/common/providers/club_provider.dart';
 import 'package:ccce_application/common/providers/company_provider.dart';
 import 'package:ccce_application/common/providers/event_provider.dart';
@@ -188,6 +189,8 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
                 }
 
                 _initializedUserUid = user.uid;
+                Provider.of<AppState>(context, listen: false)
+                    .loadJoinedClubs();
                 Provider.of<UserProvider>(context, listen: false)
                     .loadUserProfile(user.uid);
                 Provider.of<ClubProvider>(context, listen: false).loadClubs();

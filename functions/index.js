@@ -1,13 +1,21 @@
 const admin = require("firebase-admin");
+const {FieldValue, Timestamp} = require("firebase-admin/firestore");
 const cheerio = require("cheerio");
 const {google} = require("googleapis");
+const crypto = require("crypto");
+const {rrulestr, RRuleSet, datetime} = require("rrule");
+
 require("dotenv").config();
 
 const auth = new google.auth.GoogleAuth({
-  scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  scopes: [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/calendar",
+  ],
 });
 
 const sheets = google.sheets({version: "v4", auth});
+const calendar = google.calendar({version: "v3", auth});
 
 
 admin.initializeApp();
@@ -189,7 +197,7 @@ exports.onUserDeleted = user().onDelete(async (userRecord) => {
   const db = admin.firestore();
   // Create deletion marker FIRST
   await db.collection("deletedAccounts").doc(uid).set({
-    deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+    deletedAt: FieldValue.serverTimestamp(),
   });
 
 
@@ -383,7 +391,7 @@ exports.setUserRole = onCall(async (request) => {
             .set({
               uid: uid,
               name: userName,
-              joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+              joinedAt: FieldValue.serverTimestamp(),
               isAdmin: true,
             }, {merge: true}),
         );
@@ -425,16 +433,12 @@ exports.approveClubEvent = onCall(async (request) => {
   }
   const reqData = reqSnap.data() || {};
   const clubId = reqData.clubId || null;
-  const recurrenceType = reqData.recurrenceType || "Never";
-  const recurrenceInterval = reqData.recurrenceInterval || null;
-  const recurrenceEndDate = reqData.recurrenceEndDate || null;
+  const recurrence = reqData.recurrence || null;
   const startTime = reqData.startTime;
   const endTime = reqData.endTime || reqData.startTime;
   try {
     const currentStart = startTime.toDate ? startTime.toDate() : new Date(startTime);
     const currentEnd = endTime.toDate ? endTime.toDate() : new Date(endTime);
-    const endDate = normalizeRecurrenceEndDate(recurrenceEndDate);
-    const isRecurring = recurrenceType !== "Never";
 
     const eventRef = db.collection("events").doc();
     const batch = db.batch();
@@ -443,71 +447,29 @@ exports.approveClubEvent = onCall(async (request) => {
       company: reqData.clubName || "",
       clubId: clubId,
       eventName: reqData.eventName || "",
-      startTime: admin.firestore.Timestamp.fromDate(currentStart),
-      endTime: admin.firestore.Timestamp.fromDate(currentEnd),
+      startTime: Timestamp.fromDate(currentStart),
+      endTime: Timestamp.fromDate(currentEnd),
       mainLocation: reqData.eventLocation || "",
       eventType: "club",
       logo: reqData.logoUrl || reqData.logo || "",
       Status: "approved",
       description: reqData.description || "",
-      recurrenceType: recurrenceType,
-      recurrenceInterval: recurrenceInterval,
-      recurrenceEndDate: endDate,
-      recurring: isRecurring,
+      recurrence: recurrence,
       recurrenceSeriesId: eventRef.id,
-      recurrenceSequence: 0,
       submittedBy: {
         uid: reqData.requestedByUid || null,
         name: reqData.requestedByName || null,
         email: reqData.requestedByEmail || null,
       },
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
 
     const createdEventRefs = [eventRef];
 
-    // if (isRecurring) {
-    //   const nextOccurrence = calculateNextOccurrence(
-    //     currentStart,
-    //     currentEnd,
-    //     recurrenceType,
-    //     recurrenceInterval,
-    //   );
-
-    //   if (nextOccurrence && (!endDate || nextOccurrence.start <= endDate)) {
-    //     const nextEventRef = db.collection("events").doc();
-    //     batch.set(nextEventRef, {
-    //       company: reqData.clubName || "",
-    //       clubId: clubId,
-    //       eventName: reqData.eventName || "",
-    //       startTime: admin.firestore.Timestamp.fromDate(nextOccurrence.start),
-    //       endTime: admin.firestore.Timestamp.fromDate(nextOccurrence.end),
-    //       mainLocation: reqData.eventLocation || "",
-    //       eventType: "club",
-    //       logo: reqData.logoUrl || reqData.logo || "",
-    //       Status: "approved",
-    //       description: reqData.description || "",
-    //       recurrenceType: recurrenceType,
-    //       recurrenceInterval: recurrenceInterval,
-    //       recurrenceEndDate: endDate,
-    //       recurring: true,
-    //       recurrenceSeriesId: eventRef.id,
-    //       recurrenceSequence: 1,
-    //       submittedBy: {
-    //         uid: reqData.requestedByUid || null,
-    //         name: reqData.requestedByName || null,
-    //         email: reqData.requestedByEmail || null,
-    //       },
-    //       createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    //     });
-    //     createdEventRefs.push(nextEventRef);
-    //   }
-    // }
-
     if (clubId) {
       const clubRef = db.collection("clubs").doc(clubId);
       batch.update(clubRef, {
-        events: admin.firestore.FieldValue.arrayUnion(...createdEventRefs),
+        events: FieldValue.arrayUnion(...createdEventRefs),
       });
     }
 
@@ -519,38 +481,6 @@ exports.approveClubEvent = onCall(async (request) => {
     throw new HttpsError("internal", "Failed to approve request");
   }
 });
-
-function normalizeRecurrenceEndDate(endDate) {
-  if (!endDate) return null;
-  const dt = endDate.toDate ? endDate.toDate() : new Date(endDate);
-  if (Number.isNaN(dt.getTime())) return null;
-  return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 23, 59, 59, 999);
-}
-
-// function calculateNextOccurrence(start, end, recurrenceType, interval) {
-//   if (!start || !end || recurrenceType === "Never") return null;
-//   const nextStart = new Date(start);
-//   const durationMs = end.getTime() - start.getTime();
-//   const parsedInterval = parseInt(interval || 1);
-//   const safeInterval = Number.isNaN(parsedInterval) || parsedInterval < 1 ? 1 : parsedInterval;
-
-//   if (recurrenceType === "Interval (days)") {
-//     nextStart.setDate(nextStart.getDate() + safeInterval);
-//   } else if (recurrenceType === "Weekly") {
-//     nextStart.setDate(nextStart.getDate() + 7 * safeInterval);
-//   } else if (recurrenceType === "Monthly") {
-//     const originalDay = start.getDate();
-//     nextStart.setMonth(nextStart.getMonth() + safeInterval);
-//     if (nextStart.getDate() !== originalDay) {
-//       nextStart.setDate(0);
-//     }
-//   } else {
-//     return null;
-//   }
-
-//   const nextEnd = new Date(nextStart.getTime() + durationMs);
-//   return {start: nextStart, end: nextEnd};
-// }
 
 
 exports.denyClubEvent = onCall(async (request) => {
@@ -592,7 +522,7 @@ exports.denyClubEvent = onCall(async (request) => {
     await reqRef.update({
       status: "denied",
       reviewedBy: request.auth.uid || null,
-      reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
+      reviewedAt: FieldValue.serverTimestamp(),
       adminComment: reason,
     });
     return {success: true};
@@ -704,7 +634,7 @@ exports.sendNotificationOnCreate = onDocumentCreated("notifications/{notificatio
       status: "sent",
       sent,
       failed,
-      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      sentAt: FieldValue.serverTimestamp(),
     }, {merge: true});
 
     await pruneInvalidTokensMap(invalidTokenMap);
@@ -732,7 +662,7 @@ exports.notifyOnClubJoin = onDocumentCreated("clubs/{clubId}/members/{uid}", asy
       title: "Joined club",
       message: `You joined ${clubName}.`,
       createdBy: "system",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
   } catch (err) {
     console.error("notifyOnClubJoin error", err);
@@ -754,7 +684,7 @@ exports.notifyOnEventCheckIn = onDocumentCreated("events/{eventId}/attending/{ui
       title: "Checked in",
       message: `You're checked in to ${eventName}.`,
       createdBy: "system",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
   } catch (err) {
     console.error("notifyOnEventCheckIn error", err);
@@ -776,7 +706,7 @@ exports.notifyOnClubEventRequest = onDocumentCreated("clubEventRequests/{request
       title: `Event Request From ${clubName}`,
       message: "A new event request is awaiting approval from an Admin.",
       createdBy: "system",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
   } catch (err) {
     console.error("notifyOnClubEventRequest error", err);
@@ -933,7 +863,7 @@ async function pruneInvalidTokensMap(map) {
 exports.cleanupStaleFcmTokens = onSchedule("every 24 hours", async () => {
   console.log("Scheduled run: cleaning stale FCM tokens");
   const db = admin.firestore();
-  const ninetyDaysAgo = admin.firestore.Timestamp.fromMillis(
+  const ninetyDaysAgo = Timestamp.fromMillis(
       Date.now() - (90 * 24 * 60 * 60 * 1000),
   );
 
@@ -968,7 +898,7 @@ exports.cleanupOldNotifications = onSchedule("every 24 hours", async () => {
   console.log("Scheduled run: cleaning up old notifications");
   const db = admin.firestore();
   try {
-    const threeDaysAgo = admin.firestore.Timestamp.fromMillis(
+    const threeDaysAgo = Timestamp.fromMillis(
         Date.now() - (3 * 24 * 60 * 60 * 1000),
     );
 
@@ -1048,7 +978,7 @@ exports.syncFacultyOfficeInfo = onSchedule("every 7 days", async () => {
 exports.processPendingNotifications = onSchedule("every 5 minutes", async (event) => {
   console.log("Scheduled run: processing pending notifications");
   const db = admin.firestore();
-  const now = admin.firestore.Timestamp.fromMillis(Date.now());
+  const now = Timestamp.fromMillis(Date.now());
   try {
     const q = await db.collection("notifications")
         .where("status", "==", "pending")
@@ -1061,15 +991,9 @@ exports.processPendingNotifications = onSchedule("every 5 minutes", async (event
     }
     console.log(`Found ${q.size} pending notifications to process`);
     const sends = [];
-    // q.forEach(async (doc) => {
-    //   if (doc.data().eventData.recurrenceType && doc.data().eventData.recurrenceType !== "Never") {
-    //         sends.push(scheduleRecurringEventNotification(doc));
-    //   }
-    //   sends.push(sendNotificationDocNow(doc));
-    // });
     for (const doc of q.docs) {
       console.log(`Processing notification ${doc.id} with data`, doc.data());
-      if (doc.data().eventData?.recurrenceType && doc.data().eventData.recurrenceType !== "Never") {
+      if (hasRecurrence(doc.data().eventData?.recurrence)) {
         console.log(`Scheduling next occurrence for recurring event notification ${doc.id}`);
         sends.push(scheduleRecurringEventNotification(doc));
       }
@@ -1089,21 +1013,22 @@ exports.scheduleEventReminder = onDocumentCreated("events/{eventId}", async (eve
   const eventId = event.params.eventId;
   const startTime = eventData.startTime;
 
-  if (!startTime || !startTime.toMillis() || typeof startTime.toMillis !== "function") {
+  if (!startTime || typeof startTime.toMillis !== "function") {
     console.log(`Event ${eventId} has invalid startTime, skipping reminder`);
     return;
   }
 
   try {
-    const startMillis = startTime.toMillis();
-    const now = Date.now();
-
-    if (startMillis <= now + (60 * 60 * 1000)) {
-      console.log(`Event ${eventId} starts too soon or in past, skipping reminder`);
+    const reminderStart = getNextReminderOccurrence(
+        eventData.recurrence, startTime);
+    if (!reminderStart) {
+      console.log(
+          `Event ${eventId} has no occurrence at least one hour in the future`,
+      );
       return;
     }
 
-    const sendAtMillis = startMillis - (60 * 60 * 1000);
+    const sendAtMillis = reminderStart.getTime() - (60 * 60 * 1000);
 
     const eventType = eventData.eventType || "infoSession";
     const targetType = (eventType === "club") ? "clubEvent" : "infoSession";
@@ -1132,19 +1057,17 @@ exports.scheduleEventReminder = onDocumentCreated("events/{eventId}", async (eve
       targetId: eventId,
       title: `${eventName} starts in 1 hour`,
       message: `${eventName} at ${eventLocation}. ${eventDescription}`.trim(),
-      sendAt: admin.firestore.Timestamp.fromMillis(sendAtMillis),
+      sendAt: Timestamp.fromMillis(sendAtMillis),
       createdBy: "system",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
       status: "pending",
       eventData: {
         eventId: eventId,
         eventName: eventName,
         company: eventData.company || null,
-        startTime: startTime,
+        startTime: Timestamp.fromDate(reminderStart),
         location: eventLocation,
-        recurrenceType: eventData.recurrenceType || "Never",
-        recurrenceInterval: eventData.recurrenceInterval || null,
-        recurrenceEndDate: eventData.recurrenceEndDate || null,
+        recurrence: eventData.recurrence || null,
       },
     };
 
@@ -1219,7 +1142,7 @@ async function sendNotificationDocNow(docSnapshot) {
       status: "sent",
       sent,
       failed,
-      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      sentAt: FieldValue.serverTimestamp(),
     }, {merge: true});
     await pruneInvalidTokensMap(invalidTokenMap);
   } catch (err) {
@@ -1228,81 +1151,91 @@ async function sendNotificationDocNow(docSnapshot) {
   }
 }
 
-function computeNextOccurrence(ev, currentStart) {
-  const recurrenceType = (ev.recurrenceType || "").toString();
-  if (!recurrenceType || recurrenceType === "Never") return null;
+function recurrenceDate(value) {
+  const date = value && typeof value.toDate === "function" ?
+    value.toDate() :
+    value instanceof Date ? value :
+      typeof value === "string" ? new Date(value) : null;
+  return date && !Number.isNaN(date.getTime()) ? date : null;
+}
 
+function toRRuleDate(value) {
+  const date = recurrenceDate(value);
+  if (!date) return null;
 
-  // Interval (days)
-  if (recurrenceType === "Interval (days)") {
-    const intervalDays = parseInt(ev.recurrenceInterval) || 1;
-    const nextDate = new Date(currentStart);
-    nextDate.setDate(nextDate.getDate() + intervalDays);
-    return nextDate;
+  // rrule uses UTC components as floating calendar time; datetime uses a 1-based month.
+  return datetime(
+      date.getUTCFullYear(),
+      date.getUTCMonth() + 1,
+      date.getUTCDate(),
+      date.getUTCHours(),
+      date.getUTCMinutes(),
+      date.getUTCSeconds(),
+  );
+}
+
+function hasRecurrence(recurrence) {
+  return (typeof recurrence?.rrule === "string" && recurrence.rrule.trim().length > 0) ||
+    (Array.isArray(recurrence?.rdate) && recurrence.rdate.length > 0);
+}
+
+function buildRecurrenceSet(recurrence, seriesStart) {
+  const startDate = toRRuleDate(seriesStart);
+  let recurrenceSet = new RRuleSet();
+  const rule = recurrence?.rrule;
+
+  if (typeof rule === "string" && rule.trim()) {
+    const parsedRule = rrulestr(rule.trim(), {dtstart: startDate});
+    if (parsedRule instanceof RRuleSet) {
+      recurrenceSet = parsedRule;
+    } else {
+      recurrenceSet.rrule(parsedRule);
+    }
+  } else if (startDate) {
+    recurrenceSet.dtstart(startDate);
   }
 
-
-  // Weekly: either specific weekdays in recurrenceDays or weekly intervals
-  if (recurrenceType === "Weekly") {
-    const daysRaw = ev.recurrenceDays;
-    let days = null;
-    if (Array.isArray(daysRaw)) {
-      days = daysRaw.map((d) => parseInt(d)).filter((n) => !Number.isNaN(n));
-    }
-
-
-    if (days && days.length > 0) {
-      // Search up to 4 weeks ahead for the next matching weekday
-      let dt = new Date(currentStart.getTime() + 24 * 60 * 60 * 1000);
-      for (let i = 0; i < 28; i++) {
-        const w = dt.getDay(); // 0=Sun..6=Sat
-        if (days.includes(w)) return dt;
-        dt = new Date(dt.getTime() + 24 * 60 * 60 * 1000);
-      }
-      return null;
-    }
-
-
-    const weeks = parseInt(ev.recurrenceInterval) || 1;
-    return new Date(currentStart.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
+  for (const value of Array.isArray(recurrence?.rdate) ? recurrence.rdate : []) {
+    const date = toRRuleDate(value);
+    if (date) recurrenceSet.rdate(date);
+  }
+  for (const value of Array.isArray(recurrence?.exdate) ? recurrence.exdate : []) {
+    const date = toRRuleDate(value);
+    if (date) recurrenceSet.exdate(date);
   }
 
+  return recurrenceSet;
+}
 
-  // Monthly: advance by recurrenceInterval months and try to keep the same day-of-month
-  if (recurrenceType === "Monthly") {
-    const intervalMonths = parseInt(ev.recurrenceInterval) || 1;
-    const dayOfMonth = parseInt(ev.recurrenceInterval) || currentStart.getDate();
+function computeNextOccurrence(recurrenceSet, currentStart) {
+  const after = toRRuleDate(currentStart);
+  return after ? recurrenceSet.after(after) : null;
+}
 
+function getNextReminderOccurrence(recurrence, seriesStart, now = new Date()) {
+  const start = recurrenceDate(seriesStart);
+  if (!start) return null;
 
-    let dt = new Date(currentStart.getTime());
-    dt.setMonth(dt.getMonth() + intervalMonths);
-    dt.setDate(dayOfMonth);
-
-
-    // If result is not after currentStart, advance again
-    if (dt <= currentStart) {
-      dt = new Date(currentStart.getTime());
-      dt.setMonth(dt.getMonth() + intervalMonths);
-      dt.setDate(dayOfMonth);
-    }
-
-
-    // If dayOfMonth doesn't exist in that month (Date rolls), try the next several months
-    if (dt.getDate() !== dayOfMonth) {
-      for (let i = 0; i < 12; i++) {
-        dt.setMonth(dt.getMonth() + 1);
-        dt.setDate(dayOfMonth);
-        if (dt.getDate() === dayOfMonth) return dt;
-      }
-      return null;
-    }
-
-
-    return dt;
+  const earliestReminderStart = new Date(now.getTime() + (60 * 60 * 1000));
+  if (!hasRecurrence(recurrence)) {
+    return start.getTime() > earliestReminderStart.getTime() ? start : null;
   }
 
+  const recurrenceSet = buildRecurrenceSet(recurrence, start);
+  const firstOccurrence = recurrenceSet.after(toRRuleDate(start), true);
+  if (firstOccurrence &&
+      firstOccurrence.getTime() > earliestReminderStart.getTime()) {
+    return firstOccurrence;
+  }
 
-  return null;
+  return recurrenceSet.after(toRRuleDate(earliestReminderStart), true);
+}
+
+// removes the dtstart parameter for google calendar insert (dtstart is not needed there)
+function googleCalendarRecurrence(recurrence, seriesStart) {
+  if (!hasRecurrence(recurrence)) return [];
+  return buildRecurrenceSet(recurrence, seriesStart).valueOf()
+      .filter((line) => !line.startsWith("DTSTART"));
 }
 
 
@@ -1311,41 +1244,27 @@ async function scheduleRecurringEventNotification(notificationDoc) {
   // Pre-schedule the next occurrence (idempotent)
   const notificationData = notificationDoc.data() || {};
   const eventData = notificationData.eventData || {};
-  if (!eventData.recurrenceInterval) return;
-  console.log("Interval for next occurrence:", eventData.recurrenceInterval);
 
-
-  const currentStartTs = eventData.startTime;
-  let currentStart = null;
-  if (currentStartTs) {
-    currentStart = currentStartTs.toDate ? currentStartTs.toDate() : new Date(currentStartTs);
-    // currentStart = currentStartTs.toMillis();
-  }
+  const currentStart = recurrenceDate(eventData.startTime);
   if (!currentStart) return;
   console.log("Current event start time:", currentStart.toISOString());
 
-
-  const eventId = eventData.eventId || notificationData.targetId || notificationData.targetId;
+  const eventId = eventData.eventId || notificationData.targetId;
   if (!eventId) return;
   console.log("Event ID for recurrence:", eventId);
-
 
   try {
     const eventSnap = await admin.firestore().collection("events").doc(eventId).get();
     if (!eventSnap.exists) return;
     console.log("Fetched event data for recurrence scheduling");
     const ev = eventSnap.data() || {};
+    if (!hasRecurrence(ev.recurrence)) return;
+    const recurrenceSet = buildRecurrenceSet(ev.recurrence, ev.startTime);
 
+    const nextStart = computeNextOccurrence(recurrenceSet, currentStart);
 
-    const nextStart = computeNextOccurrence(ev, currentStart);
     if (!nextStart) return;
     console.log("Next occurrence start time:", nextStart.toISOString());
-
-
-    const recurrenceEndTs = ev.recurrenceEndDate;
-    if (recurrenceEndTs && recurrenceEndTs.toMillis() && nextStart.getTime() > recurrenceEndTs.toMillis()) return;
-    console.log("Next occurrence is within recurrence end date");
-
 
     const sendAt = new Date(nextStart.getTime() - (60 * 60 * 1000));
     if (sendAt.getTime() <= Date.now()) return;
@@ -1360,7 +1279,7 @@ async function scheduleRecurringEventNotification(notificationDoc) {
       .where("targetId", "==", eventId)
       .where("createdBy", "==", "system")
       .where("status", "==", "pending")
-      .where("sendAt", "==", admin.firestore.Timestamp.fromDate(sendAt))
+      .where("sendAt", "==", Timestamp.fromDate(sendAt))
       .limit(1)
       .get();
 
@@ -1376,19 +1295,17 @@ async function scheduleRecurringEventNotification(notificationDoc) {
       targetId: eventId,
       title: `${eventName} starts in 1 hour`,
       message: `${eventName} at ${eventLocation}. ${eventDescription}`.trim(),
-      sendAt: admin.firestore.Timestamp.fromDate(sendAt),
+      sendAt: Timestamp.fromDate(sendAt),
       createdBy: "system",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
       status: "pending",
       eventData: {
         eventId: eventId,
         eventName: eventName,
         company: ev.company || null,
-        startTime: admin.firestore.Timestamp.fromDate(nextStart),
+        startTime: Timestamp.fromDate(nextStart),
         location: eventLocation,
-        recurrenceType: ev.recurrenceType || "Never",
-        recurrenceInterval: ev.recurrenceInterval || null,
-        recurrenceEndDate: ev.recurrenceEndDate || null,
+        recurrence: ev.recurrence,
       },
     };
 
@@ -1422,9 +1339,9 @@ exports.sendBroadcastNotification = onCall(async (request) => {
     targetType: "broadcast",
     title,
     message,
-    sendAt: sendAt || admin.firestore.FieldValue.serverTimestamp(),
+    sendAt: sendAt || FieldValue.serverTimestamp(),
     createdBy: callerUid,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
   });
 
   return {success: true, notificationId: docRef.id};
@@ -1477,7 +1394,7 @@ exports.backfillNotificationIndexes = onCall(async (request) => {
       batch.set(memberRef, {
         uid,
         name: userName,
-        joinedAt: joinedData.joinedAt || admin.firestore.FieldValue.serverTimestamp(),
+        joinedAt: joinedData.joinedAt || FieldValue.serverTimestamp(),
       }, {merge: true});
       joinedClubsBackfilled++;
       ops++;
@@ -1491,7 +1408,7 @@ exports.backfillNotificationIndexes = onCall(async (request) => {
       const attendRef = db.collection("events").doc(eventId).collection("attending").doc(uid);
       batch.set(attendRef, {
         uid,
-        checkedInAt: checkedData.checkedInAt || admin.firestore.FieldValue.serverTimestamp(),
+        checkedInAt: checkedData.checkedInAt || FieldValue.serverTimestamp(),
       }, {merge: true});
       checkedInBackfilled++;
       ops++;
@@ -1562,16 +1479,17 @@ exports.rebuildEventNotifications = onCall(async (request) => {
         continue;
       }
 
-      const startMillis = startTime.toMillis();
-
-      // Skip events that have already passed or start too soon
-      if (startMillis <= now + (60 * 60 * 1000)) {
-        console.log(`Event ${eventId} starts too soon or in past, skipping`);
+      const reminderStart = getNextReminderOccurrence(
+          eventData.recurrence, startTime, new Date(now));
+      if (!reminderStart) {
+        console.log(
+            `Event ${eventId} has no occurrence at least one hour in the future`,
+        );
         skippedCount++;
         continue;
       }
 
-      const sendAtMillis = startMillis - (60 * 60 * 1000);
+      const sendAtMillis = reminderStart.getTime() - (60 * 60 * 1000);
       const eventType = eventData.eventType || "infoSession";
       const targetType = (eventType === "club") ? "clubEvent" : "infoSession";
 
@@ -1584,18 +1502,17 @@ exports.rebuildEventNotifications = onCall(async (request) => {
         targetId: eventId,
         title: `${eventName} starts in 1 hour`,
         message: `${eventName} at ${eventLocation}. ${eventDescription}`.trim(),
-        sendAt: admin.firestore.Timestamp.fromMillis(sendAtMillis),
+        sendAt: Timestamp.fromMillis(sendAtMillis),
         createdBy: "system",
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
         status: "pending",
         eventData: {
           eventId: eventId,
           eventName: eventName,
           company: eventData.company || null,
-          startTime: startTime,
+          startTime: Timestamp.fromDate(reminderStart),
           location: eventLocation,
-          recurrenceInterval: eventData.recurrenceInterval || null,
-          recurrenceEndDate: eventData.recurrenceEndDate || null,
+          recurrence: eventData.recurrence || null,
         },
       };
 
@@ -1730,7 +1647,7 @@ exports.setEventUpdatedAt = onDocumentWritten("events/{eventId}", async (event) 
   // A meaningful field changed, update the timestamp
   try {
     await afterSnap.ref.update({
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     });
     console.log(`Set updatedAt for event ${event.params.eventId}`);
   } catch (err) {
@@ -1740,7 +1657,7 @@ exports.setEventUpdatedAt = onDocumentWritten("events/{eventId}", async (event) 
 
     // NEW: Check if notification-relevant fields changed
     // status
-  const relevantFields = ["eventName", "company", "mainLocation", "description", "startTime", "eventLocation", "status"];
+  const relevantFields = ["eventName", "company", "mainLocation", "description", "startTime", "eventLocation", "status", "recurrence"];
   const fieldsChanged = relevantFields.some((field) =>
     JSON.stringify(beforeData[field]) !== JSON.stringify(afterData[field]),
   );
@@ -1755,11 +1672,7 @@ exports.setEventUpdatedAt = onDocumentWritten("events/{eventId}", async (event) 
   }
 });
 
-// Helper function to update notifications for a specific event
-// NOTE: This function DOES NOT work with recurring event notifications
-// The notifcation's sendAt parameter will be calculated based on the main startTime
-// this is innaccurate, and should be fixed in the future
-// low priority for now though, since it is not currently possible for users to update recurring events at all
+// Update pending notifications using the current event recurrence.
 async function updateEventNotifications(eventId, eventData) {
   console.log(`Updating notifications for event ${eventId}`);
   const db = admin.firestore();
@@ -1781,62 +1694,38 @@ async function updateEventNotifications(eventId, eventData) {
   const eventName = eventData.eventName || eventData.company || "Upcoming Event";
   const eventLocation = eventData.mainLocation || eventData.eventLocation || "No Listed Location";
   const eventDescription = eventData.description || "";
-  const startTime = eventData.startTime;
-
-  // Calculate new sendAt if startTime changed
-  let sendAtMillis = null;
-  if (startTime && startTime.toMillis) {
-    sendAtMillis = startTime.toMillis() - (60 * 60 * 1000); // 1 hour before
-  }
+  const reminderStart = getNextReminderOccurrence(
+      eventData.recurrence, eventData.startTime);
 
   const batch = db.batch();
   let updateCount = 0;
 
   for (const doc of notificationsSnap.docs) {
     console.log(`Updating notification ${doc.id} for event ${eventId}`);
-    // const notificationData = doc.data();
+    if (!reminderStart) {
+      batch.delete(doc.ref);
+      updateCount++;
+      continue;
+    }
+
     const updates = {};
 
     // Update title and message
     updates.title = `${eventName} starts in 1 hour`;
     updates.message = `${eventName} at ${eventLocation}. ${eventDescription}`.trim();
 
-    // Update sendAt if startTime changed and it's still in the future
-    if (sendAtMillis && sendAtMillis > Date.now()) {
-      updates.sendAt = admin.firestore.Timestamp.fromMillis(sendAtMillis);
-    }
-
-      // const notification = {
-      //   targetType: targetType,
-      //   targetId: eventId,
-      //   title: `${eventName} starts in 1 hour`,
-      //   message: `${eventName} at ${eventLocation}. ${eventDescription}`.trim(),
-      //   sendAt: admin.firestore.Timestamp.fromMillis(sendAtMillis),
-      //   createdBy: "system",
-      //   createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      //   status: "pending",
-      //   eventData: {
-      //     eventId: eventId,
-      //     eventName: eventName,
-      //     company: eventData.company || null,
-      //     startTime: startTime,
-      //     location: eventLocation,
-      //     recurrenceType: eventData.recurrenceType || "Never",
-      //     recurrenceInterval: eventData.recurrenceInterval || null,
-      //     recurrenceEndDate: eventData.recurrenceEndDate || null,
-      //   },
-      // };
+    updates.sendAt = Timestamp.fromDate(
+        new Date(reminderStart.getTime() - (60 * 60 * 1000)),
+    );
 
     // Update embedded eventData
     updates.eventData = {
       eventId: eventId,
       eventName: eventName,
       company: eventData.company || null,
-      startTime: startTime,
+      startTime: Timestamp.fromDate(reminderStart),
       location: eventLocation,
-      recurrenceType: eventData.recurrenceType || "Never",
-      recurrenceInterval: eventData.recurrenceInterval || null,
-      recurrenceEndDate: eventData.recurrenceEndDate || null,
+      recurrence: eventData.recurrence || null,
     };
 
 
@@ -1964,7 +1853,7 @@ exports.deleteClubEvent = onCall(async (request) => {
       try {
         const clubRef = db.collection("clubs").doc(clubId);
         await clubRef.update({
-          events: admin.firestore.FieldValue.arrayRemove(eventRef),
+          events: FieldValue.arrayRemove(eventRef),
         });
         console.log(`Removed event ${eventId} from club ${clubId} events array`);
       } catch (err) {
@@ -1990,7 +1879,7 @@ exports.autoDeleteOldClubEvents = onSchedule("every day 02:00", async () => {
   const db = admin.firestore();
 
   try {
-    const sevenDaysAgo = admin.firestore.Timestamp.fromMillis(
+    const sevenDaysAgo = Timestamp.fromMillis(
       Date.now() - (7 * 24 * 60 * 60 * 1000),
     );
 
@@ -2015,13 +1904,16 @@ exports.autoDeleteOldClubEvents = onSchedule("every day 02:00", async () => {
         const eventData = eventDoc.data();
         const clubId = eventData.clubId;
 
-        // Skip recurring events that may have future occurrences
-        if (eventData.recurrenceType &&
-          eventData.recurrenceType !== "Never" &&
-          eventData.recurrenceEndDate &&
-          eventData.recurrenceEndDate.toMillis &&
-          eventData.recurrenceEndDate.toMillis() > sevenDaysAgo.toMillis()) {
-          continue;
+        // Keep old series documents while they still have future occurrences.
+        if (hasRecurrence(eventData.recurrence)) {
+          const recurrenceSet =
+            buildRecurrenceSet(eventData.recurrence, eventData.startTime);
+          if (computeNextOccurrence(recurrenceSet, new Date())) {
+            console.log(
+                `Skipping old recurring event ${eventId} with future occurrences`,
+            );
+            continue;
+          }
         }
         // Delete the event
         await eventDoc.ref.delete();
@@ -2067,7 +1959,7 @@ exports.autoDeleteOldClubEvents = onSchedule("every day 02:00", async () => {
           try {
             const clubRef = db.collection("clubs").doc(clubId);
             await clubRef.update({
-              events: admin.firestore.FieldValue.arrayRemove(eventDoc.ref),
+              events: FieldValue.arrayRemove(eventDoc.ref),
             });
           } catch (err) {
             console.warn(`Could not remove event ${eventId} from club ${clubId}: ${err.message}`);
@@ -2256,6 +2148,10 @@ async function updateEventRowInSheet({row, sheetName, eventId, eventName, eventD
 }
 
 exports.addEventToSheet = onDocumentCreated("events/{eventId}", async (event) => {
+  if (process.env.FUNCTIONS_EMULATOR === "true") {
+    console.log("The function 'addEventToSheet' is not designed for emulation. Exiting function");
+    return;
+  }
   const eventId = event.params.eventId;
   const eventData = event.data.data();
 
@@ -2274,6 +2170,10 @@ exports.addEventToSheet = onDocumentCreated("events/{eventId}", async (event) =>
 
 exports.markForUpdateInSheet = onDocumentWritten("events/{eventId}/attending/{userId}",
   async (event) => {
+    if (process.env.FUNCTIONS_EMULATOR === "true") {
+      console.log("The function 'markForUpdateInSheet' is not designed for emulation. Exiting function");
+      return;
+    }
     const db = admin.firestore();
     const eventId = event.params.eventId;
     const eventSnap = await db.collection("events").doc(eventId).get();
@@ -2359,3 +2259,56 @@ exports.updateEventInSheet = onSchedule("every 24 hours", async () => {
 });
 
 
+exports.addClubEventToGoogleCalendar = onDocumentCreated("events/{eventId}", async (event) => {
+    // when emulated, events go to a test calendar and not the live calendar
+    const isEmulated = process.env.FUNCTIONS_EMULATOR === "true";
+    const calendarId = isEmulated ? process.env.TEST_CALENDAR : process.env.GOOGLE_CALENDAR;
+
+
+    const eventData = event.data.data();
+    const eventId = event.params.eventId; // might need this to prevent duplicates
+
+    if (!eventData.eventType || eventData.eventType !== "club") return;
+
+    const clubName = (eventData.clubName || "").trim();
+    const eventName = (eventData.eventName || "").trim();
+    const displayName = clubName && eventName ? `${clubName} - ${eventName}` : eventName || clubName || "Untitled Event";
+
+    if (!eventData.startTime?.toDate || !eventData.endTime?.toDate) {
+      console.error("Event missing valid startTime/endTime:", event.params.eventId);
+      return;
+    }
+
+    const calendarEventId = await firebaseIdToCalenderId(eventId);
+    const recurrenceLines = googleCalendarRecurrence(eventData.recurrence, eventData.startTime);
+
+    try {
+      const TIME_ZONE = "America/Los_Angeles";
+
+      await calendar.events.insert({
+        calendarId: calendarId,
+        requestBody: {
+          id: calendarEventId,
+          summary: displayName,
+          start: {
+            dateTime: eventData.startTime.toDate().toISOString(),
+            timeZone: TIME_ZONE,
+          },
+          end: {
+            dateTime: eventData.endTime.toDate().toISOString(),
+            timeZone: TIME_ZONE,
+          },
+          location: eventData.eventLocation,
+          ...(recurrenceLines.length > 0 ? {recurrence: recurrenceLines} : {}),
+        },
+      });
+      console.log("Successfully added event to google calender");
+    } catch (error) {
+      console.error("Error adding club event to google calender:", error.message);
+    }
+});
+
+
+async function firebaseIdToCalenderId(id) {
+    return crypto.createHash("sha1").update(id).digest("hex");
+}

@@ -39,6 +39,7 @@ class CalEvent {
   String? companyId;
   DateTime? updatedAt;
   InfoSessionData? isd;
+  Map<String, dynamic>? recurrence;
   String? seriesId; // Parent series ID if this is a recurring instance
   bool isInstance; // True if this is a generated occurrence instance
 
@@ -71,6 +72,7 @@ class CalEvent {
     this.companyId,
     this.updatedAt,
     this.isd,
+    this.recurrence,
     this.seriesId,
     this.sessionType,
     this.presenters,
@@ -115,8 +117,10 @@ class CalEvent {
 
       final updatedAt =
           data["updatedAt"] is Timestamp ? data["updatedAt"].toDate() : null;
-
-      // final recurrence = data["recurrence"] ? null
+      final rawRecurrence = data["recurrence"];
+      final recurrence = rawRecurrence is Map
+          ? Map<String, dynamic>.from(rawRecurrence)
+          : null;
 
       return CalEvent(
         id: doc.id,
@@ -130,6 +134,7 @@ class CalEvent {
         companyId: null,
         updatedAt: updatedAt,
         isd: null,
+        recurrence: recurrence,
         seriesId: data["seriesId"],
         isInstance: data["isInstance"] == true,
       );
@@ -781,7 +786,8 @@ class _InfoSessionPopUpState extends State<InfoSessionPopUp> {
                                   children: [
                                     TextButton.icon(
                                       icon: const Icon(Icons.link, size: 18),
-                                      label: const Text('Schedule an interview'),
+                                      label:
+                                          const Text('Schedule an interview'),
                                       onPressed: () async {
                                         final link = widget
                                             .infoSession.isd!.interviewLink!;

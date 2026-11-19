@@ -38,7 +38,7 @@ class AppState extends ChangeNotifier {
         calendarEvents = calendarEvents ?? <CalEvent>{} {
     _loadCheckIns();
     _loadFavoriteCompanies();
-    _loadJoinedClubs();
+    loadJoinedClubs();
   }
 
   Future<void> _loadCheckIns() async {
@@ -132,7 +132,7 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> _loadJoinedClubs() async {
+  Future<void> loadJoinedClubs() async {
     if (_isLoadingClubs) return;
     _isLoadingClubs = true;
 

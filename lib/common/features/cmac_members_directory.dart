@@ -232,7 +232,7 @@ class _CMACMemberDirectoryState extends State<CMACMemberDirectory> {
                             .toString()
                             .toLowerCase()
                             .contains(_searchQuery) ||
-                        (member.indivualName
+                        (member.individualName
                                 ?.toLowerCase()
                                 .contains(_searchQuery) ??
                             false);
@@ -308,12 +308,11 @@ class _CMACMemberDirectoryState extends State<CMACMemberDirectory> {
           child: _CMACMemberCard(
             member: member,
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => CMACMemberDetailsPage(
-                    member: member,
-                    onClose: () => Navigator.of(context).pop(),
-                  ),
+              showDialog<void>(
+                context: context,
+                builder: (dialogContext) => CMACMemberDetailsPage(
+                  member: member,
+                  onClose: () => Navigator.of(dialogContext).pop(),
                 ),
               );
             },
@@ -332,56 +331,77 @@ class _CMACMemberCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final founderName = member.indivualName?.trim();
+    final founderName = member.individualName?.trim();
+    final hasFounder = founderName != null && founderName.isNotEmpty;
+
     return Material(
       color: Colors.white,
-      elevation: 3,
-      shadowColor: Colors.black.withValues(alpha: 0.2),
+      elevation: 4,
+      shadowColor: AppColors.calPolyGreen.withValues(alpha: 0.18),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: AppColors.lightGold.withValues(alpha: 0.7),
+          width: 1,
+        ),
+      ),
       child: SizedBox(
-        height: founderName != null && founderName.isNotEmpty ? 196 : 176,
+        height: hasFounder ? 232 : 208,
         child: InkWell(
+          borderRadius: BorderRadius.circular(12),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
             child: Column(
               children: [
-                if (founderName != null && founderName.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: AutoSizeText(
-                      founderName,
-                      maxLines: 1,
-                      minFontSize: 10,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppColors.calPolyGreen,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
+                if (founderName != null && founderName.isNotEmpty) ...[
+                  const Text(
+                    'FOUNDER',
+                    style: TextStyle(
+                      color: AppColors.darkGoldText,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.1,
                     ),
                   ),
+                  const SizedBox(height: 1),
+                  AutoSizeText(
+                    founderName,
+                    maxLines: 1,
+                    minFontSize: 10,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.calPolyGreen,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
                 Expanded(
                   child: Center(
                     child: ResilientImage(
                       imageUrl: member.logo,
                       placeholderAsset: 'assets/icons/default_company.png',
                       fit: BoxFit.contain,
-                      height: 126,
+                      height: 118,
                     ),
                   ),
                 ),
-                const SizedBox(height: 5),
-                AutoSizeText(
-                  member.name,
-                  maxLines: 1,
-                  minFontSize: 10,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.calPolyGreen,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: AutoSizeText(
+                    member.name,
+                    maxLines: 2,
+                    minFontSize: 11,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.calPolyGreen,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      height: 1.1,
+                    ),
                   ),
                 ),
               ],
@@ -392,6 +412,82 @@ class _CMACMemberCard extends StatelessWidget {
     );
   }
 }
+
+//  child: ListTile(
+//           contentPadding:
+//               const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+//           leading: Container(
+//             width: screenWidth * 0.11,
+//             height: screenWidth * 0.11,
+//             decoration: const BoxDecoration(
+//               shape: BoxShape.circle,
+//               border: Border.fromBorderSide(
+//                 BorderSide(color: Colors.black, width: 0.5),
+//               ),
+//             ),
+//             child: Padding(
+//               padding: const EdgeInsets.all(1),
+//               child: ResilientCircleImage(
+//                 imageUrl: member.logo,
+//                 placeholderAsset: 'assets/icons/default_company.png',
+//                 size: screenWidth * 0.11,
+//               ),
+//             ),
+//           ),
+//           title: AutoSizeText(
+//             member.name,
+//             style: const TextStyle(
+//               color: Colors.black,
+//               fontSize: 16,
+//               fontWeight: FontWeight.w600,
+//             ),
+//             minFontSize: 12,
+//             maxLines: 1,
+//             overflow: TextOverflow.ellipsis,
+//           ),
+//           subtitle: Column(
+//             crossAxisAlignment: CrossAxisAlignment.start,
+//             children: [
+//               Row(
+//                 children: [
+//                   const Icon(
+//                     Icons.star,
+//                     color: AppColors.lightGold,
+//                     size: 16,
+//                   ),
+//                   const SizedBox(width: 2),
+//                   Flexible(
+//                     child: AutoSizeText(
+//                       member.level ?? 'No Level',
+//                       style: const TextStyle(
+//                         color: AppColors.lightGold,
+//                         fontSize: 14,
+//                         fontWeight: FontWeight.w600,
+//                       ),
+//                       minFontSize: 8,
+//                       maxLines: 1,
+//                       overflow: TextOverflow.ellipsis,
+//                     ),
+//                   ),
+//                 ],
+//               ),
+//               if (founderName != null && founderName.isNotEmpty)
+//                 Padding(
+//                   padding: const EdgeInsets.only(top: 2),
+//                   child: AutoSizeText(
+//                     'Founder: $founderName',
+//                     style: const TextStyle(
+//                       color: AppColors.darkGoldText,
+//                       fontSize: 13,
+//                     ),
+//                     minFontSize: 8,
+//                     maxLines: 1,
+//                     overflow: TextOverflow.ellipsis,
+//                   ),
+//                 ),
+//             ],
+//           ),
+//         ),
 
 class CMACMemberDetailsPage extends StatelessWidget {
   final Member member;
@@ -453,165 +549,190 @@ class CMACMemberDetailsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final websiteUri = _websiteUri(member.website);
-    final founderName = member.indivualName?.trim();
+    final founderName = member.individualName?.trim();
+    final screenHeight = MediaQuery.sizeOf(context).height;
 
     return Scaffold(
       backgroundColor: AppColors.calPolyGreen,
-      appBar: AppBar(
-        backgroundColor: AppColors.calPolyGreen,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          tooltip: 'Back to CMAC member directory',
-          onPressed: onClose,
-          icon: const Icon(Icons.arrow_back),
-        ),
-        title: const Text(
-          'CMAC Member',
-          style: TextStyle(
-            fontFamily: AppFonts.sansProSemiBold,
-            color: AppColors.welcomeLightYellow,
-          ),
-        ),
-      ),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
-            child: Consumer<EventProvider>(
-              builder: (context, eventProvider, child) {
-                final sessions = eventProvider.isLoaded
-                    ? _upcomingInfoSessions(eventProvider.allEvents)
-                    : <CalEvent>[];
-                return ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: ListView(
+          children: [
+            Center(
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.zero,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Container(
-                      color: AppColors.calPolyGreen,
-                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-                      child: Column(
+                    Padding(
+                      padding: EdgeInsets.all(screenHeight * 0.01),
+                      child: Row(
                         children: [
-                          if (founderName != null && founderName.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Text(
-                                founderName,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: AppColors.welcomeLightYellow,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                          IconButton(
+                            tooltip: 'Close CMAC member details',
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              color: Colors.black,
                             ),
-                          SizedBox(
-                            height: 132,
-                            child: ResilientImage(
-                              imageUrl: member.logo,
-                              placeholderAsset:
-                                  'assets/icons/default_company.png',
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          AutoSizeText(
-                            member.name,
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            minFontSize: 17,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            member.level ?? '',
-                            style: const TextStyle(
-                              color: AppColors.welcomeLightYellow,
-                              fontSize: 14,
-                            ),
+                            onPressed: onClose,
                           ),
                         ],
                       ),
                     ),
-                    if (websiteUri != null)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(0, 16, 0, 4),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () => _openWebsite(context, websiteUri),
-                            icon: const Icon(Icons.open_in_new),
-                            label: const Text('Visit company website'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.welcomeLightYellow,
-                              side: const BorderSide(
-                                  color: AppColors.welcomeLightYellow),
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.zero,
+                    Padding(
+                      padding: EdgeInsets.all(screenHeight * 0.01),
+                      child: ResilientImage(
+                        imageUrl: member.logo,
+                        placeholderAsset: 'assets/icons/default_company.png',
+                        height: screenHeight * 0.12,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          AutoSizeText(
+                            member.name,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                            textAlign: TextAlign.center,
+                            minFontSize: 12,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'CMAC Level: ${member.level ?? 'No Level'}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.darkGoldText,
+                            ),
+                          ),
+                          if (founderName != null &&
+                              founderName.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Founder: $founderName',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColors.darkGoldText,
                               ),
                             ),
+                          ],
+                          if (websiteUri != null) ...[
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () => _openWebsite(context, websiteUri),
+                              child: Text(
+                                member.website!.trim(),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.blue,
+                                  decoration: TextDecoration.underline,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Container(
+              color: AppColors.calPolyGreen,
+              padding: const EdgeInsets.all(16),
+              child: Consumer<EventProvider>(
+                builder: (context, eventProvider, child) {
+                  final sessions = eventProvider.isLoaded
+                      ? _upcomingInfoSessions(eventProvider.allEvents)
+                      : <CalEvent>[];
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          'Upcoming Info Sessions',
+                          style: TextStyle(
+                            color: AppColors.lightGold,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w400,
+                            fontFamily: AppFonts.sansProSemiBold,
                           ),
                         ),
                       ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Upcoming Info Sessions',
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: AppColors.welcomeLightYellow,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                        ),
-                      ),
-                    ),
-                    if (!eventProvider.isLoaded)
-                      const Padding(
+                      const Divider(color: Colors.white, thickness: 1.1),
+                      if (!eventProvider.isLoaded)
+                        const Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
                           child: Center(
                             child: CircularProgressIndicator(
                               color: AppColors.welcomeLightYellow,
                             ),
-                          ))
-                    else if (sessions.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Text(
-                          'No upcoming info sessions scheduled.',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                      )
-                    else
-                      ...sessions.map(
-                        (session) => _CMACInfoSessionCard(
-                          session: session,
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => InfoSessionPopUp(
-                                  infoSession: session,
-                                  onClose: () => Navigator.of(context).pop(),
+                          ),
+                        )
+                      else if (sessions.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            'No upcoming info sessions scheduled.',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        )
+                      else
+                        ...sessions.map(
+                          (session) => _CMACInfoSessionCard(
+                            session: session,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => InfoSessionPopUp(
+                                    infoSession: session,
+                                    onClose: () => Navigator.of(context).pop(),
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                  ],
-                );
-              },
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 }
+
+// Container(
+//           decoration: BoxDecoration(
+//             color: Colors.white,
+//             border: Border.all(color: Colors.transparent),
+//             borderRadius: BorderRadius.zero,
+//           ),
+//           child: Padding(
+//             padding: EdgeInsets.symmetric(
+//                 vertical: screenHeight * .005, horizontal: screenWidth * 0.01),
+//             child: Center(
+//               child: memberLogoImage(member.logo, context),
+//             ),
+//           ),
+//         ),
 
 class _CMACInfoSessionCard extends StatelessWidget {
   final CalEvent session;

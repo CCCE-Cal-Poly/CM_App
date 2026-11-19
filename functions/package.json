@@ -8,7 +8,8 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "asc:sync": "node scripts/syncAscSchedule.js"
+    "asc:sync": "node scripts/syncAscSchedule.js",
+    "seed:emulator": "node scripts/seedEmulator.js"
   },
   "engines": {
     "node": "22"
@@ -21,7 +22,8 @@
     "firebase-admin": "^13.6.0",
     "firebase-functions": "^7.0.5",
     "googleapis": "^173.0.0",
-    "nodemailer": "^6.9.7"
+    "nodemailer": "^6.9.7",
+    "rrule": "^2.8.1"
   },
   "devDependencies": {
     "eslint": "^8.57.1",

@@ -48,10 +48,10 @@ class NotificationService {
     final notif = message.notification;
     if (notif != null && !_shouldUseSystemForegroundPresentationOnApple) {
       await flutterLocalNotificationsPlugin.show(
-        notif.hashCode,
-        notif.title,
-        notif.body,
-        NotificationDetails(
+        id: notif.hashCode,
+        title: notif.title,
+        body: notif.body,
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _androidChannel.id,
             _androidChannel.name,
@@ -97,7 +97,7 @@ class NotificationService {
       final initSettings =
           InitializationSettings(android: androidInit, iOS: iosInit);
 
-      await flutterLocalNotificationsPlugin.initialize(initSettings,
+      await flutterLocalNotificationsPlugin.initialize(settings: initSettings,
           onDidReceiveNotificationResponse: (NotificationResponse response) {
         if (kDebugMode)
           ErrorLogger.logInfo('NotificationService',
@@ -179,10 +179,10 @@ class NotificationService {
           final notif = message.notification;
           if (notif != null && !_shouldUseSystemForegroundPresentationOnApple) {
             await flutterLocalNotificationsPlugin.show(
-              notif.hashCode,
-              notif.title,
-              notif.body,
-              NotificationDetails(
+              id: notif.hashCode,
+              title: notif.title,
+              body: notif.body,
+              notificationDetails: NotificationDetails(
                 android: AndroidNotificationDetails(
                   _androidChannel.id,
                   _androidChannel.name,

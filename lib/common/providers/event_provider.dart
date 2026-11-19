@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ccce_application/common/collections/calevent.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ccce_application/services/error_logger.dart';
+import 'package:rrule/rrule.dart';
 import 'dart:async';
 
 class EventProvider extends ChangeNotifier {
@@ -22,6 +23,7 @@ class EventProvider extends ChangeNotifier {
   Future<void> _initializeAsync() async {
     await Future.delayed(const Duration(milliseconds: 50));
     fetchAllEvents();
+    startRealtimeListening();
   }
 
   List<CalEvent> getEventsByType(String type) =>
@@ -35,10 +37,8 @@ class EventProvider extends ChangeNotifier {
     final Map<String, String?> logosById = {};
 
     for (var company in companies) {
-      if (company.id != null && company.id.isNotEmpty)
-        logosById[company.id] = company.logo;
-      if (company.name != null && company.name.isNotEmpty)
-        logosByName[company.name.toLowerCase().trim()] = company.logo;
+      if (company.id != null && company.id.isNotEmpty) logosById[company.id] = company.logo;
+      if (company.name != null && company.name.isNotEmpty) logosByName[company.name.toLowerCase().trim()] = company.logo;
     }
 
     int linkedCount = 0;
@@ -90,22 +90,17 @@ class EventProvider extends ChangeNotifier {
                 'Loaded ${cacheSnapshot.docs.length} events from cache (instant)');
             _allEvents.clear();
 
-
             final now = DateTime.now();
             final windowStart = now.subtract(const Duration(days: 1));
             final windowEnd = now.add(const Duration(days: 90));
 
-            final List<CalEvent> expanded = [];
-
             for (final doc in cacheSnapshot.docs) {
-              final data = doc.data() as Map<String, dynamic>;
-              final recurrenceType = data['recurrenceType'];
-              
-              if (recurrenceType != null && recurrenceType != 'Never') {
-                _allEvents.addAll(
-                  _generateInstancesFromSeries(doc, windowStart, windowEnd, {})
-                );
-                ErrorLogger.logInfo('EventProvider','Expanded cached series ${doc.id} into instances');
+              final data = doc.data();
+              if (_hasRecurrence(data)) {
+                _allEvents.addAll(_generateInstancesFromSeries(
+                    doc, windowStart, windowEnd));
+                ErrorLogger.logInfo('EventProvider',
+                    'Expanded cached series ${doc.id} into instances');
               } else {
                 try {
                   final event = CalEvent.fromSnapshot(doc);
@@ -148,31 +143,21 @@ class EventProvider extends ChangeNotifier {
         return status != 'deleted';
       }).toList();
 
-      // for (final doc in eventDocs) {
-      //   try {
-      //     updatedEvents.add(CalEvent.fromSnapshot(doc));
-      //   } catch (e) {
-      //     ErrorLogger.logError(
-      //         'EventProvider', 'Failed to parse non-recurring event ${doc.id}',
-      //         error: e);
-      //   }
-      // }
 
       final nonRecurringDocs = eventDocs.where((doc) {
         final data = doc.data() as Map<String, dynamic>;
-        return data['recurrenceType'] == null || data['recurrenceType'] == 'Never';
+        return !_hasRecurrence(data);
       }).toList();
-      ErrorLogger.logInfo('EventProvider', 'Found ${nonRecurringDocs.length} non-recurring events to process for sync');
+      ErrorLogger.logInfo('EventProvider',
+          'Found ${nonRecurringDocs.length} non-recurring events to process for sync');
 
       final seriesDocs = eventDocs.where((doc) {
         final data = doc.data() as Map<String, dynamic>;
-        final recurrenceType = data['recurrenceType'] as String?;
-        return recurrenceType != null && recurrenceType != 'Never';
+        return _hasRecurrence(data);
       }).toList();
-      ErrorLogger.logInfo('EventProvider', 'Found ${seriesDocs.length} recurring series to expand for sync');
+      ErrorLogger.logInfo('EventProvider',
+          'Found ${seriesDocs.length} recurring series to expand for sync');
 
-
-      
       for (final doc in nonRecurringDocs) {
         try {
           updatedEvents.add(CalEvent.fromSnapshot(doc));
@@ -182,8 +167,7 @@ class EventProvider extends ChangeNotifier {
               error: e);
         }
       }
-    /*********************************************************************************************************** */
-
+      /*********************************************************************************************************** */
 
       // Expand recurring series into instances
       final now = DateTime.now();
@@ -192,27 +176,17 @@ class EventProvider extends ChangeNotifier {
 
       for (final sdoc in seriesDocs) {
         try {
-          // Fetch exceptions
-          final excSnap = await db
-              .collection('events')
-              .doc(sdoc.id)
-              .collection('exceptions')
-              .get();
 
-          final Map<int, Map<String, dynamic>> exceptionsByMs = {};
-          for (final exc in excSnap.docs) {
-            final ed = exc.data() as Map<String, dynamic>;
-            if (ed['date'] is Timestamp) {
-              exceptionsByMs[(ed['date'] as Timestamp).toDate().millisecondsSinceEpoch] = ed;
-            }
-          }
-
-          final instances = _generateInstancesFromSeries(sdoc, windowStart, windowEnd, exceptionsByMs);
+          final instances = _generateInstancesFromSeries(
+              sdoc, windowStart, windowEnd);
 
           updatedEvents.addAll(instances);
-          ErrorLogger.logInfo('EventProvider','Expanded series ${sdoc.id} into ${instances.length} instances');
+          ErrorLogger.logInfo('EventProvider',
+              'Expanded series ${sdoc.id} into ${instances.length} instances');
         } catch (e) {
-          print('⚠️ Failed to expand series ${sdoc.id}: $e');
+          ErrorLogger.logError(
+              'EventProvider', 'Failed to expand series ${sdoc.id}',
+              error: e);
         }
       }
 
@@ -258,21 +232,29 @@ class EventProvider extends ChangeNotifier {
           .get();
 
       if (doc.exists) {
-        final newEvent = CalEvent.fromSnapshot(doc);
-
-        // Check if event already exists and update, otherwise add
-        final existingIndex = _allEvents.indexWhere((e) => e.id == newEvent.id);
-        if (existingIndex >= 0) {
-          _allEvents[existingIndex] = newEvent;
-          ErrorLogger.logInfo(
-              'EventProvider', 'Updated existing event: ${newEvent.eventName}');
+        final data = doc.data() as Map<String, dynamic>;
+        final isRecurring = _hasRecurrence(data);
+        final eventWindowStart =
+            DateTime.now().subtract(const Duration(days: 1));
+        final eventWindowEnd = DateTime.now().add(const Duration(days: 90));
+        List<CalEvent> newEvents;
+        if (isRecurring) {
+          newEvents = _generateInstancesFromSeries(
+              doc, eventWindowStart, eventWindowEnd);
         } else {
-          _allEvents.add(newEvent);
-          ErrorLogger.logInfo('EventProvider',
-              'Added new event to calendar: ${newEvent.eventName}');
+          newEvents = [CalEvent.fromSnapshot(doc)];
         }
 
+        _allEvents.removeWhere(
+            (event) => event.id == eventId || event.seriesId == eventId);
+        for (final newEvent in newEvents) {
+          _allEvents.add(newEvent);
+        }
+
+        ErrorLogger.logInfo('EventProvider',
+            'Added or updated ${newEvents.length} event occurrence(s) for $eventId');
         _needsLogoLinking = true;
+        _allEvents.sort((a, b) => a.startTime.compareTo(b.startTime));
         notifyListeners();
       }
     } catch (e) {
@@ -297,13 +279,23 @@ class EventProvider extends ChangeNotifier {
               whereIn: ['approved', 'Approved', 'pending', 'Pending'])
           .snapshots()
           .listen(
-            (snapshot) {
+            (snapshot) async {
               try {
                 final updatedEvents = <CalEvent>[];
+                final now = DateTime.now();
+                final windowStart = now.subtract(const Duration(days: 1));
+                final windowEnd = now.add(const Duration(days: 90));
 
                 for (final doc in snapshot.docs) {
                   try {
-                    updatedEvents.add(CalEvent.fromSnapshot(doc));
+                    final data = doc.data();
+                    if (!_hasRecurrence(data)) {
+                      updatedEvents.add(CalEvent.fromSnapshot(doc));
+                      continue;
+                    }
+
+                    updatedEvents.addAll(_generateInstancesFromSeries(
+                        doc, windowStart, windowEnd));
                   } catch (e) {
                     ErrorLogger.logError('EventProvider',
                         'Failed to parse real-time event ${doc.id}',
@@ -311,20 +303,9 @@ class EventProvider extends ChangeNotifier {
                   }
                 }
 
-                // Merge new events with existing ones, updating if already present
-                for (final newEvent in updatedEvents) {
-                  final index =
-                      _allEvents.indexWhere((e) => e.id == newEvent.id);
-                  if (index >= 0) {
-                    _allEvents[index] = newEvent;
-                  } else {
-                    _allEvents.add(newEvent);
-                  }
-                }
-
-                // Remove deleted events
-                _allEvents.removeWhere((event) =>
-                    !updatedEvents.any((updated) => updated.id == event.id));
+                _allEvents
+                  ..clear()
+                  ..addAll(updatedEvents);
 
                 _allEvents.sort((a, b) => a.startTime.compareTo(b.startTime));
                 _needsLogoLinking = true;
@@ -356,8 +337,7 @@ class EventProvider extends ChangeNotifier {
     }
   }
 
-
-    /// Convert Firestore types to DateTime
+  /// Convert Firestore types to DateTime
   DateTime? _toDate(dynamic v) {
     if (v == null) return null;
     if (v is Timestamp) return v.toDate();
@@ -367,101 +347,92 @@ class EventProvider extends ChangeNotifier {
     return null;
   }
 
+  bool _hasRecurrence(Map<String, dynamic> data) {
+    final recurrence = data['recurrence'];
+    final rule = recurrence is Map ? recurrence['rrule'] : null;
+    if (rule is String && rule.trim().isNotEmpty) return true;
+    if (recurrence is Map &&
+        recurrence['rdate'] is Iterable &&
+        (recurrence['rdate'] as Iterable).isNotEmpty) {
+      return true;
+    }
+
+    return false;
+
+
+  }
 
   /// Expand recurring series into instances
   List<CalEvent> _generateInstancesFromSeries(
     DocumentSnapshot seriesDoc,
     DateTime windowStart,
     DateTime windowEnd,
-    Map<int, Map<String, dynamic>> exceptionsByMs,
   ) {
     final data = seriesDoc.data() as Map<String, dynamic>;
-    final DateTime? seriesStart = _toDate(data['startTime']) ?? _toDate(data['startDate']);
+    final DateTime? seriesStart = _toDate(data['startTime']);
     if (seriesStart == null) return [];
 
-    final DateTime seriesEnd = _toDate(data['recurrenceEndDate']) ?? seriesStart.add(const Duration(hours: 1));
+    final DateTime seriesEnd = _toDate(data['endTime']) ?? seriesStart.add(const Duration(hours: 1));
     final duration = seriesEnd.difference(seriesStart);
-    final recurrenceType = (data['recurrenceType'] ?? 'Never').toString();
-    if (recurrenceType == 'Never') return [];
-
-    final repeatUntil = _toDate(data['recurrenceEndDate']) ?? windowEnd;
-    final List<DateTime> dates = [];
-
-    // Interval (days) recurrence
-    if (recurrenceType == 'Interval (days)') {
-      final intervalDays = (int.tryParse((data['recurrenceInterval'] ?? '1').toString()) ?? 1).clamp(1, 3650);
-      for (DateTime dt = seriesStart; dt.isBefore(windowEnd) && dt.isBefore(repeatUntil); dt = dt.add(Duration(days: intervalDays))) {
-        if (!dt.isBefore(windowStart)) dates.add(dt);
-        ErrorLogger.logInfo('EventProvider', 'Generated instance for Interval (days) on $dt for series ${seriesDoc.id}');
-      }
+    final rawRule = data['recurrence'];
+    final ruleData = rawRule is Map ? Map<String, dynamic>.from(rawRule) : null;
+    var recurrenceString = ruleData?['rrule'] as String?;
+    final recurrenceDates = ruleData?['rdate'];
+    if ((recurrenceString == null || recurrenceString.trim().isEmpty) &&
+        (recurrenceDates is! Iterable || recurrenceDates.isEmpty)) {
+      return [];
     }
 
-    // Weekly recurrence
-    else if (recurrenceType == 'Weekly') {
-      final daysRaw = data['recurrenceInterval'];
-      List<int>? days;
-      if (daysRaw is List) {
-        days = daysRaw.map((d) => int.tryParse(d.toString()) ?? -1).where((d) => d >= 0 && d <= 6).toList();
-      }
-      if (days != null && days.isNotEmpty) {
-        for (DateTime dt = seriesStart; dt.isBefore(windowEnd) && dt.isBefore(repeatUntil); dt = dt.add(const Duration(days: 1))) {
-          final w = dt.weekday % 7;
-          if (days.contains(w) && !dt.isBefore(windowStart)) dates.add(dt);
+    final dates = <DateTime>{};
+    if (recurrenceString != null && recurrenceString.trim().isNotEmpty) {
+      final recurrenceRule = RecurrenceRule.fromString(recurrenceString);
+      final after =
+          windowStart.isAfter(seriesStart) ? windowStart.toUtc() : null;
+      dates.addAll(recurrenceRule.getInstances(
+        start: seriesStart.toUtc(),
+        after: after,
+        includeAfter: true,
+        before: windowEnd.toUtc(),
+        includeBefore: true,
+      ));
+    }
+
+    // add the additional dates that are part of the series but don't follow the pattern
+    if (recurrenceDates is Iterable) {
+      for (final recurrenceDate in recurrenceDates) {
+        final date = _toDate(recurrenceDate);
+        if (date != null &&
+            !date.isBefore(seriesStart) &&
+            !date.isBefore(windowStart) &&
+            !date.isAfter(windowEnd)) {
+          dates.add(date.toUtc());
         }
       }
     }
 
-    // Monthly recurrence
-    else if (recurrenceType == 'Monthly') {
-      // final intervalMonths = (int.tryParse((data['recurrenceInterval'] ?? '1').toString()) ?? 1).clamp(1, 120);
-      var intervalMonths = 1;
-      final dayOfMonth = (int.tryParse((data['recurrenceInterval'] ?? seriesStart.day).toString()) ?? seriesStart.day);
-      DateTime dt = DateTime(seriesStart.year, seriesStart.month, dayOfMonth, seriesStart.hour, seriesStart.minute, seriesStart.second);
-      print('Monthly recurrence on day $dayOfMonth starting at $dt');
-      while (dt.isBefore(seriesStart)) {
-        final nextMonth = dt.month + 1;
-        dt = DateTime(dt.year + ((nextMonth - 1) ~/ 12), ((nextMonth - 1) % 12) + 1, dayOfMonth, seriesStart.hour, seriesStart.minute, seriesStart.second);
-      }
-      print('First instance on or after series start: $dt');
-      print('Generating instances until ${windowEnd} or ${repeatUntil}');
-      while (!dt.isAfter(windowEnd) && !dt.isAfter(repeatUntil)) {
-        print('Considering date: $dt');
-        if (!dt.isBefore(windowStart) && dt.day == dayOfMonth) dates.add(dt);
-        final nextMonth = dt.month + intervalMonths;
-        print('Next month calculation: $nextMonth');
-
-        final year = dt.year + ((nextMonth - 1) ~/ 12);
-        final month = ((nextMonth - 1) % 12) + 1;
-        final int daysInMonth = DateUtils.getDaysInMonth(year, month);
-        if (dayOfMonth > daysInMonth) {
-            intervalMonths++;
-            print('Adjusting intervalMonths to $intervalMonths due to month length');
-            continue;
-        }
-        print('Next month: $month');
-        dt = DateTime(year, month, dayOfMonth, seriesStart.hour, seriesStart.minute, seriesStart.second);
+    final excludedDates = <int>{};
+    final exceptionDates = ruleData?['exdate'];
+    if (exceptionDates is Iterable) {
+      for (final exceptionDate in exceptionDates) {
+        final date = _toDate(exceptionDate);
+        if (date != null) excludedDates.add(date.millisecondsSinceEpoch);
       }
     }
+    dates.removeWhere((date) =>
+        date.isBefore(seriesStart) ||
+        date.isBefore(windowStart) ||
+        date.isAfter(windowEnd) ||
+        excludedDates.contains(date.millisecondsSinceEpoch));
 
-    // Build instances applying exceptions
     final List<CalEvent> instances = [];
     for (final dt in dates) {
       final ms = dt.millisecondsSinceEpoch;
-      final exc = exceptionsByMs[ms];
-      if (exc != null && exc['type'] == 'cancelled') continue;
 
-      DateTime instanceStart = dt;
-      DateTime instanceEnd = dt.add(duration);
+      DateTime instanceStart = dt.toLocal();
+      DateTime instanceEnd = instanceStart.add(duration);
       String eventName = '';
-      String eventLocation = data['mainLocation'] ?? data['eventLocation'] ?? '';
-
-      if (exc != null && exc['type'] == 'modified' && exc['changes'] is Map<String, dynamic>) {
-        final changes = Map<String, dynamic>.from(exc['changes']);
-        if (changes['startTime'] is Timestamp) instanceStart = (changes['startTime'] as Timestamp).toDate();
-        if (changes['endTime'] is Timestamp) instanceEnd = (changes['endTime'] as Timestamp).toDate();
-        if (changes['eventName'] != null) eventName = changes['eventName'].toString();
-        if (changes['eventLocation'] != null) eventLocation = changes['eventLocation'].toString();
-      }
+      String eventLocation = data['eventLocation'] ?? '';
+      
 
       final clubName = data['clubName'] ?? data['company'] ?? '';
       final baseEventName = data['eventName'] ?? '';
@@ -481,14 +452,18 @@ class EventProvider extends ChangeNotifier {
         logo: data['logo'],
         status: data['status'] ?? 'approved',
         companyId: data['companyId'],
-        updatedAt: data['updatedAt'] is Timestamp ? (data['updatedAt'] as Timestamp).toDate() : null,
+        updatedAt: data['updatedAt'] is Timestamp
+            ? (data['updatedAt'] as Timestamp).toDate()
+            : null,
         isd: null,
+        recurrence: ruleData,
         seriesId: seriesDoc.id,
         isInstance: true,
       ));
     }
 
-    ErrorLogger.logInfo('EventProvider','Generated ${instances.length} instances for series ${seriesDoc.id} (${recurrenceType})');
+    ErrorLogger.logInfo('EventProvider',
+        'Generated ${instances.length} instances for series ${seriesDoc.id}');
 
     return instances;
   }
